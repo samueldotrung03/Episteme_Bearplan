@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   ApiError,
   ESTIMATE_MAX_MINUTES,
@@ -42,11 +42,26 @@ function formatEstimate(minutes: number): string {
   return rest ? `${hours} h ${rest} min` : `${hours} h`;
 }
 
+function readScreen() {
+  switch (window.location.hash) {
+    case "#assistant": return "assistant";
+    case "#track": return "track";
+    case "#stats": return "stats";
+    case "#bcourses": return "bcourses";
+    case "#google": return "google";
+    case "#settings": return "settings";
+    default: return "plan";
+  }
+}
+
 export default function App() {
   const planning = usePlanning();
   const timer = useCountdown();
-  const readScreen = () => window.location.hash === "#assistant" ? "assistant" : window.location.hash === "#track" ? "track" : window.location.hash === "#stats" ? "stats" : window.location.hash === "#bcourses" ? "bcourses" : window.location.hash === "#google" ? "google" : "plan";
   const [screen, setScreen] = useState(readScreen);
+  const settingsEntry = useRef<HTMLAnchorElement>(null);
+  const settingsHeading = useRef<HTMLHeadingElement>(null);
+  const settingsReturn = useRef<{ screen: Exclude<ReturnType<typeof readScreen>, "settings">; scrollY: number } | null>(null);
+  const previousScreen = useRef(screen);
   const [trackingTaskId, setTrackingTaskId] = useState<string | null>(null);
   const [trackingRequest, setTrackingRequest] = useState(0);
   const [projects, setProjects] = useState<Project[] | null>(null);
@@ -73,6 +88,36 @@ export default function App() {
     window.addEventListener("hashchange", navigate);
     return () => window.removeEventListener("hashchange", navigate);
   }, []);
+
+  useLayoutEffect(() => {
+    if (screen === "settings") {
+      settingsReturn.current = window.history.state?.settingsReturn ?? null;
+      settingsHeading.current?.focus({ preventScroll: true });
+      window.scrollTo(0, 0);
+    } else if (previousScreen.current === "settings" && settingsReturn.current?.screen === screen) {
+      settingsEntry.current?.focus({ preventScroll: true });
+      window.scrollTo(0, settingsReturn.current.scrollY);
+    }
+    previousScreen.current = screen;
+  }, [screen]);
+
+  function openSettings(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (screen === "settings") return;
+    window.history.pushState({ settingsReturn: { screen, scrollY: window.scrollY } }, "", "#settings");
+    setScreen("settings");
+  }
+
+  function backToWork() {
+    if (settingsReturn.current) {
+      window.history.back();
+      return;
+    }
+    window.history.replaceState(null, "", "#plan");
+    setScreen("plan");
+    settingsEntry.current?.focus({ preventScroll: true });
+  }
 
   function openTrack(taskId?: string) {
     if (taskId) {
@@ -172,6 +217,7 @@ export default function App() {
           <a href="#bcourses" aria-current={screen === "bcourses" ? "page" : undefined} onClick={() => setScreen("bcourses")}>bCourses</a>
           <a href="#google" aria-current={screen === "google" ? "page" : undefined} onClick={() => setScreen("google")}>Google</a>
           <a href="#assistant" aria-current={screen === "assistant" ? "page" : undefined} onClick={() => setScreen("assistant")}>Assistant</a>
+          <a ref={settingsEntry} className="settings-entry" href="#settings" aria-current={screen === "settings" ? "page" : undefined} onClick={openSettings}>Settings</a>
         </nav>
       </header>
 
@@ -183,6 +229,20 @@ export default function App() {
       <Google visible={screen === "google"} onChanged={() => { void retry(); void planning.refresh(); }} />
       <Assistant visible={screen === "assistant"} projectId={selectedId} date={planning.plan?.week_start}
         onChanged={() => { if (selectedId) void refreshTasks(selectedId); void planning.refresh(); void timer.refresh(); }} />
+
+      {screen === "settings" ? (
+        <section className="settings" aria-labelledby="settings-heading">
+          <div className="settings-heading">
+            <h2 id="settings-heading" ref={settingsHeading} tabIndex={-1}>Settings</h2>
+            <button type="button" onClick={backToWork}>Back to work</button>
+          </div>
+          <h3>Connections</h3>
+          <ul className="settings-connections">
+            <li><a href="#bcourses">Open bCourses</a><p className="muted">Review assignments and manage imported courses.</p></li>
+            <li><a href="#google">Open Google</a><p className="muted">Manage calendars and sync with Google.</p></li>
+          </ul>
+        </section>
+      ) : null}
 
       <div hidden={screen !== "plan"}>
 

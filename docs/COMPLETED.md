@@ -9,6 +9,15 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — APP-C05.1 Settings route and work context
+
+Added Settings to the shared app navigation and a Connections overview linking
+to the existing provider screens. Back to work restores the originating view,
+including selected Plan work, a draft and scroll. Chrome verified the same
+running/paused timer through Settings. On macOS, 177 frontend tests, typecheck,
+the production build and two guarded Chrome checks passed. Pass with follow-ups.
+[Settings route review](reviews/2026-11-06-settings-route.md).
+
 ## 2026-11-06 — APP-C04.4 Google Sync once and Resume
 
 Sync once retains Pause and rejects overlaps. Resume wakes reconciliation on

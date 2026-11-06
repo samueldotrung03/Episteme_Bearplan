@@ -203,7 +203,7 @@ export function TrackScreen({ timer, plan, projects, requestedTaskId, requestTok
   const heading = useRef<HTMLHeadingElement>(null);
   const eligibleTasks = plan?.tasks.filter((task) => task.subtask_count === 0 && !task.completed) ?? [];
   useEffect(() => { if (requestedTaskId) setTaskId(requestedTaskId); }, [requestedTaskId, requestToken]);
-  useEffect(() => { if (visible) heading.current?.focus(); }, [visible]);
+  useEffect(() => { if (visible) heading.current?.focus({ preventScroll: true }); }, [visible]);
   const selectedTask = eligibleTasks.find((task) => task.id === taskId);
   const validDuration = /^\d+$/.test(minutes) && Number(minutes) >= 1 && Number(minutes) <= 180;
   const active = timer.active;
