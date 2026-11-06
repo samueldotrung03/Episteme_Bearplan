@@ -32,7 +32,7 @@ describe("Google", () => {
     expect(screen.queryByRole("button", { name: "Connect Google" })).toBeNull();
   });
 
-  it("offers a fallback when a tab is blocked and cancels only the current sign-in attempt", async () => {
+  it("offers a fallback when a tab is blocked and cancels only the current sign-in attempt", async ({ onTestFinished }) => {
     const url = "https://accounts.google.com/o/oauth2/auth?x=1";
     const attempt = "test-attempt";
     const open = vi.spyOn(window, "open").mockReturnValue(null);
@@ -52,8 +52,32 @@ describe("Google", () => {
       if (failRead) return reply({ error: { message: "Status unavailable." } }, 503);
       return reply({ ...signedOut, sign_in_pending: pending, sign_in_attempt_id: pending ? attempt : null });
     });
+    const prototype = HTMLDialogElement.prototype;
+    const showModal = Object.getOwnPropertyDescriptor(prototype, "showModal");
+    const close = Object.getOwnPropertyDescriptor(prototype, "close");
+    Object.defineProperties(prototype, {
+      showModal: { configurable: true, value(this: HTMLDialogElement) { this.setAttribute("open", ""); } },
+      close: { configurable: true, value(this: HTMLDialogElement) { this.removeAttribute("open"); } },
+    });
+    onTestFinished(() => {
+      for (const [key, descriptor] of [["showModal", showModal], ["close", close]] as const) {
+        if (descriptor) Object.defineProperty(prototype, key, descriptor);
+        else Reflect.deleteProperty(prototype, key);
+      }
+    });
     const view = render(<Google visible />);
-    await userEvent.click(await screen.findByRole("button", { name: "Connect Google" }));
+    const user = userEvent.setup();
+    const trigger = await screen.findByRole("button", { name: "Connect Google" });
+    await user.click(trigger);
+    expect(screen.getByRole("dialog", { name: "What BearPlans shares with Google" })).toBeVisible();
+    expect(screen.getByText(/including bCourses assignments you added/)).toBeVisible();
+    expect(fetch.mock.calls.some(([input]) => String(input).endsWith("/connect"))).toBe(false);
+    expect(open).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(trigger).toHaveFocus();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Continue with Google" }));
     expect(open).toHaveBeenCalledWith(url, "_blank", "noopener");
     expect(await screen.findByRole("link", { name: "Open Google sign-in" })).toHaveAttribute("href", url);
     view.rerender(<Google visible={false} />);

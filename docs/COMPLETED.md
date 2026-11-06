@@ -9,6 +9,14 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — APP-C07.1 Google sharing review before sign-in
+
+Connect and Reconnect now review selected calendar reads, timed plan publishing
+and all-task sync before creating an authorization attempt. Verified keyboard
+dismissal, focus return, explicit continuation and browser fallback. On macOS,
+179 frontend tests, typecheck, production build and 89 guarded checks passed.
+Pass with follow-ups. [Google sharing review](reviews/2026-11-06-settings-google-sharing.md).
+
 ## 2026-11-06 — APP-C06.2 bCourses course management and assignment review
 
 Moved the course checklist into Settings and linked it to the existing bCourses

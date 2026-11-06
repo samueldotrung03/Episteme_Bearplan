@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, cancelGoogleSignIn, connectGoogle, disconnectGoogle, followGoogleCalendars, getGoogle, getGoogleCalendars, getGoogleChanges, refreshGoogleCalendars, syncGoogleTasks, type GoogleCalendar, type GoogleState } from "./api";
 
+import { ConnectionDialog } from "./ConnectionSetup";
+
 const stampLabel = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 const message = (caught: unknown, fallback: string) => caught instanceof ApiError ? caught.message : fallback;
 
@@ -11,6 +13,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
   const [error, setError] = useState<string | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
   const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [reviewingScope, setReviewingScope] = useState(false);
   const [signInLink, setSignInLink] = useState<{ url: string; attempt_id: string } | null>(null);
   const [status, setStatus] = useState("");
   const viewVisible = useRef(visible);
@@ -47,6 +50,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
     viewVisible.current = visible;
     if (!visible) {
       setStatusReadThisVisit(false);
+      setReviewingScope(false);
       return;
     }
     if (!actionRunning.current) void load();
@@ -66,6 +70,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
   const changing = state?.connection_changing ?? false;
   const providerBusy = changing || pausing || (state?.activity ?? "idle") !== "idle";
   const controlsBusy = busy !== null || providerBusy;
+  const canConnect = Boolean(state?.configured && statusReadThisVisit && !readError && !pending && !controlsBusy);
 
   // Read the saved picker state. Preserve the existing first-visit refresh.
   useEffect(() => {
@@ -194,10 +199,27 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
           ? <p><a href={signInLink.url} target="_blank" rel="noopener noreferrer">Open Google sign-in</a> if the browser tab did not open.</p> : null}
         {pendingAttemptId ? <button type="button" disabled={busy !== null}
           onClick={() => void cancelSignIn(pendingAttemptId)}>Cancel sign-in</button> : null}
-      </> : <button type="button" disabled={controlsBusy} onClick={() => void connect()}>{state.connected ? "Reconnect Google" : "Connect Google"}</button>}
+      </> : <button type="button" disabled={!canConnect} onClick={() => setReviewingScope(true)}>{state.connected || state.missing_permissions.length ? "Reconnect Google" : "Connect Google"}</button>}
       {connected ? <button type="button" className="link" disabled={busy !== null || changing}
         onClick={() => void disconnect()}>Disconnect</button> : null}
     </div> : null}
+
+    {visible && reviewingScope ? <ConnectionDialog title="What BearPlans shares with Google" busy={false}
+      onDismiss={() => setReviewingScope(false)}>
+      <ul className="google-sharing">
+        <li><strong>Show calendar events in Plan.</strong> BearPlans reads the Google calendars you select. It leaves their events untouched.</li>
+        <li><strong>Publish timed plans.</strong> Incomplete tasks with a planned start time sync to the separate BearPlans calendar with a 30-minute reminder.</li>
+        <li><strong>Sync tasks.</strong> All local projects, tasks and subtasks sync to BearPlans-created Google Tasks lists, including bCourses assignments you added. Task titles, notes and dates are shared. Completing a task in Google can update it here. Your personal Google Tasks lists stay untouched.</li>
+      </ul>
+      <p className="muted">Calendar selection controls which events BearPlans reads. All local tasks are included in task sync.</p>
+      <div className="form-actions">
+        <button type="button" className="secondary" autoFocus onClick={() => setReviewingScope(false)}>Cancel</button>
+        <button type="button" disabled={!canConnect} onClick={() => {
+          setReviewingScope(false);
+          void connect();
+        }}>Continue with Google</button>
+      </div>
+    </ConnectionDialog> : null}
 
     {pausing ? <p role="status">Pausing… Waiting for current Google work to finish.</p>
       : paused ? <p>Automatic sync is paused.</p> : null}

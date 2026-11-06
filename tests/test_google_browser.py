@@ -162,3 +162,55 @@ def test_settings_pause_sync_once_and_resume(browser, evidence, served):
         assert page.request.get(url + "/api/google").json()["tasks"]["paused_at"] is None
     finally:
         page.close()
+
+
+def test_google_sharing_review_precedes_browser_sign_in(browser, evidence, served):
+    expect = playwright_sync.expect
+    url, *_ = served
+    page = browser.new_page(viewport={"width": 640, "height": 800}, color_scheme="dark")
+    attempts = []
+    missing_permissions = []
+    auth_url = "https://accounts.google.com/o/oauth2/auth?fixture=sharing-review"
+    page.add_init_script("window.open = () => null")
+
+    def state(route):
+        current = route.fetch().json()
+        current.update(connected=False, sign_in_pending=bool(attempts),
+                       sign_in_attempt_id="fixture" if attempts else None, missing_permissions=missing_permissions)
+        route.fulfill(json=current)
+
+    def connect(route):
+        attempts.append(route.request.method)
+        route.fulfill(json={"url": auth_url, "attempt_id": "fixture"})
+
+    page.route("**/api/google", state)
+    page.route("**/api/google/connect", connect)
+    try:
+        page.goto(url + "/#settings")
+        page.get_by_role("link", name="Open Google").click()
+        trigger = page.get_by_role("button", name="Connect Google", exact=True)
+        trigger.focus()
+        page.keyboard.press("Enter")
+        review = page.get_by_role("dialog", name="What BearPlans shares with Google")
+        expect(review.get_by_role("button", name="Cancel")).to_be_focused()
+        expect(review).to_contain_text("Google calendars you select")
+        expect(review).to_contain_text("30-minute reminder")
+        expect(review).to_contain_text("including bCourses assignments you added")
+        assert not attempts
+        assert no_horizontal_overflow(page)
+        page.screenshot(path=evidence / "google-sharing-640-dark.png")
+        page.keyboard.press("Escape")
+        expect(review).to_have_count(0)
+        expect(trigger).to_be_focused()
+        assert not attempts
+        missing_permissions.append("tasks")
+        page.reload()
+        page.get_by_role("button", name="Reconnect Google", exact=True).click()
+        expect(review).to_be_visible()
+        assert not attempts
+        review.get_by_role("button", name="Continue with Google").click()
+        expect(review).to_have_count(0)
+        expect(page.get_by_role("link", name="Open Google sign-in")).to_have_attribute("href", auth_url)
+        assert attempts == ["POST"]
+    finally:
+        page.close()

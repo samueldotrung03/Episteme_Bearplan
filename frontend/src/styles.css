@@ -1224,6 +1224,12 @@ details > summary:focus-visible {
   background: var(--surface);
 }
 
+.google-sharing {
+  display: grid;
+  gap: 0.65rem;
+  padding-inline-start: 1.25rem;
+}
+
 .connection-dialog::backdrop {
   background: rgb(0 0 0 / 50%);
 }
