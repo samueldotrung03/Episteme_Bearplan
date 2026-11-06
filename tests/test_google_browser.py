@@ -262,3 +262,80 @@ def test_google_sharing_review_precedes_browser_sign_in(browser, evidence, serve
         assert attempts == ["POST"]
     finally:
         page.close()
+
+
+def test_reviewed_account_recovery_and_offline_disconnect(browser, served, monkeypatch):
+    from backend.domain.google_tasks import sync
+    from backend.domain.tasks import create_task
+    from backend.platform import google
+    from tests.test_google_account import Account
+
+    expect = playwright_sync.expect
+    url, db, tasks, calendar = served
+    original = Account("previous@example.com")
+    local_task = create_task(db, "Keep this task")
+    sync(db, original.tasks, GoogleUnavailable, original)
+    local_ids = {task.id for task in list_tasks(db)}
+    original_ids = [item["id"] for group in original.tasks.items.values() for item in group.values()]
+    revocations = []
+
+    def cannot_revoke(refresh):
+        revocations.append(True)
+        return False
+
+    monkeypatch.setattr(google, "revoke_token", cannot_revoke)
+    page = browser.new_page(viewport={"width": 640, "height": 800})
+    try:
+        page.goto(url + "/#settings")
+        settings = page.get_by_role("region", name="Settings")
+        settings.get_by_role("button", name="Pause automatic sync").click()
+        expect(settings.get_by_text("Automatic sync is paused.", exact=True)).to_be_visible()
+        settings.get_by_role("link", name="Open Google").click()
+        tab = page.get_by_role("region", name="Google")
+        tab.get_by_role("button", name="Refresh calendars").click()
+        review = tab.get_by_role("button", name="Review using this account…")
+        expect(review).to_be_enabled()
+        expect(tab.get_by_role("button", name="Sync once")).to_be_disabled()
+        assert tasks.calls == calendar.calls == []
+
+        review.click()
+        dialog = page.get_by_role("dialog", name="Use this Google account?")
+        expect(dialog).to_contain_text("Automatic sync stays paused.")
+        page.keyboard.press("Escape")
+        expect(review).to_be_focused()
+        assert page.request.get(url + "/api/google").json()["tasks"]["account_status"] == "different_account"
+
+        review.click()
+        with page.expect_response(lambda response: response.url.endswith("/use-this-account")) as adoption:
+            dialog.get_by_role("button", name="Use this account", exact=True).click()
+        assert adoption.value.ok
+        expect(dialog).to_have_count(0)
+        expect(tab.get_by_text("Automatic sync is paused.", exact=True)).to_be_visible()
+        assert tasks.calls == calendar.calls == []
+
+        tab.get_by_role("button", name="Sync once").click()
+        expect(tab.get_by_text("Google sync finished.")).to_be_visible()
+        [item] = [item for group in tasks.items.values() for item in group.values()
+                  if item.get("title") == local_task.title and not item.get("deleted")]
+        assert [item["id"] for group in original.tasks.items.values() for item in group.values()] == original_ids
+        assert "delete_task" not in original.tasks.calls
+
+        trigger = tab.get_by_role("button", name="Disconnect", exact=True)
+        trigger.click()
+        dialog = page.get_by_role("dialog", name="Disconnect Google?")
+        expect(dialog).to_contain_text("Your setup file, local work, and cached calendar events will stay.")
+        dialog.get_by_role("button", name="Cancel").click()
+        expect(trigger).to_be_focused()
+        assert not revocations
+
+        trigger.click()
+        dialog.get_by_role("button", name="Disconnect Google", exact=True).click()
+        expect(tab.get_by_role("status")).to_contain_text("could not confirm that Google revoked access")
+        state = page.request.get(url + "/api/google").json()
+        assert state["configured"] and not state["connected"] and state["tasks"]["paused_at"]
+        assert revocations == [True]
+        assert {task.id for task in list_tasks(db)} == local_ids
+        assert not item.get("deleted")
+        assert no_horizontal_overflow(page)
+    finally:
+        page.close()

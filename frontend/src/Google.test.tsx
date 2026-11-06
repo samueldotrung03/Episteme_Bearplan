@@ -165,19 +165,6 @@ describe("Google", () => {
     expect(screen.queryByRole("heading", { name: "Calendars to show" })).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(1);
   });
-
-  it("uses the Disconnect receipt to distinguish unconfirmed remote revocation", async () => {
-    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
-      const url = String(input);
-      return url.endsWith("/disconnect")
-        ? reply({ ...signedOut, revoked: false })
-        : reply({ ...base, tasks: { ...base.tasks, paused_at: "2026-11-05T08:00:00Z" } }, 200, url);
-    });
-    render(<Google visible />);
-    await userEvent.click(await screen.findByRole("button", { name: "Disconnect" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("could not confirm that Google revoked access");
-    expect(screen.getByText("Sign in to Google to continue.")).toBeVisible();
-  });
 });
 
 describe("Google calendars to show", () => {

@@ -79,7 +79,7 @@ export function ConnectionSetup({ provider, onDismiss, onSaved }: {
   return <ConnectionDialog title={token ? "Set up bCourses token" : "Set up Google sign-in file"} busy={busy} onDismiss={onDismiss}>
     <p className="muted">{token
       ? "In bCourses, open Account → Settings → New Access Token, then paste the new token here."
-      : "Choose the OAuth JSON file you downloaded for a Desktop app. Saving the file is a separate step from signing in."}</p>
+      : "Choose the OAuth JSON file you downloaded for a Desktop app. Saving a file for a different Desktop app signs you out here. Your local tasks and history stay. Sign in again after saving."}</p>
     <form onSubmit={save} aria-busy={busy}>
       <label className="connection-field">
         {token ? "New bCourses token" : "Google Desktop app JSON file"}

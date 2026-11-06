@@ -9,6 +9,14 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — APP-C07.4 Google reconnect and disconnect recovery
+
+Added reviewed account recovery and disconnect to Google detail. Verified
+cancellation, Pause retention, fresh links after adoption and truthful
+local disconnect when revocation could not be confirmed. On macOS, 178
+frontend tests, typecheck, production build and 162 guarded checks passed.
+Pass with follow-ups. [Google recovery review](reviews/2026-11-06-settings-google-recovery.md).
+
 ## 2026-11-06 — APP-C07.3 Google Plan and task integration
 
 Kept Google completion changes at leaf level in the task adapter and clarified

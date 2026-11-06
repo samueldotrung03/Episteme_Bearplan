@@ -602,6 +602,9 @@ export function cancelGoogleSignIn(attemptId: string): Promise<{ cancelled: bool
 export function disconnectGoogle(): Promise<GoogleState> {
   return request("/api/google/disconnect", { method: "POST" });
 }
+export function useGoogleAccount(reviewKey: string): Promise<GoogleState> {
+  return request("/api/google/use-this-account", json("POST", { review_key: reviewKey }));
+}
 export function setGoogleSyncPaused(paused: boolean): Promise<GoogleState> {
   return request(paused ? "/api/google/pause" : "/api/google/resume", { method: "POST" });
 }

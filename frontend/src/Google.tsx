@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, cancelGoogleSignIn, connectGoogle, disconnectGoogle, followGoogleCalendars, getGoogle, getGoogleCalendars, getGoogleChanges, refreshGoogleCalendars, syncGoogleTasks, type GoogleCalendar, type GoogleState } from "./api";
+import { ApiError, cancelGoogleSignIn, connectGoogle, disconnectGoogle, followGoogleCalendars, getGoogle, getGoogleCalendars, getGoogleChanges, refreshGoogleCalendars, syncGoogleTasks, useGoogleAccount, type GoogleCalendar, type GoogleState } from "./api";
 
 import { ConnectionDialog } from "./ConnectionSetup";
 
@@ -14,6 +14,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
   const [readError, setReadError] = useState<string | null>(null);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [reviewingScope, setReviewingScope] = useState(false);
+  const [recovery, setRecovery] = useState<{ kind: "disconnect" } | { kind: "account"; key: string } | null>(null);
   const [signInLink, setSignInLink] = useState<{ url: string; attempt_id: string } | null>(null);
   const [status, setStatus] = useState("");
   const viewVisible = useRef(visible);
@@ -51,6 +52,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
     if (!visible) {
       setStatusReadThisVisit(false);
       setReviewingScope(false);
+      setRecovery(null);
       return;
     }
     if (!actionRunning.current) void load();
@@ -67,6 +69,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
   const paused = Boolean(tasks?.paused_at);
   const pausing = state?.pausing ?? false;
   const reviewRequired = tasks?.account_status === "different_account" || tasks?.account_status === "unowned_links";
+  const accountReviewKey = tasks?.account_review_key;
   const changing = state?.connection_changing ?? false;
   const providerBusy = changing || pausing || (state?.activity ?? "idle") !== "idle";
   const controlsBusy = busy !== null || providerBusy;
@@ -159,9 +162,17 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
     setStatus(next.revoked === false
       ? "Disconnected here. BearPlans could not confirm that Google revoked access."
       : next.revoked === true ? "Disconnected here. Google confirmed access was revoked." : "Disconnected here.");
+    setRecovery(null);
     onChanged?.();
     return next;
   });
+
+  const adoptAccount = (key: string) => run("account", async () => {
+    const next = await useGoogleAccount(key);
+    setRecovery(null);
+    onChanged?.();
+    return next;
+  }, "Google account updated. Sync will create new links for this account.");
 
   const sync = () => run("sync", async () => {
     try {
@@ -176,8 +187,8 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
       <button type="button" disabled={controlsBusy || !connected || pending || reviewRequired} onClick={() => void sync()}>
         {busy === "sync" ? "Syncing…" : paused ? "Sync once" : "Sync now"}</button>
     </div>
-    <p className="muted">Every project, task and subtask is copied to Google Tasks: each project becomes a list with the same name. Ticking a task done in Google marks it done here too. Other changes made in Google are replaced by BearPlans. Your own Google lists are never touched.</p>
-    {error ? <p role="alert" className="error">{error}</p> : null}
+    <p className="muted">Every project, task and subtask is copied to Google Tasks: each project becomes a list with the same name. Checking or unchecking a task with no subtasks in Google can update it here. Other changes made in Google are replaced by BearPlans. Your own Google lists are never touched.</p>
+    {error && !recovery ? <p role="alert" className="error">{error}</p> : null}
     {readError ? <div className="form-actions">
       <p role="alert" className="error">Connection status could not be refreshed. {readError}</p>
       <button type="button" disabled={busy !== null} onClick={() => void load()}>Retry status</button>
@@ -193,7 +204,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
         : state.activity === "syncing" && busy !== "sync" ? <p>Syncing with Google…</p> : null}
       {reviewRequired ? <p role="alert" className="error">{tasks?.account_status === "unowned_links"
         ? "The existing Google links need an account review before they can be used."
-        : "This account cannot use the saved Google links. Reconnect with the previous account."}</p> : null}
+        : "This account cannot use the saved Google links. Reconnect with the previous account or review starting fresh."}</p> : null}
       {state.sign_in_error ? <p role="alert" className="error">{state.sign_in_error}</p> : null}
       {state.missing_permissions.length ? <p role="alert" className="error">Some permissions were not given ({state.missing_permissions.join(", ")}). Choose Reconnect Google and tick every box.</p> : null}
       {pending ? <>
@@ -202,9 +213,36 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
         {pendingAttemptId ? <button type="button" disabled={busy !== null}
           onClick={() => void cancelSignIn(pendingAttemptId)}>Cancel sign-in</button> : null}
       </> : <button type="button" disabled={!canConnect} onClick={() => setReviewingScope(true)}>{state.connected || state.missing_permissions.length ? "Reconnect Google" : "Connect Google"}</button>}
-      {connected ? <button type="button" className="link" disabled={busy !== null || changing}
-        onClick={() => void disconnect()}>Disconnect</button> : null}
+      {connected && !pending && reviewRequired && accountReviewKey ? <button type="button" className="secondary"
+        disabled={controlsBusy || !statusReadThisVisit || Boolean(readError)} onClick={() => {
+          setError(null);
+          setRecovery({ kind: "account", key: accountReviewKey });
+        }}>Review using this account…</button> : null}
+      {connected ? <button type="button" className="link" disabled={busy !== null || changing || Boolean(readError)}
+        onClick={() => { setError(null); setRecovery({ kind: "disconnect" }); }}>Disconnect</button> : null}
     </div> : null}
+
+    {visible && recovery ? <ConnectionDialog
+      title={recovery.kind === "disconnect" ? "Disconnect Google?" : "Use this Google account?"}
+      busy={busy !== null} onDismiss={() => setRecovery(null)}>
+      {recovery.kind === "disconnect" ? <>
+        <p>BearPlans will remove the saved Google sign-in here and stop Google sync. Your setup file, local work, and cached calendar events will stay. Copies already in Google will stay there.</p>
+        <p>BearPlans will ask Google to revoke access and report whether Google confirms it.</p>
+      </> : <>
+        <p>BearPlans will clear the previous Google sync links, calendar selections, and cached calendar events here. Your tasks, including imported tasks, and your history will stay. Copies in the previous Google account will stay there.</p>
+        <p>The next sync will create new Google Tasks lists for all local projects and publish timed plans to a separate BearPlans calendar in this account. {paused ? "Automatic sync stays paused." : "Automatic sync may start after you confirm."}</p>
+      </>}
+      {error ? <p role="alert" className="error">{error}</p> : null}
+      <div className="form-actions">
+        <button type="button" className="secondary" autoFocus disabled={busy !== null}
+          onClick={() => setRecovery(null)}>Cancel</button>
+        <button type="button" disabled={busy !== null || changing || Boolean(readError)
+          || (recovery.kind === "account" && (!connected || pending || tasks?.account_review_key !== recovery.key))}
+          onClick={() => void (recovery.kind === "disconnect" ? disconnect() : adoptAccount(recovery.key))}>
+          {recovery.kind === "disconnect" ? "Disconnect Google" : "Use this account"}
+        </button>
+      </div>
+    </ConnectionDialog> : null}
 
     {visible && reviewingScope ? <ConnectionDialog title="What BearPlans shares with Google" busy={false}
       onDismiss={() => setReviewingScope(false)}>
@@ -233,7 +271,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
       <h3>Google Calendar</h3>
       {tasks.account_status === "verified" ? <p>{tasks.synced_events} upcoming {tasks.synced_events === 1 ? "event" : "events"} in the “BearPlans” calendar.</p> : null}
       <p className="muted">Give a planned task a start time (open it on the Plan screen, then “Move or remove”) and it appears in the BearPlans calendar with a reminder 30 minutes before. Finishing the task removes the event.</p>
-      {!paused && !pausing ? <p className="muted">Automatic sync runs every two minutes and shortly after a change.</p> : null}
+      {!paused && !pausing && !reviewRequired ? <p className="muted">Automatic sync runs every two minutes and shortly after a change.</p> : null}
     </div> : null}
 
     {connected && !pending && !reviewRequired ? <div className="google-calendars">

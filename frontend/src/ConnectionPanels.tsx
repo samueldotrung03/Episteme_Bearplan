@@ -183,7 +183,7 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSyncSe
         {google?.configured ? <p>{google.sign_in_pending ? "Waiting for Google sign-in" : google.connected ? "Sign-in saved" : "Sign-in needed"}</p> : null}
         {google?.sign_in_error ? <p role="alert" className="error">{google.sign_in_error}</p> : null}
         {google?.missing_permissions.length ? <p role="alert" className="error">Some permissions are missing. Open Google to reconnect.</p> : null}
-        {accountReview ? <p role="alert" className="error">Google needs an account review before it can sync.</p> : null}
+        {accountReview ? <p role="alert" className="error">Google sync is blocked. Open Google to reconnect or review using this account.</p> : null}
         {google?.tasks.last_error && google.tasks.last_error !== actionError ? <p role="alert" className="error">Last sync failed. {google.tasks.last_error}</p> : null}
         {googleError ? <p role="alert" className="error">Could not refresh Google status. {googleError}</p> : null}
         {actionError ? <p role="alert" className="error">{actionError}</p> : null}
@@ -193,7 +193,7 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSyncSe
           : google?.connection_changing ? <p role="status">Updating Google connection…</p>
           : null}
         {showGoogleControls ? <>
-          <p role="status">{paused ? "Automatic sync is paused." : "Automatic sync is enabled."}</p>
+          <p role="status">{paused ? "Automatic sync is paused." : accountReview ? "Automatic sync is blocked until account review." : "Automatic sync is enabled."}</p>
           {action === "sync" || google?.activity === "syncing" ? <p role="status">Syncing with Google…</p>
             : google?.activity === "refreshing_calendars" ? <p role="status">Refreshing calendars…</p> : null}
           {receipt ? <p role="status">{receipt}</p> : null}
