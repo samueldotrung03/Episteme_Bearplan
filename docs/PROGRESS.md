@@ -145,9 +145,14 @@ rejection from an unconfirmed check, requires review before local removal, and
 offers Check saved token after a save with unrecorded check evidence.
 [Credential controls review](reviews/2026-11-06-settings-bcourses-token.md).
 
-**Next eligible work:** APP-C06.2. Put course management in Settings using the
-existing course state and expose the assignment-review entry. Verify Add-once,
-due-date review and return to active work. No unit is active.
+**bCourses course management:** APP-C06.2 is complete. Settings holds the
+course checklist and links to assignment review. Both surfaces use the same
+cached state and require explicit Refresh or Save courses for provider reads.
+[Course management review](reviews/2026-11-06-settings-bcourses-courses.md).
+
+**Next eligible work:** APP-C07.1. Reconcile the existing Google setup dialog and
+browser flow, then wire the three-function sharing review before sign-in.
+No unit is active.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
@@ -187,7 +192,7 @@ work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint.
 
 ## Next up
 
-1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review is next. Existing core/hardware/runtime gates remain open.
+1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review are complete. APP-C07.1 Google sharing and authorization is next. Existing core/hardware/runtime gates remain open.
 2. **User hands-on review of the Assistant in the app preview** (pending).
    **Connection setup baseline:** credential relocation is committed in f375f24
    and write-only setup routes in 674db93. Current source continues to advance;
@@ -350,7 +355,8 @@ Pause/status/disconnect work; concurrent account-isolation work remains unverifi
 | APP-C05.2 | Done — Pass with follow-ups | [Credential dialogs and sign-in recovery](reviews/2026-11-06-settings-credential-dialogs.md). |
 | APP-C05.3 | Done — Pass with follow-ups | [Provider panels and sync controls](reviews/2026-11-06-settings-provider-panels.md). |
 | APP-C06.1 | Done — Pass with follow-ups | [Token controls and recovery](reviews/2026-11-06-settings-bcourses-token.md). |
-| APP-C06.2–09 | Not started as this execution sequence | APP-C06.2 course management and assignment review is next. |
+| APP-C06.2 | Done — Pass with follow-ups | [Courses and assignment review](reviews/2026-11-06-settings-bcourses-courses.md). |
+| APP-C07–09 | Not started as this execution sequence | APP-C07.1 Google sharing and authorization is next. |
 
 ## UX delivery register
 This is the sole mutable UX status table; stable ticket details/acceptance live in

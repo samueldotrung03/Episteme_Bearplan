@@ -9,6 +9,15 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — APP-C06.2 bCourses course management and assignment review
+
+Moved the course checklist into Settings and linked it to the existing bCourses
+work view. Opening either reads local cache. Explicit Refresh and Save courses
+fetch provider data. Failed saves retain the draft or acknowledge saved choices
+with refresh recovery. On macOS, 179 frontend tests, typecheck, production build
+and 107 guarded pytest cases, including six Chrome journeys, passed.
+Pass with follow-ups. [Course management review](reviews/2026-11-06-settings-bcourses-courses.md).
+
 ## 2026-11-06 — APP-C06.1 bCourses token controls in Settings
 
 Added saved-token Check and reviewed local Remove, with separate rejection and

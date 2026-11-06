@@ -21,10 +21,6 @@ const working: api.GoogleState = {
 
 function mockStatus(google = working) {
   vi.spyOn(api, "getConnections").mockResolvedValue(credentials);
-  vi.spyOn(api, "getBCourses").mockResolvedValue({
-    configured: true, courses: [], assignments: [],
-    sync: { last_attempt_at: timestamp, last_success_at: timestamp, last_error: null },
-  });
   vi.spyOn(api, "getGoogle").mockResolvedValue(google);
 }
 
@@ -72,7 +68,7 @@ it("keeps provider evidence when status fails and retries the read", async () =>
     .mockResolvedValueOnce({ ...working, status: "signed_out", connected: false });
   const user = userEvent.setup();
   render(<ConnectionPanels visible credentialVersion={0} onSetup={vi.fn()} onSynced={vi.fn()} onTokenRemoved={vi.fn()} />);
-  expect(await screen.findByText(/Last assignment refresh/)).toBeVisible();
+  expect(await screen.findByText("Token saved")).toBeVisible();
   expect(await screen.findByText(/Could not refresh Google status/)).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Retry connection status" }));
   expect(await screen.findByText("Sign-in needed")).toBeVisible();

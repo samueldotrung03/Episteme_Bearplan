@@ -64,6 +64,7 @@ export default function App() {
   const [setupNotice, setSetupNotice] = useState("");
   const [credentialVersion, setCredentialVersion] = useState(0);
   const [bcoursesCredentialVersion, setBCoursesCredentialVersion] = useState(0);
+  const [coursePanel, setCoursePanel] = useState<HTMLDivElement | null>(null);
   const settingsEntry = useRef<HTMLAnchorElement>(null);
   const settingsHeading = useRef<HTMLHeadingElement>(null);
   const settingsReturn = useRef<{ screen: Exclude<ReturnType<typeof readScreen>, "settings">; scrollY: number } | null>(null);
@@ -117,6 +118,14 @@ export default function App() {
     if (screen === "settings") return;
     window.history.pushState({ settingsReturn: { screen, scrollY: window.scrollY } }, "", "#settings");
     setScreen("settings");
+  }
+
+  function openAssignmentReview(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    settingsReturn.current = null;
+    window.history.pushState(null, "", "#bcourses");
+    setScreen("bcourses");
   }
 
   function backToWork() {
@@ -235,7 +244,8 @@ export default function App() {
       {screen !== "track" ? <CompactTimer timer={timer} onOpen={() => openTrack()} /> : null}
       <TrackScreen timer={timer} plan={planning.plan} projects={projects ?? []} requestedTaskId={trackingTaskId} requestToken={trackingRequest} visible={screen === "track"} planError={planning.error} onRefreshTasks={() => void planning.refresh()} />
       <Statistics visible={screen === "stats"} />
-      <BCourses key={bcoursesCredentialVersion} onOpenSettings={openSettings} visible={screen === "bcourses"} onChanged={() => { void retry(); void planning.refresh(); }} />
+      <BCourses key={bcoursesCredentialVersion} onOpenSettings={openSettings} visible={screen === "bcourses"}
+        settingsVisible={screen === "settings"} coursePanel={coursePanel} onChanged={() => { void retry(); void planning.refresh(); }} />
       <Google onOpenSettings={openSettings} visible={screen === "google"} onChanged={() => { void retry(); void planning.refresh(); }} />
       <Assistant visible={screen === "assistant"} projectId={selectedId} date={planning.plan?.week_start}
         onChanged={() => { if (selectedId) void refreshTasks(selectedId); void planning.refresh(); void timer.refresh(); }} />
@@ -246,7 +256,8 @@ export default function App() {
           <button type="button" onClick={backToWork}>Back to work</button>
         </div>
         <h3>Connections</h3>
-        <ConnectionPanels visible={screen === "settings"} credentialVersion={credentialVersion}
+        <ConnectionPanels visible={screen === "settings"} credentialVersion={credentialVersion} coursePanelRef={setCoursePanel}
+          onReviewAssignments={openAssignmentReview}
           onTokenRemoved={() => {
             setBCoursesCredentialVersion((version) => version + 1);
             setSetupNotice("");
@@ -257,7 +268,7 @@ export default function App() {
         {screen === "settings" && setup ? <ConnectionSetup provider={setup.provider} onDismiss={() => setSetup(null)} onSaved={(notice) => {
           setCredentialVersion((version) => version + 1);
           if (setup.provider === "bCourses") setBCoursesCredentialVersion((version) => version + 1);
-          setSetupNotice(notice ?? (setup.provider === "bCourses" ? "bCourses accepted your token. Open bCourses to choose courses or refresh assignments." : "Google sign-in file saved. Open Google to check sign-in status."));
+          setSetupNotice(notice ?? (setup.provider === "bCourses" ? "bCourses accepted your token. Open Manage courses to choose courses or refresh assignments." : "Google sign-in file saved. Open Google to check sign-in status."));
           setSetup((current) => current === setup ? null : current);
         }} /> : null}
       </section>

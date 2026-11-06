@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
@@ -24,6 +25,14 @@ const state = (over: Partial<BCoursesState> = {}): BCoursesState => ({
       due_date: "2099-11-09", accepted_due_date: "2099-11-06" }),
   ], ...over,
 });
+
+function CourseSettings() {
+  const [coursePanel, setCoursePanel] = useState<HTMLDivElement | null>(null);
+  return <>
+    <div ref={setCoursePanel} />
+    <BCourses visible={false} settingsVisible coursePanel={coursePanel} />
+  </>;
+}
 
 test("lists upcoming, undated and past assignments separately and links to bCourses", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(json(state()));
@@ -57,20 +66,23 @@ test("Add creates the task, reports where it went and refreshes the app", async 
   expect(screen.getByText("Added as tasks (1)")).toBeInTheDocument();
 });
 
-test("first visit with a token fetches courses and asks which to follow", async () => {
+test("reads cached status first and fetches courses only on explicit Refresh", async () => {
   const unfollowed = state({ courses: state().courses.map((c) => ({ ...c, followed: false })), assignments: [] });
   const fetcher = vi.spyOn(globalThis, "fetch")
-    .mockResolvedValueOnce(json({ ...unfollowed, sync: { last_attempt_at: null, last_success_at: null, last_error: null } }))
+    .mockResolvedValueOnce(json({ ...unfollowed, courses: [], sync: { last_attempt_at: null, last_success_at: null, last_error: null } }))
     .mockResolvedValueOnce(json(unfollowed))
     .mockResolvedValueOnce(json(state()));
   const user = userEvent.setup();
-  render(<BCourses visible />);
-  expect(await screen.findByText("Choose at least one course above, then Save courses.")).toBeVisible();
+  render(<CourseSettings />);
+  await user.click(await screen.findByText(/^Manage courses \(/));
+  expect(await screen.findByText("Refresh to load your bCourses course list.")).toBeVisible();
+  expect(fetcher.mock.calls.map(([url]) => url)).toEqual(["/api/bcourses"]);
+  await user.click(screen.getByRole("button", { name: "Refresh" }));
   expect(fetcher.mock.calls[1][0]).toBe("/api/bcourses/refresh");
-  await user.click(screen.getByRole("checkbox", { name: /MATH 54/ }));
+  await user.click(await screen.findByRole("checkbox", { name: /MATH 54/ }));
   await user.click(screen.getByRole("button", { name: "Save courses" }));
   expect(JSON.parse((fetcher.mock.calls[2][1] as RequestInit).body as string)).toEqual({ course_ids: ["1"] });
-  expect(await screen.findByRole("list", { name: "Upcoming assignments" })).toBeVisible();
+  expect(await screen.findByText("Manage courses (1 followed)")).toBeVisible();
 });
 
 test("missing token and failed refresh are explained without losing the list", async () => {
@@ -97,10 +109,11 @@ test("a failed course save reads back saved data and keeps the requested selecti
   const fetch = vi.spyOn(globalThis, "fetch")
     .mockResolvedValueOnce(json(state()))
     .mockResolvedValueOnce(json({ error: { code: "storage_unavailable", message: "Save could not finish." } }, 503))
-    .mockResolvedValueOnce(json(state()));
+    .mockResolvedValueOnce(json(state()))
+    .mockResolvedValueOnce(json(state({ courses: state().courses.map((entry) => ({ ...entry, followed: true })) })));
   const user = userEvent.setup();
-  render(<BCourses visible />);
-  await user.click(await screen.findByText(/Courses to follow/));
+  render(<CourseSettings />);
+  await user.click(await screen.findByText(/^Manage courses \(/));
   const course = screen.getByRole("checkbox", { name: "Old club" });
   await user.click(course);
   await user.click(screen.getByRole("button", { name: "Save courses" }));
@@ -108,7 +121,10 @@ test("a failed course save reads back saved data and keeps the requested selecti
   await waitFor(() => expect(screen.getByRole("button", { name: "Save courses" })).toBeEnabled());
   expect(course).toBeChecked();
   expect(fetch.mock.calls[2][0]).toBe("/api/bcourses");
-  expect(screen.getByRole("list", { name: "Upcoming assignments" })).toBeVisible();
+  expect(screen.getByText("Manage courses (1 followed)")).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Save courses" }));
+  expect(await screen.findByText("Manage courses (2 followed)")).toBeVisible();
+  expect(fetch.mock.calls[3][1]?.body).toBe(JSON.stringify({ course_ids: ["1", "2"] }));
 });
 
 test("retries the first status read and displays prior refresh failure beside cached work", async () => {

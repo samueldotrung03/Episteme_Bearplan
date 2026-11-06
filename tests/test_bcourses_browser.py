@@ -13,9 +13,10 @@ import uvicorn
 
 from backend.app import create_app
 from backend.domain.tasks import list_tasks
+from backend.platform.bcourses import BCoursesUnavailable
 from backend.platform.paths import FRONTEND_DIST
 from backend.storage.db import open_database
-from tests.conftest import free_port
+from tests.conftest import free_port, http_json
 from tests.test_bcourses import FakeClient
 from tests.test_e2e_browser import browser, evidence, no_horizontal_overflow, playwright_sync
 
@@ -48,14 +49,42 @@ def test_choose_courses_add_assignment_and_review_due_change(browser, evidence, 
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     fake.by_course["1"][0]["due_at"] = "2099-11-07T07:59:00Z"
+    fake.course_list.extend(
+        {"id": str(number), "name": f"Seminar {number} · A long course title for the narrow Settings view"}
+        for number in range(3, 13)
+    )
     try:
         page.goto(url + "/#bcourses")
         tab = page.get_by_role("region", name="bCourses")
-        expect(tab.get_by_text("Choose at least one course above, then Save courses.")).to_be_visible()
-        assert fake.calls == ["courses"]
-        tab.get_by_role("checkbox", name="MATH 54 - Linear Algebra").check()
+        expect(tab.get_by_text("Choose courses in Settings", exact=False)).to_be_visible()
+        assert fake.calls == []
+        tab.get_by_role("link", name="Manage courses in Settings").click()
+        settings = page.get_by_role("region", name="Settings")
+        settings.get_by_text("Manage courses (0 followed)").click()
+        expect(settings.get_by_text("Refresh to load your bCourses course list.")).to_be_visible()
+        assert fake.calls == []
+        page.set_viewport_size({"width": 640, "height": 850})
+        page.emulate_media(color_scheme="dark")
+        settings.get_by_role("button", name="Refresh", exact=True).click()
+        course = settings.get_by_role("checkbox", name="MATH 54 - Linear Algebra")
+        course.check()
+        assert no_horizontal_overflow(page)
+        courses = settings.get_by_role("group", name="Choose the courses whose assignments you want to see")
+        assert courses.evaluate("node => node.scrollHeight > node.clientHeight")
+        last_course = courses.get_by_role("checkbox").last
+        last_course.focus()
+        expect(last_course).to_be_in_viewport()
         page.screenshot(path=str(evidence / "bcourses-01-choose.png"), full_page=True)
-        tab.get_by_role("button", name="Save courses").click()
+        fake.fail = BCoursesUnavailable("bcourses_unreachable", "Cannot reach bCourses.")
+        settings.get_by_role("button", name="Save courses").click()
+        expect(settings.get_by_role("alert")).to_contain_text("Your course selection is saved")
+        expect(course).to_be_checked()
+        assert list_tasks(db) == []
+        fake.fail = None
+        settings.get_by_role("button", name="Refresh", exact=True).click()
+        expect(settings.get_by_role("status")).to_contain_text("Updated from bCourses.")
+        settings.get_by_role("link", name="Review assignments").click()
+        expect(tab.get_by_role("heading", name="bCourses", exact=True)).to_be_focused()
 
         upcoming = tab.get_by_role("list", name="Upcoming assignments")
         expect(upcoming.get_by_role("listitem")).to_have_count(1)
@@ -67,10 +96,16 @@ def test_choose_courses_add_assignment_and_review_due_change(browser, evidence, 
         assert no_horizontal_overflow(page)
         page.screenshot(path=str(evidence / "bcourses-02-review.png"), full_page=True)
 
+        tab.get_by_role("button", name="Dismiss “Reading reflection”").click()
+        tab.get_by_text("Dismissed (1)", exact=True).click()
+        tab.get_by_role("list", name="Dismissed assignments").get_by_role("button", name="Restore").click()
+        expect(tab.get_by_role("button", name="Dismiss “Reading reflection”")).to_be_visible()
         tab.get_by_role("button", name="Add “Problem set 5” as a task").click()
         expect(tab.get_by_role("status")).to_contain_text("Added “Problem set 5” to MATH 54 - Linear Algebra, due Fri, Nov 6")
         tasks = [t for t in list_tasks(db) if t.title == "Problem set 5"]
         assert len(tasks) == 1 and str(tasks[0].deadline) == "2099-11-06"
+        status, replay = http_json("POST", url + "/api/bcourses/assignments/11/add")
+        assert status == 200 and replay["task"]["id"] == tasks[0].id
         page.get_by_role("link", name="Plan", exact=True).click()
         expect(page.get_by_role("button", name="MATH 54 - Linear Algebra", exact=True)).to_be_visible()
 
@@ -88,6 +123,15 @@ def test_choose_courses_add_assignment_and_review_due_change(browser, evidence, 
         page.set_viewport_size({"width": 375, "height": 850})
         assert no_horizontal_overflow(page)
         page.screenshot(path=str(evidence / "bcourses-04-narrow.png"), full_page=True)
+        tab.get_by_role("link", name="Manage courses in Settings").click()
+        course.uncheck()
+        settings.get_by_role("button", name="Save courses").click()
+        expect(settings.get_by_text("Manage courses (0 followed)")).to_be_visible()
+        page.reload()
+        settings.get_by_text("Manage courses (0 followed)").click()
+        expect(course).to_be_enabled()
+        expect(course).not_to_be_checked()
+        assert [task.id for task in list_tasks(db)] == [tasks[0].id]
         assert errors == []
     finally:
         page.close()

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ApiError, checkBCoursesToken, getBCourses, getConnections, getGoogle, removeBCoursesToken, setGoogleSyncPaused, syncGoogleTasks,
-  type BCoursesState, type ConnectionsState, type GoogleState,
+  ApiError, checkBCoursesToken, getConnections, getGoogle, removeBCoursesToken, setGoogleSyncPaused, syncGoogleTasks,
+  type ConnectionsState, type GoogleState,
 } from "./api";
 import { ConnectionDialog, type SetupProvider } from "./ConnectionSetup";
 
@@ -11,18 +11,18 @@ const errorText = (error: unknown, fallback: string) => error instanceof ApiErro
 
 type SyncAction = "pause" | "resume" | "sync";
 
-export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced, onTokenRemoved }: {
+export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced, onTokenRemoved, coursePanelRef, onReviewAssignments }: {
   visible: boolean;
   credentialVersion: number;
   onSetup: (provider: SetupProvider) => void;
   onSynced: () => void;
   onTokenRemoved: () => void;
+  coursePanelRef?: React.Ref<HTMLDivElement>;
+  onReviewAssignments?: React.MouseEventHandler<HTMLAnchorElement>;
 }) {
   const [credentials, setCredentials] = useState<ConnectionsState | null>(null);
-  const [courses, setCourses] = useState<BCoursesState | null>(null);
   const [google, setGoogle] = useState<GoogleState | null>(null);
   const [credentialError, setCredentialError] = useState("");
-  const [coursesError, setCoursesError] = useState("");
   const [googleError, setGoogleError] = useState("");
   const [actionError, setActionError] = useState("");
   const [receipt, setReceipt] = useState("");
@@ -41,8 +41,6 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced
 
   useEffect(() => {
     if (!visible) return;
-    const controller = new AbortController();
-    const { signal } = controller;
     const setupRead = new AbortController();
     credentialRead.current = setupRead;
     if (!tokenPending.current) void getConnections(setupRead.signal).then((next) => {
@@ -52,14 +50,7 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced
     }, (error) => {
       if (!setupRead.signal.aborted) setCredentialError(errorText(error, "Could not read saved setup."));
     });
-    void getBCourses(signal).then((next) => {
-      if (signal.aborted) return;
-      setCourses(next);
-      setCoursesError("");
-    }, (error) => {
-      if (!signal.aborted) setCoursesError(errorText(error, "Could not read bCourses refresh status."));
-    });
-    return () => { setupRead.abort(); controller.abort(); };
+    return () => setupRead.abort();
   }, [visible, credentialVersion, retry]);
 
   const readGoogle = useCallback(async () => {
@@ -153,7 +144,6 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced
   }
 
   const token = credentials?.bcourses;
-  const courseSync = courses?.sync;
   const paused = Boolean(google?.tasks.paused_at);
   const accountReview = google?.tasks.account_status === "different_account" || google?.tasks.account_status === "unowned_links";
   const controlsBusy = Boolean(action || googleError || google?.connection_changing || google?.pausing || google?.sign_in_pending);
@@ -165,15 +155,12 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced
         <p>{token ? (token.set ? "Token saved" : "Setup needed") : credentialError ? "Setup status unavailable" : "Checking setup…"}</p>
         {token?.set && token.checked_at ? <p className="muted">{token.check_ok ? "Last check accepted" : "Last check rejected"} · {time(token.checked_at)}</p> : null}
         {token?.check_ok === false && token.check_message ? <p role="alert" className="error">{token.check_message}</p> : null}
-        {courseSync ? <p className="muted">{courseSync.last_success_at ? `Last assignment refresh ${time(courseSync.last_success_at)}` : "No successful assignment refresh recorded."}</p> : null}
-        {courseSync?.last_error ? <p role="alert" className="error">Last refresh failed. {courseSync.last_error}</p> : null}
         {credentialError ? <p role="alert" className="error">Could not refresh setup status. {credentialError}</p> : null}
-        {coursesError ? <p role="alert" className="error">Could not refresh assignment status. {coursesError}</p> : null}
         {tokenError && token?.set ? <p role="alert" className="error">{tokenError}</p> : null}
         {tokenAction === "check" ? <p role="status">Checking saved token…</p> : null}
         {removed && !token?.set ? <p role="status">bCourses token removed from BearPlans.</p> : null}
         <div className="form-actions connection-actions">
-          <a href="#bcourses">Open bCourses</a>
+          <a href="#bcourses" onClick={onReviewAssignments}>Review assignments</a>
           <button ref={setupToken} type="button" className="secondary" disabled={Boolean(tokenAction)}
             onClick={() => { setTokenError(""); setRemoved(false); onSetup("bCourses"); }}>
             {token?.set ? "Replace bCourses token" : "Set up or replace bCourses token"}
@@ -185,6 +172,7 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced
               onClick={() => setConfirmRemove(true)}>Remove token…</button>
           </> : null}
         </div>
+        <div ref={coursePanelRef} />
       </li>
       <li>
         <h4>Google</h4>
@@ -228,7 +216,7 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced
       </div>
       {tokenAction === "remove" ? <p role="status">Removing saved token…</p> : null}
     </ConnectionDialog> : null}
-    {credentialError || coursesError || googleError
+    {credentialError || googleError
       ? <button type="button" className="secondary" onClick={() => setRetry((value) => value + 1)}>Retry connection status</button>
       : null}
   </>;

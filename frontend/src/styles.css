@@ -1183,7 +1183,7 @@ details > summary:focus-visible {
 .bcourses-item-text { display: flex; flex-direction: column; gap: 0.2rem; flex: 1 1 16rem; min-width: 0; overflow-wrap: anywhere; }
 .bcourses-item-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 .bcourses-courses { margin: 1rem 0; }
-.bcourses-courses fieldset { display: flex; flex-direction: column; gap: 0.5rem; border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.8rem 1rem; margin: 0.8rem 0; }
+.bcourses-courses fieldset { min-inline-size: 0; max-block-size: 13rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; border: 1px solid var(--border); border-radius: 0.6rem; padding: 0.8rem 1rem; margin: 0.8rem 0; }
 .bcourses-courses label { display: flex; align-items: baseline; gap: 0.5rem; overflow-wrap: anywhere; }
 .bcourses-setup { background: var(--bg); border: 1px solid var(--border); border-radius: 0.6rem; padding: 1rem; }
 .bcourses-item a { color: var(--accent); align-self: flex-start; }
