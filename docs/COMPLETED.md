@@ -9,6 +9,15 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — APP-C07.3 Google Plan and task integration
+
+Kept Google completion changes at leaf level in the task adapter and clarified
+calendar selection scope. Verified that deselection retains an added task, and
+that explicit bCourses Add exports once with reviewed deadline changes. On
+macOS, 179 frontend tests, typecheck, production build and 245 guarded checks
+passed. Pass with follow-ups.
+[Integration review](reviews/2026-11-06-settings-google-plan-integration.md).
+
 ## 2026-11-06 — APP-C07.2 Google combined sync feedback
 
 Reported which stages completed when a later Google sync stage failed. Kept

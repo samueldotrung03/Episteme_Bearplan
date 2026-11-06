@@ -211,7 +211,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
       <ul className="google-sharing">
         <li><strong>Show calendar events in Plan.</strong> BearPlans reads the Google calendars you select. It leaves their events untouched.</li>
         <li><strong>Publish timed plans.</strong> Incomplete tasks with a planned start time sync to the separate BearPlans calendar with a 30-minute reminder.</li>
-        <li><strong>Sync tasks.</strong> All local projects, tasks and subtasks sync to BearPlans-created Google Tasks lists, including bCourses assignments you added. Task titles, notes and dates are shared. Completing a task in Google can update it here. Your personal Google Tasks lists stay untouched.</li>
+        <li><strong>Sync tasks.</strong> All local projects, tasks and subtasks sync to BearPlans-created Google Tasks lists, including bCourses assignments you added. Task titles, notes and dates are shared. Checking or unchecking an individual task or subtask in Google can update it here. Parent completion follows its subtasks. Your personal Google Tasks lists stay untouched.</li>
       </ul>
       <p className="muted">Calendar selection controls which events BearPlans reads. All local tasks are included in task sync.</p>
       <div className="form-actions">
@@ -238,7 +238,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
 
     {connected && !pending && !reviewRequired ? <div className="google-calendars">
       <h3>Calendars to show</h3>
-      <p className="muted">Events from the calendars you tick appear beside each day on the Plan screen, where any event can be added as a task. BearPlans only reads these calendars; it never changes them.</p>
+      <p className="muted">Events from the calendars you tick appear beside each day on the Plan screen, where any event can be added as a task. BearPlans only reads these calendars. Changing your selection keeps tasks you already added and does not change which tasks sync to Google Tasks.</p>
       {paused && !pausing ? <p className="muted">Refresh calendars and Save calendars each contact Google once. Automatic sync stays paused.</p> : null}
       {calendarError ? <p role="alert" className="error">{calendarError}</p> : null}
       {calendars.length ? <fieldset disabled={controlsBusy}>
@@ -257,7 +257,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
         <button type="button" disabled={controlsBusy || !calendars.length} onClick={() => void run("follow", async () => {
           acceptCalendars(await followGoogleCalendars(calendars[0].account_key, [...chosen]));
           onChanged?.();
-        }, "Saved your calendars. Their events now appear on the Plan screen.")}>{busy === "follow" ? "Saving…" : "Save calendars"}</button>
+        }, "Saved your calendars. Plan now shows events from your selection.")}>{busy === "follow" ? "Saving…" : "Save calendars"}</button>
         <button type="button" className="link" disabled={controlsBusy} onClick={() => void run("calendars", async () => {
           acceptCalendars(await refreshGoogleCalendars());
         }, "Updated your calendar list and events.")}>Refresh calendars</button>

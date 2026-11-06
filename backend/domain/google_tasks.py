@@ -196,8 +196,7 @@ def _apply_ticks(db: Database, ticks: dict[str, str]) -> int:
     """Bring completion ticked in Google into BearPlans; returns how many tasks changed.
 
     Applied only where BearPlans still has the completion it last sent, so a change
-    made in BearPlans since then wins. Ticking a parent completes its open subtasks;
-    unticking a parent is not applied (its completion comes from its subtasks).
+    made in BearPlans since then wins. Parent status is derived from subtasks.
     """
     changed = 0
     with db.write() as conn:
@@ -206,19 +205,12 @@ def _apply_ticks(db: Database, ticks: dict[str, str]) -> int:
         for task_id, status in ticks.items():
             task = tasks.get(task_id)
             pushed = mapped.get(task_id)
-            if task is None or pushed is None or ("completed" if task.completed else "needsAction") != pushed:
+            if task is None or task.is_parent or pushed is None:
                 continue
-            complete = status == "completed"
-            if task.is_parent:
-                if not complete:
-                    continue
-                for child in tasks.values():
-                    if child.parent_id == task_id and not child.completed:
-                        _set_completion_tx(conn, child.id, True)
-                        changed += 1
-            else:
-                _set_completion_tx(conn, task_id, complete)
-                changed += 1
+            if ("completed" if task.completed else "needsAction") != pushed:
+                continue
+            _set_completion_tx(conn, task_id, status == "completed")
+            changed += 1
             conn.execute("UPDATE google_tasks SET pushed_status = ?, updated_at = ? WHERE task_id = ?", (status, utc_now(), task_id))
     return changed
 

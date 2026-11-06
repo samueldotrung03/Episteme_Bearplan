@@ -176,7 +176,7 @@ def test_change_in_bearplans_wins_over_a_tick_in_google(db):
     assert fake.items[list_id][google_id]["status"] == "completed"
 
 
-def test_ticking_a_parent_in_google_completes_its_subtasks(db):
+def test_google_parent_status_is_derived_only_from_children(db):
     fake = FakeTasks()
     parent = create_task(db, "Lab")
     first = create_task(db, "Part A", parent_id=parent.id)
@@ -184,9 +184,60 @@ def test_ticking_a_parent_in_google_completes_its_subtasks(db):
     set_task_completion(db, first.id, True)
     run(db, fake)
     list_id = fake.list_named(_default_name(db))
-    fake.live(list_id)["Lab"]["status"] = "completed"
+    items = fake.live(list_id)
+    items["Lab"]["status"] = "completed"
+    run(db, fake)
+    assert get_task(db, first.id).completed
+    assert not get_task(db, second.id).completed
+    assert not get_task(db, parent.id).completed
+    assert items["Lab"]["status"] == "needsAction"
+
+    items["Part B"]["status"] = "completed"
     run(db, fake)
     assert get_task(db, second.id).completed and get_task(db, parent.id).completed
+    items["Lab"]["status"] = "needsAction"
+    run(db, fake)
+    assert get_task(db, first.id).completed and get_task(db, second.id).completed
+    assert get_task(db, parent.id).completed
+    assert items["Lab"]["status"] == "completed"
+
+
+def test_explicit_bcourses_add_exports_once_and_keeps_due_date_until_reviewed(db, monkeypatch):
+    from backend.domain import bcourses
+    from tests.test_bcourses import FakeClient, sync as refresh_bcourses
+
+    monkeypatch.setenv("BEARPLANS_TIMEZONE", "America/Los_Angeles")
+    source, google = FakeClient(), FakeTasks()
+    refresh_bcourses(db, source)
+    bcourses.set_followed(db, ["1"])
+    refresh_bcourses(db, source)
+    run(db, google)
+    assert "MATH 54 - Linear Algebra" not in google.lists_by_id.values()
+
+    task = bcourses.add_assignment(db, "11").task
+    assert bcourses.add_assignment(db, "11").task.id == task.id
+    undated = bcourses.add_assignment(db, "12").task
+    run(db, google)
+    list_id = google.list_named("MATH 54 - Linear Algebra")
+    dated, reading = google.live(list_id)["Problem set 5"], google.live(list_id)["Reading reflection"]
+    assert dated["due"][:10] == task.deadline.isoformat()
+    assert undated.deadline is None and "due" not in reading
+
+    source.by_course["1"][0]["due_at"] = "2026-11-10T07:59:00Z"
+    refresh_bcourses(db, source)
+    bcourses.resolve_due_change(db, "11", use_new=False)
+    run(db, google)
+    assert get_task(db, task.id).deadline == task.deadline
+    assert dated["due"][:10] == task.deadline.isoformat()
+
+    source.by_course["1"][0]["due_at"] = "2026-11-12T07:59:00Z"
+    refresh_bcourses(db, source)
+    bcourses.resolve_due_change(db, "11", use_new=True)
+    bcourses.set_followed(db, [])
+    run(db, google)
+    assert dated["due"][:10] == get_task(db, task.id).deadline.isoformat() == "2026-11-11"
+    assert {item["id"] for item in google.items[list_id].values()} == {dated["id"], reading["id"]}
+    assert set(google.live(list_id)) == {"Problem set 5", "Reading reflection"}
 
 
 def test_removed_subtask_is_removed_from_google(db):

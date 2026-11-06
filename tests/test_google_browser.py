@@ -164,6 +164,17 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         assert [item["id"] for group in tasks.items.values() for item in group.values()
                 if item.get("title") == "Office hours"] == [google_task["id"]]
 
+        page.get_by_role("link", name="Google", exact=True).click()
+        tab.get_by_role("checkbox", name="Me · main calendar").uncheck()
+        tab.get_by_role("button", name="Save calendars").click()
+        expect(tab.get_by_role("status")).to_contain_text("Plan now shows events from your selection")
+        page.get_by_role("link", name="Plan", exact=True).click()
+        expect(events).to_have_count(0)
+        expect(card).to_have_count(1)
+        assert [t.id for t in list_tasks(db) if t.title == "Office hours"] == [task.id]
+        assert calendar.user_events["me@example.com"][0]["id"] == "oh"
+        assert not google_task.get("deleted")
+
         page.set_viewport_size({"width": 375, "height": 850})
         page.get_by_role("link", name="Google", exact=True).click()
         assert no_horizontal_overflow(page)
