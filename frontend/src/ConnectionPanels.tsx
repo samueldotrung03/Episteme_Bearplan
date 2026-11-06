@@ -11,11 +11,11 @@ const errorText = (error: unknown, fallback: string) => error instanceof ApiErro
 
 type SyncAction = "pause" | "resume" | "sync";
 
-export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced, onTokenRemoved, coursePanelRef, onReviewAssignments }: {
+export function ConnectionPanels({ visible, credentialVersion, onSetup, onSyncSettled, onTokenRemoved, coursePanelRef, onReviewAssignments }: {
   visible: boolean;
   credentialVersion: number;
   onSetup: (provider: SetupProvider) => void;
-  onSynced: () => void;
+  onSyncSettled: () => void;
   onTokenRemoved: () => void;
   coursePanelRef?: React.Ref<HTMLDivElement>;
   onReviewAssignments?: React.MouseEventHandler<HTMLAnchorElement>;
@@ -88,19 +88,22 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced
     setAction(nextAction);
     setActionError("");
     setReceipt("");
+    let reread = false;
     try {
       const next = await (nextAction === "sync" ? syncGoogleTasks() : setGoogleSyncPaused(nextAction === "pause"));
       setGoogle(next);
       setGoogleError("");
       if (nextAction === "sync") {
-        onSynced();
         setReceipt("Google sync finished.");
       }
     } catch (error) {
+      reread = true;
       setActionError(errorText(error, "Could not confirm the Google action. Check the current status and try again."));
     } finally {
       actionPending.current = false;
       setAction(null);
+      if (nextAction === "sync") onSyncSettled();
+      if (reread) void readGoogle();
     }
   }
 
@@ -181,7 +184,7 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSynced
         {google?.sign_in_error ? <p role="alert" className="error">{google.sign_in_error}</p> : null}
         {google?.missing_permissions.length ? <p role="alert" className="error">Some permissions are missing. Open Google to reconnect.</p> : null}
         {accountReview ? <p role="alert" className="error">Google needs an account review before it can sync.</p> : null}
-        {google?.tasks.last_error ? <p role="alert" className="error">Last sync failed. {google.tasks.last_error}</p> : null}
+        {google?.tasks.last_error && google.tasks.last_error !== actionError ? <p role="alert" className="error">Last sync failed. {google.tasks.last_error}</p> : null}
         {googleError ? <p role="alert" className="error">Could not refresh Google status. {googleError}</p> : null}
         {actionError ? <p role="alert" className="error">{actionError}</p> : null}
         {google?.configured ? <p className="muted">{google.tasks.last_success_at ? `Last full sync ${time(google.tasks.last_success_at)}` : "No successful full sync recorded."}</p> : null}

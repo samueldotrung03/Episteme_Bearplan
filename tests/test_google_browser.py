@@ -16,6 +16,7 @@ import uvicorn
 
 from backend.app import create_app
 from backend.domain.tasks import list_tasks
+from backend.platform.google import GoogleUnavailable
 from backend.platform.paths import FRONTEND_DIST
 from backend.storage.db import open_database
 from tests.conftest import free_port
@@ -35,6 +36,7 @@ class FakeGoogleCalendar(FakeCalendar):
     def __init__(self) -> None:
         super().__init__()
         self.lock = threading.Lock()
+        self.fail_event_read = False
         self.user_calendars = [{"id": "me@example.com", "summary": "Me", "primary": True, "backgroundColor": "#9fc6e7"},
                                {"id": "club@group", "summary": "Climbing club"}]
         self.user_events = {"me@example.com": [{
@@ -45,6 +47,8 @@ class FakeGoogleCalendar(FakeCalendar):
         return self.user_calendars
 
     def list_events(self, calendar_id, time_min, time_max):
+        if self.fail_event_read:
+            raise GoogleUnavailable("google_unreachable", "Could not read Google events.")
         return self.user_events.get(calendar_id, [])
 
 
@@ -126,6 +130,39 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         assert page.request.post(url + "/api/google/tasks/sync").ok
         page.evaluate("window.dispatchEvent(new Event('focus'))")
         expect(page.locator(".planned-card", has_text="Office hours").get_by_role("checkbox")).to_be_checked()
+
+        # A later failure still leaves the completion imported by Google Tasks.
+        previous = page.request.get(url + "/api/google").json()["tasks"]["last_success_at"]
+        google_task["status"] = "needsAction"
+        calendar.fail_event_read = True
+        draft = page.get_by_label("Title", exact=True)
+        draft.fill("Draft kept during Google sync")
+        page.get_by_role("link", name="Settings").click()
+        settings = page.get_by_role("region", name="Settings")
+        settings.get_by_role("button", name="Pause automatic sync").click()
+        once = settings.get_by_role("button", name="Sync once")
+        once.click()
+        expect(settings.get_by_role("alert")).to_contain_text(
+            "Google Tasks and calendar publishing finished, but reading selected calendars did not finish."
+        )
+        failed = page.request.get(url + "/api/google").json()["tasks"]
+        assert failed["paused_at"] and failed["last_success_at"] == previous
+        expect(settings.get_by_text("Google sync finished.")).to_have_count(0)
+        expect(settings.get_by_text("Last full sync", exact=False)).to_be_visible()
+        page.screenshot(path=evidence / "google-partial-sync.png")
+        page.get_by_role("button", name="Back to work").click()
+        expect(page.locator(".planned-card", has_text="Office hours").get_by_role("checkbox")).not_to_be_checked()
+        expect(draft).to_have_value("Draft kept during Google sync")
+
+        calendar.fail_event_read = False
+        page.get_by_role("link", name="Settings").click()
+        once.click()
+        expect(settings.get_by_text("Google sync finished.")).to_be_visible()
+        recovered = page.request.get(url + "/api/google").json()["tasks"]
+        assert recovered["paused_at"] == failed["paused_at"]
+        assert recovered["last_success_at"] > previous and recovered["last_error"] is None
+        assert [item["id"] for group in tasks.items.values() for item in group.values()
+                if item.get("title") == "Office hours"] == [google_task["id"]]
 
         page.set_viewport_size({"width": 375, "height": 850})
         page.get_by_role("link", name="Google", exact=True).click()

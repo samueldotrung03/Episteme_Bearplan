@@ -34,9 +34,10 @@ it("acknowledges Pause only after the service confirms it, then syncs once and r
   const sync = vi.spyOn(api, "syncGoogleTasks")
     .mockRejectedValueOnce(new api.ApiError("Google is offline. Try again."))
     .mockResolvedValueOnce(paused);
-  const onSynced = vi.fn();
+  vi.mocked(api.getGoogle).mockResolvedValueOnce(working).mockResolvedValue(paused);
+  const onSyncSettled = vi.fn();
   const user = userEvent.setup();
-  render(<ConnectionPanels visible credentialVersion={0} onSetup={vi.fn()} onSynced={onSynced} onTokenRemoved={vi.fn()} />);
+  render(<ConnectionPanels visible credentialVersion={0} onSetup={vi.fn()} onSyncSettled={onSyncSettled} onTokenRemoved={vi.fn()} />);
 
   const pause = await screen.findByRole("button", { name: "Pause automatic sync" });
   await user.click(pause);
@@ -49,12 +50,13 @@ it("acknowledges Pause only after the service confirms it, then syncs once and r
   const once = screen.getByRole("button", { name: "Sync once" });
   await user.click(once);
   expect(await screen.findByText("Google is offline. Try again.")).toBeVisible();
+  expect(onSyncSettled).toHaveBeenCalledTimes(1);
   expect(screen.getByText("Automatic sync is paused.")).toBeVisible();
   expect(screen.getByText(/Last full sync/)).toBeVisible();
   await user.click(once);
   expect(await screen.findByText("Google sync finished.")).toBeVisible();
   expect(sync).toHaveBeenCalledTimes(2);
-  expect(onSynced).toHaveBeenCalledTimes(1);
+  expect(onSyncSettled).toHaveBeenCalledTimes(2);
   expect(screen.getByText("Automatic sync is paused.")).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Resume automatic sync" }));
   expect(await screen.findByText("Automatic sync is enabled.")).toBeVisible();
@@ -67,7 +69,7 @@ it("keeps provider evidence when status fails and retries the read", async () =>
   read.mockRejectedValueOnce(new api.ApiError("Service unavailable."))
     .mockResolvedValueOnce({ ...working, status: "signed_out", connected: false });
   const user = userEvent.setup();
-  render(<ConnectionPanels visible credentialVersion={0} onSetup={vi.fn()} onSynced={vi.fn()} onTokenRemoved={vi.fn()} />);
+  render(<ConnectionPanels visible credentialVersion={0} onSetup={vi.fn()} onSyncSettled={vi.fn()} onTokenRemoved={vi.fn()} />);
   expect(await screen.findByText("Token saved")).toBeVisible();
   expect(await screen.findByText(/Could not refresh Google status/)).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Retry connection status" }));

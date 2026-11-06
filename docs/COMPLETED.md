@@ -9,6 +9,15 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — APP-C07.2 Google combined sync feedback
+
+Reported which stages completed when a later Google sync stage failed. Kept
+the previous full success and refreshed work views after manual attempts,
+including failures. Verified a partial result and retry with Pause and a task
+draft retained. On macOS, 179 frontend tests, typecheck, production build and
+141 guarded checks passed. Pass with follow-ups.
+[Combined sync review](reviews/2026-11-06-settings-google-combined-sync.md).
+
 ## 2026-11-06 — APP-C07.1 Google sharing review before sign-in
 
 Connect and Reconnect now review selected calendar reads, timed plan publishing

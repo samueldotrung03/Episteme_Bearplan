@@ -229,15 +229,23 @@ def _apply_ticks(db: Database, ticks: dict[str, str]) -> int:
 def sync(db: Database, client: TasksClient, unavailable: type[Exception],
          calendar: CalendarClient | None = None, remember: Callable[[str], None] | None = None) -> SyncStatus:
     """One full sync (Tasks, BearPlans calendar, then reading followed calendars). Raises `unavailable` (after recording it) when Google fails."""
+    failure_context = ""
     try:
         if calendar is not None:
             check_account(db, calendar, unavailable, remember)  # type: ignore[arg-type]
         _sync(db, client)
         if calendar is not None:
+            failure_context = "Google Tasks finished, but publishing to the BearPlans calendar did not finish."
             sync_calendar(db, calendar)
+            failure_context = "Google Tasks and calendar publishing finished, but reading selected calendars did not finish."
             read_calendars(db, calendar)  # type: ignore[arg-type]
     except unavailable as error:
-        _set_sync(db, success=False, error=getattr(error, "message", str(error)))
+        message = getattr(error, "message", str(error))
+        if failure_context:
+            message = f"{failure_context} {message}"
+        _set_sync(db, success=False, error=message)
+        if failure_context:
+            raise unavailable(error.code, message) from None  # type: ignore[attr-defined]
         raise
     _set_sync(db, success=True, error=None)
     return get_status(db)

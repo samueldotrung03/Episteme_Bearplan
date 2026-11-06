@@ -240,7 +240,7 @@ describe("Google calendars to show", () => {
 });
 
 describe("useGoogleChanges", () => {
-  it("refreshes only after the sync version changes, never at mount", async () => {
+  it("reads a baseline at mount and refreshes only after the sync version changes", async () => {
     vi.useFakeTimers();
     try {
       let version = 3;
@@ -248,16 +248,17 @@ describe("useGoogleChanges", () => {
       const changed = vi.fn();
       function Probe() { useGoogleChanges(changed); return null; }
       render(<Probe />);
-      expect(fetch).not.toHaveBeenCalled();
-      await vi.advanceTimersByTimeAsync(30000);
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(changed).not.toHaveBeenCalled();
-      await vi.advanceTimersByTimeAsync(30000);
+      await vi.advanceTimersByTimeAsync(0);
       expect(changed).not.toHaveBeenCalled();
       version = 4;
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(changed).toHaveBeenCalledTimes(1);
+      version = 5;
       window.dispatchEvent(new Event("focus"));
       await vi.advanceTimersByTimeAsync(0);
-      expect(changed).toHaveBeenCalledTimes(1);
+      expect(changed).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();
     }

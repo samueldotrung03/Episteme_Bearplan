@@ -164,9 +164,11 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
   });
 
   const sync = () => run("sync", async () => {
-    const next = await syncGoogleTasks();
-    onChanged?.();
-    return next;
+    try {
+      return await syncGoogleTasks();
+    } finally {
+      onChanged?.();
+    }
   }, "Google sync finished.");
 
   return <section hidden={!visible} className="google" aria-label="Google" aria-busy={busy !== null}>
@@ -268,28 +270,32 @@ const CHANGE_CHECK_MS = 30000;
 
 /** Calls onChange when a background Google sync changed something the page shows
  * (a task ticked in Google, followed-calendar events). Checks every 30 seconds while
- * the page is visible and when the window regains focus; never at mount. */
+ * the page is visible and when the window regains focus. */
 export function useGoogleChanges(onChange: () => void) {
   const seen = useRef<number | null>(null);
   const callback = useRef(onChange);
   callback.current = onChange;
   useEffect(() => {
-    let stopped = false;
+    const controller = new AbortController();
+    let checking = false;
     const check = async () => {
-      if (document.visibilityState === "hidden") return;
+      if (checking || document.visibilityState === "hidden") return;
+      checking = true;
       try {
-        const { version } = await getGoogleChanges();
-        if (stopped) return;
+        const { version } = await getGoogleChanges(controller.signal);
+        if (controller.signal.aborted) return;
         if (seen.current !== null && version !== seen.current) callback.current();
         seen.current = version;
       } catch { /* not connected or offline: try again later */ }
+      finally { checking = false; }
     };
+    void check();
     const timer = window.setInterval(() => { void check(); }, CHANGE_CHECK_MS);
     const onFocus = () => { void check(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     return () => {
-      stopped = true;
+      controller.abort();
       window.clearInterval(timer);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);

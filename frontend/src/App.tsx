@@ -263,7 +263,7 @@ export default function App() {
             setSetupNotice("");
           }}
           onSetup={(provider) => { setSetupNotice(""); setSetup({ provider }); }}
-          onSynced={() => { void retry(); void planning.refresh(); }} />
+          onSyncSettled={() => { void retry(); void planning.refresh(); }} />
         {setupNotice ? <p role="status">{setupNotice}</p> : null}
         {screen === "settings" && setup ? <ConnectionSetup provider={setup.provider} onDismiss={() => setSetup(null)} onSaved={(notice) => {
           setCredentialVersion((version) => version + 1);

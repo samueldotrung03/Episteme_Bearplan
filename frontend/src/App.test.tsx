@@ -415,6 +415,7 @@ test("Try again refetches the tasks, not only the projects", async () => {
     if (url === "/api/timer") return json({ server_now: "2026-10-16T16:00:00.000000Z", active_session: null, last_session: null });
     if (url.startsWith("/api/planning")) return json(planningSnapshot([], [], url));
     if (url === "/api/projects") return json({ projects: [project(MATH, "Math 55", true)] });
+    if (url === "/api/google/changes") return json({ version: 0 });
     taskAttempt += 1;
     if (taskAttempt === 1) throw new TypeError("Failed to fetch");
     return json(taskList([task("00000000-0000-4000-8000-000000000001", "Write PS7")]));
