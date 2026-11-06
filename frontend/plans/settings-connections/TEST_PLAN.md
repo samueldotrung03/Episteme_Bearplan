@@ -25,6 +25,9 @@ Every executed case records ticket, case ID, commit/diff identity, OS, exact com
 ## Fixtures and safety controls
 
 - Use disposable databases/data folders outside source and the preserved core-trial copy. Set `BEARPLANS_SECRETS_FILE` to an empty path in a disposable folder before any standalone startup; the test suite already isolates it through `tests/conftest.py`.
+- Run focused in-process backend checks with `-p tests.connections_sandbox` for
+  disposable data and a loopback-only stdlib HTTP transport. Supply fake providers
+  in the test. Subprocesses and browsers need their own isolation.
 - Inject fake bCourses, Google Tasks, Calendar, OAuth/token and revocation transports. Reject unexpected outbound requests. Fake-provider writes are recorded in memory only; **no fixture sends a write to a real provider**. Never reuse an owner's signed-in browser profile.
 - Give synthetic accounts A/B distinct stable provider identities, same-named calendars/lists and deliberately overlapping source IDs. Include an existing BearPlans mapping, a personal list/calendar and an unknown item inside a BearPlans-created list.
 - Include course assignments that are dated, undated, past due, removed remotely and already added locally; a local parent with two leaves; repeated task placements; timed/untimed work; one closed week; and a running/paused/Needs review timer with known session ID.
@@ -157,7 +160,7 @@ Run from the actual repository root after implementation is separately authorize
 
 ```sh
 # Focused existing API/domain/data suites; fake providers and isolated secrets.
-.venv/bin/python -m pytest tests/test_connections.py tests/test_secrets_location.py tests/test_bcourses.py tests/test_google_tasks.py tests/test_google_calendar.py tests/test_google_reading.py
+.venv/bin/python -m pytest -p tests.connections_sandbox tests/test_connections.py tests/test_secrets_location.py tests/test_bcourses.py tests/test_google_tasks.py tests/test_google_calendar.py tests/test_google_reading.py tests/test_google_controls.py
 
 # Existing React homes for connection/task/calendar behavior and navigation.
 npm --prefix frontend test -- src/Google.test.tsx src/BCourses.test.tsx src/CalendarEvents.test.tsx src/App.test.tsx src/WeekActions.test.tsx src/api.test.ts

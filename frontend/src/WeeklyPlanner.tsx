@@ -211,7 +211,7 @@ export function CalendarEvents({ events, date, onRun, locked }: { events: Google
             : <button type="button" className="link" disabled={locked || busy !== null} onClick={async () => {
               setBusy(key);
               setError(null);
-              try { await onRun(() => addGoogleEvent(event.calendar_id, event.event_id), `Added “${event.summary}” as a task${event.first_day >= date ? ` planned ${showDate(event.first_day)}` : ""}.`); }
+              try { await onRun(() => addGoogleEvent(event.account_key, event.calendar_id, event.event_id), `Added “${event.summary}” as a task${event.first_day >= date ? ` planned ${showDate(event.first_day)}` : ""}.`); }
               catch (caught) { setError(message(caught)); }
               finally { setBusy(null); }
             }}>{busy === key ? "Adding…" : "Add as task"}</button>}

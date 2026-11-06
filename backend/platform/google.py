@@ -14,7 +14,6 @@ import base64
 import hashlib
 import http.server
 import json
-import os
 import secrets
 import ssl
 import threading
@@ -22,10 +21,12 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
-from backend.platform.secrets import secrets_file
+from backend.platform.secrets import remove_private_file, secrets_file, write_private_file
 
 SCOPES = (
     "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
@@ -39,6 +40,30 @@ ALLOWED_HOSTS = ("https://tasks.googleapis.com/", "https://www.googleapis.com/",
 TIMEOUT_SECONDS = 20
 MAX_PAGES = 50
 SIGN_IN_WAIT_SECONDS = 300
+_SIGN_IN_TIMEOUT = "Google sign-in did not finish in time. Choose Connect Google to try again."
+_SIGN_IN_CANCELLED = "Google sign-in was cancelled here. You can close the Google tab."
+_SIGN_IN_SAVE_ERROR = (
+    "The Google sign-in could not be saved. Check disk space and folder permissions, then retry."
+)
+
+
+@dataclass
+class _SignInAttempt:
+    id: str
+    deadline: float
+
+
+GoogleSetup = Literal["missing", "unusable", "configured"]
+
+
+@dataclass(frozen=True)
+class GoogleAuthorization:
+    setup: GoogleSetup
+    connected: bool
+    verified_key: str | None
+    missing_permissions: list[str]
+    attempt_id: str | None
+    sign_in_error: str | None
 
 
 class GoogleUnavailable(RuntimeError):
@@ -76,20 +101,34 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 _OPENER = urllib.request.build_opener(_NoRedirect, urllib.request.HTTPSHandler(context=_tls_context()))
 
 
-def _read_json(path: Path) -> dict[str, Any] | None:
+def _read_json(path: Path, *, strict_io: bool = False) -> dict[str, Any] | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except (FileNotFoundError, ValueError):
+        return None
+    except OSError:
+        if strict_io:
+            raise
         return None
     return data if isinstance(data, dict) else None
 
 
-def _oauth_client() -> dict[str, Any] | None:
-    data = _read_json(client_file())
-    info = data.get("installed") if data else None
-    if not isinstance(info, dict) or not all(isinstance(info.get(k), str) for k in ("client_id", "client_secret", "auth_uri", "token_uri")):
+def _oauth_client(*, strict_io: bool = False) -> dict[str, Any] | None:
+    data = _read_json(client_file(), strict_io=strict_io)
+    if data is None:
         return None
-    return info
+    try:
+        info = _desktop_client(data)
+    except ValueError:
+        return None
+    return {**info, "authorization_key": data.get("authorization_key")}
+
+
+def _sign_in(info: dict[str, Any] | None) -> dict[str, Any] | None:
+    data = _read_json(token_file())
+    if info and data and data.get("authorization_key") == info["authorization_key"]:
+        return data if isinstance(data.get("refresh_token"), str) else None
+    return None
 
 
 CLIENT_FILE_MAX_BYTES = 16 * 1024
@@ -100,14 +139,22 @@ def parse_client_file(text: str) -> dict[str, Any]:
 
     Raises ValueError with a message safe to show (never containing the file's values).
     """
-    if len(text.encode("utf-8")) > CLIENT_FILE_MAX_BYTES:
+    try:
+        size = len(text.encode("utf-8"))
+    except UnicodeError:
+        raise ValueError("This Google sign-in file is not valid UTF-8.") from None
+    if size > CLIENT_FILE_MAX_BYTES:
         raise ValueError("This file is too large to be a Google sign-in file.")
     try:
         data = json.loads(text)
-    except ValueError:
+    except (ValueError, RecursionError):
         raise ValueError("This is not a Google sign-in file (it is not JSON).") from None
     if not isinstance(data, dict):
         raise ValueError("This is not a Google sign-in file.")
+    return {"installed": _desktop_client(data)}
+
+
+def _desktop_client(data: dict[str, Any]) -> dict[str, str]:
     if "web" in data and "installed" not in data:
         raise ValueError("This sign-in file is for a Web application. In Google Cloud, create an OAuth client "
                          "of type Desktop app and download that file instead.")
@@ -122,8 +169,8 @@ def parse_client_file(text: str) -> dict[str, Any]:
             and isinstance(token_uri, str) and token_uri.startswith("https://oauth2.googleapis.com/")):
         raise ValueError("This Google sign-in file is missing its client ID, secret or Google addresses. "
                          "Download it again from Google Cloud.")
-    return {"installed": {"client_id": client_id, "client_secret": secret.strip(),
-                          "auth_uri": auth_uri, "token_uri": token_uri}}
+    return {"client_id": client_id, "client_secret": secret.strip(),
+            "auth_uri": auth_uri, "token_uri": token_uri}
 
 
 def current_client_id() -> str | None:
@@ -131,16 +178,8 @@ def current_client_id() -> str | None:
     return info["client_id"] if info else None
 
 
-def _write_token(stored: dict[str, Any]) -> None:
-    path = token_file()
-    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-        json.dump(stored, handle)
-    os.chmod(temporary, 0o600)
-    os.replace(temporary, path)
-
+class GoogleClientCleanupError(OSError):
+    """The new setup was saved, but removal of an inactive local token failed."""
 
 def _post_form(url: str, fields: dict[str, str]) -> dict[str, Any]:
     if not url.startswith(ALLOWED_HOSTS):
@@ -167,15 +206,12 @@ REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
 
 def revoke_token(token: str) -> bool:
-    """Ask Google to cancel a sign-in. True when Google confirmed or already did not
-    know the token; False when Google could not be reached or answered otherwise."""
+    """Return whether Google acknowledged the revocation request."""
     request = urllib.request.Request(REVOKE_URL, data=urllib.parse.urlencode({"token": token}).encode(), method="POST",
                                      headers={"Content-Type": "application/x-www-form-urlencoded"})
     try:
-        with _OPENER.open(request, timeout=TIMEOUT_SECONDS):
-            return True
-    except urllib.error.HTTPError as error:
-        return error.code == 400  # invalid_token: already revoked or expired.
+        with _OPENER.open(request, timeout=TIMEOUT_SECONDS) as response:
+            return response.status == 200
     except (urllib.error.URLError, TimeoutError, OSError, ValueError):
         return False
 
@@ -187,10 +223,8 @@ class GoogleAuth:
         self._lock = threading.Lock()
         self._access: str | None = None
         self._expires = 0.0
-        self._pending: dict[str, Any] | None = None
-        # Goes up on every new sign-in and Disconnect; a sign-in finishing under an
-        # older number was cancelled and must not save its token.
-        self._generation = 0
+        self._pending: _SignInAttempt | None = None
+        self._sign_in_error: str | None = None
 
     # ---- status
 
@@ -198,139 +232,247 @@ class GoogleAuth:
         return _oauth_client() is not None
 
     def connected(self) -> bool:
-        data = _read_json(token_file())
-        return bool(data and isinstance(data.get("refresh_token"), str))
+        return _sign_in(_oauth_client()) is not None
 
-    def granted_scopes(self) -> set[str]:
-        data = _read_json(token_file()) or {}
-        return set(str(data.get("scope", "")).split())
-
-    def sign_in_pending(self) -> bool:
+    def authorization_status(self) -> GoogleAuthorization:
+        """Read setup, grant and browser attempt together, without contacting Google."""
         with self._lock:
-            return self._pending is not None and self._pending["thread"].is_alive()
+            try:
+                info = _oauth_client(strict_io=True)
+                setup: GoogleSetup = "configured" if info else (
+                    "unusable" if client_file().exists() else "missing")
+            except OSError:
+                info, setup = None, "unusable"
+            grant = _sign_in(info)
+            scopes = set(str(grant.get("scope", "")).split()) if grant else set()
+            pending = self._pending_attempt_locked()
+            return GoogleAuthorization(
+                setup, grant is not None, grant.get("verified_account_key") if grant else None,
+                [scope.rsplit("/", 1)[-1] for scope in SCOPES if grant and scope not in scopes],
+                pending.id if pending and info else None, self._sign_in_error,
+            )
 
-    def last_sign_in_error(self) -> str | None:
+    def account_binding(self) -> tuple[bool, str | None]:
         with self._lock:
-            return self._pending.get("error") if self._pending else None
+            data = _sign_in(_oauth_client())
+            return (True, data.get("verified_account_key")) if data else (False, None)
+
+    def remember_account(self, key: str) -> None:
+        """Persist offline cache ownership on the grant verified under the provider lock."""
+        with self._lock:
+            data = _sign_in(_oauth_client())
+            if data is None or data.get("verified_account_key") == key:
+                return
+            try:
+                stored = {**data, "verified_account_key": key}
+                write_private_file(token_file(), json.dumps(stored).encode("utf-8"))
+            except OSError:
+                raise GoogleUnavailable(
+                    "google_account_save_failed", "BearPlans could not save the verified Google account. Check folder permissions and try again."
+                ) from None
+
+    def _pending_attempt_locked(self) -> _SignInAttempt | None:
+        if self._pending and time.monotonic() >= self._pending.deadline:
+            self._end_sign_in_locked(_SIGN_IN_TIMEOUT)
+        return self._pending
+
+    def _end_sign_in_locked(self, error: str | None) -> None:
+        self._pending = None
+        self._sign_in_error = error
+
+    def cancel_sign_in(self, attempt_id: str) -> bool:
+        with self._lock:
+            pending = self._pending_attempt_locked()
+            if pending is None or pending.id != attempt_id:
+                return False
+            self._end_sign_in_locked(_SIGN_IN_CANCELLED)
+            return True
 
     # ---- sign-in (loopback redirect with PKCE, as Google requires for desktop apps)
 
-    def start_sign_in(self) -> str:
+    def start_sign_in(self, publish_when_idle: Callable[[Callable[[], bool]], None]) -> tuple[str, str]:
+        with self._lock:
+            return self._start_sign_in_locked(publish_when_idle)
+
+    def _start_sign_in_locked(self, publish_when_idle: Callable[[Callable[[], bool]], None]) -> tuple[str, str]:
         info = _oauth_client()
         if info is None:
             raise GoogleUnavailable(
                 "google_not_configured",
                 "No Google sign-in file was found. Save the Desktop app credential as google_oauth_client.json in the secrets folder inside the BearPlans data folder (on a Mac, ~/Library/Application Support/BearPlans/secrets/).")
-        with self._lock:
-            self._cancel_pending_locked()
-            self._generation += 1
-            generation = self._generation
         verifier = secrets.token_urlsafe(64)
         challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
         state = secrets.token_urlsafe(24)
-        received: dict[str, str] = {}
+        received: dict[str, list[str]] = {}
+        auth = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
+            timeout = 2
+
             def do_GET(self) -> None:  # noqa: N802
-                query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-                if "code" not in query and "error" not in query:
-                    self.send_response(404)
-                    self.end_headers()
+                parsed = urllib.parse.urlsplit(self.path)
+                query = urllib.parse.parse_qs(parsed.query)
+                if parsed.path != "/" or query.get("state") != [state] or not ("code" in query or "error" in query):
+                    self.send_error(400, "This callback did not match the Google sign-in.")
                     return
-                received.update({key: values[0] for key, values in query.items()})
+                with auth._lock:
+                    accepted = auth._pending_attempt_locked() is attempt and not received
+                    if accepted:
+                        received.update(query)
+                if not accepted:
+                    self.send_error(410, "This Google sign-in is no longer waiting for a response.")
+                    return
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.end_headers()
-                self.wfile.write(b"<p>BearPlans received the Google sign-in. You can close this tab.</p>")
-                threading.Thread(target=self.server.shutdown, daemon=True).start()
+                self.wfile.write(b"<p>Return to BearPlans to check the result. You can close this tab.</p>")
 
-            def log_message(self, *args: Any) -> None:  # Keep the code out of logs.
-                pass
+            def log_message(self, *args: Any) -> None:
+                pass  # The callback URL contains the authorization code.
 
-        server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+        class CallbackServer(http.server.ThreadingHTTPServer):
+            timeout = 0.1
+
+            def handle_error(self, request: Any, client_address: Any) -> None:
+                pass  # A malformed or disconnected local request needs no traceback.
+
+        try:
+            server = CallbackServer(("127.0.0.1", 0), Handler)
+        except OSError:
+            raise GoogleUnavailable(
+                "google_callback_unavailable",
+                "BearPlans could not open its local sign-in listener. Choose Connect Google to try again.",
+            ) from None
+        attempt = _SignInAttempt(secrets.token_urlsafe(24), time.monotonic() + SIGN_IN_WAIT_SECONDS)
         redirect = f"http://127.0.0.1:{server.server_port}"
         url = info["auth_uri"] + "?" + urllib.parse.urlencode({
             "client_id": info["client_id"], "redirect_uri": redirect, "response_type": "code",
             "scope": " ".join(SCOPES), "state": state, "code_challenge": challenge,
             "code_challenge_method": "S256", "access_type": "offline", "prompt": "consent"})
-        pending: dict[str, Any] = {"server": server, "error": None}
 
         def wait() -> None:
-            timer = threading.Timer(SIGN_IN_WAIT_SECONDS, server.shutdown)
-            timer.daemon = True
-            timer.start()
-            try:
-                server.serve_forever()
-            finally:
-                timer.cancel()
-                server.server_close()
-            if not received:
-                pending["error"] = "Google sign-in was not finished in time. Choose Connect Google to try again."
-            elif received.get("error") or received.get("state") != state or "code" not in received:
-                pending["error"] = "Google sign-in was cancelled or did not match. Nothing was changed."
-            else:
-                try:
-                    tokens = _post_form(info["token_uri"], {
-                        "code": received["code"], "client_id": info["client_id"],
-                        "client_secret": info["client_secret"], "redirect_uri": redirect,
-                        "grant_type": "authorization_code", "code_verifier": verifier})
-                    if not isinstance(tokens.get("refresh_token"), str):
-                        raise GoogleUnavailable("google_unexpected", "Google did not return a sign-in token.")
+            with server:
+                while True:
                     with self._lock:
-                        cancelled = generation != self._generation
-                        if not cancelled:
-                            _write_token({"refresh_token": tokens["refresh_token"], "scope": tokens.get("scope", "")})
-                            self._access = tokens.get("access_token")
-                            self._expires = time.monotonic() + float(tokens.get("expires_in", 0)) - 60
-                    if cancelled:
-                        # Disconnected (or signed in again) meanwhile: drop this late sign-in at Google too.
-                        revoke_token(tokens["refresh_token"])
-                        pending["error"] = "This Google sign-in was cancelled. Choose Connect Google to sign in again."
-                except GoogleUnavailable as error:
-                    pending["error"] = error.message
+                        if self._pending_attempt_locked() is not attempt:
+                            return
+                        if received:
+                            break
+                    server.handle_request()
+            if "error" in received or len(received.get("code", [])) != 1:
+                self._finish_sign_in(attempt, error=(
+                    "Google sign-in was declined or could not be authorized. Choose Connect Google to try again."
+                ))
+                return
+            try:
+                tokens = _post_form(info["token_uri"], {
+                    "code": received["code"][0], "client_id": info["client_id"],
+                    "client_secret": info["client_secret"], "redirect_uri": redirect,
+                    "grant_type": "authorization_code", "code_verifier": verifier})
+                scope = tokens.get("scope") if isinstance(tokens, dict) else None
+                if not isinstance(scope, str) or not set(SCOPES).issubset(scope.split()):
+                    raise GoogleUnavailable(
+                        "google_missing_permissions",
+                        "Google did not grant all required permissions. Choose Connect Google and allow the "
+                        "requested Calendar and Tasks permissions to try again.",
+                    )
+                refresh, access = tokens.get("refresh_token"), tokens.get("access_token")
+                if not isinstance(refresh, str) or not refresh or not isinstance(access, str) or not access:
+                    raise GoogleUnavailable("google_unexpected", "Google did not return a usable sign-in. Choose Connect Google to try again.")
+                expires = time.monotonic() + float(tokens.get("expires_in", 0)) - 60
+            except GoogleUnavailable as error:
+                self._finish_sign_in(attempt, error=error.message)
+                return
+            except (TypeError, ValueError, OverflowError):
+                self._finish_sign_in(attempt, error="Google sent an unexpected sign-in reply. Choose Connect Google to try again.")
+                return
 
-        thread = threading.Thread(target=wait, daemon=True, name="bearplans-google-signin")
-        pending["thread"] = thread
+            def publish() -> bool:
+                with self._lock:
+                    if self._pending_attempt_locked() is not attempt:
+                        return False
+                    stored = {"refresh_token": refresh, "scope": scope, "authorization_key": info["authorization_key"]}
+                    try:
+                        write_private_file(token_file(), json.dumps(stored).encode("utf-8"))
+                    except OSError:
+                        self._end_sign_in_locked(_SIGN_IN_SAVE_ERROR)
+                        return False
+                    self._access = access
+                    self._expires = expires
+                    self._end_sign_in_locked(None)
+                    return True
+
+            with self._lock:
+                if self._pending_attempt_locked() is not attempt:
+                    return
+            try:
+                publish_when_idle(publish)
+            except GoogleUnavailable as error:
+                self._finish_sign_in(attempt, error=error.message)
+
+        worker = threading.Thread(target=wait, daemon=True, name="bearplans-google-signin")
+        try:
+            worker.start()
+        except RuntimeError:
+            server.server_close()
+            raise GoogleUnavailable(
+                "google_callback_unavailable", "BearPlans could not start Google sign-in. Choose Connect Google to try again."
+            ) from None
+        self._pending = attempt
+        self._sign_in_error = None
+        return url, attempt.id
+
+    def _finish_sign_in(self, attempt: _SignInAttempt, *, error: str) -> None:
         with self._lock:
-            self._pending = pending
-        thread.start()
-        return url
+            if self._pending_attempt_locked() is attempt:
+                self._end_sign_in_locked(error)
 
-    def _cancel_pending_locked(self) -> None:
-        if self._pending is not None and self._pending["thread"].is_alive():
-            self._pending["server"].shutdown()
-
-    def disconnect(self) -> bool | None:
-        """Forget the sign-in here, cancel one in progress, then revoke it at Google.
-
-        The local token is deleted first, so it is gone even when Google cannot be
-        reached. Returns True when Google confirmed, False when it could not be asked
-        (the user can remove access in their Google Account), None when not signed in.
-        """
+    def replace_client(self, stored: dict[str, Any]) -> str | None:
+        """Publish setup and return an obsolete refresh token for best-effort revocation."""
         with self._lock:
-            self._generation += 1
-            self._cancel_pending_locked()
+            previous = _oauth_client(strict_io=True)
+            data = _read_json(token_file(), strict_io=True)
+            changed = previous is None or previous["client_id"] != stored["installed"]["client_id"]
+            # Legacy setups and tokens both have no key. A different setup gets
+            # a fresh key, so even an interrupted cleanup cannot reuse its old sign-in.
+            key = secrets.token_urlsafe(24) if changed else previous["authorization_key"]
+            write_private_file(client_file(), json.dumps({**stored, "authorization_key": key}, indent=2).encode("utf-8"))
+            if changed:
+                self._access = None
+                self._expires = 0.0
+                self._end_sign_in_locked(None)
+            if not changed and (data is None or data.get("authorization_key") == key):
+                return None
+            try:
+                remove_private_file(token_file())
+            except OSError:
+                raise GoogleClientCleanupError() from None
+            refresh = data.get("refresh_token") if data else None
+            return refresh if isinstance(refresh, str) else None
+
+    def disconnect_local(self) -> str | None:
+        """Remove the local sign-in and return its token for best-effort revocation."""
+        with self._lock:
+            data = _read_json(token_file(), strict_io=True)
+            remove_private_file(token_file())
+            pending = self._pending_attempt_locked()
+            self._end_sign_in_locked(_SIGN_IN_CANCELLED if pending else None)
             self._access = None
             self._expires = 0.0
-            data = _read_json(token_file())
-            try:
-                token_file().unlink()
-            except FileNotFoundError:
-                pass
-        refresh = data.get("refresh_token") if data else None
-        return revoke_token(refresh) if isinstance(refresh, str) else None
+            refresh = data.get("refresh_token") if data else None
+            return refresh if isinstance(refresh, str) else None
 
     # ---- access tokens
 
     def access_token(self) -> str:
         with self._lock:
+            info = _oauth_client()
+            data = _sign_in(info)
+            if info is None or data is None:
+                raise NOT_CONNECTED
             if self._access and time.monotonic() < self._expires:
                 return self._access
-        info = _oauth_client()
-        data = _read_json(token_file())
-        refresh = data.get("refresh_token") if data else None
-        if info is None or not isinstance(refresh, str):
-            raise NOT_CONNECTED
+        refresh = data["refresh_token"]
         tokens = _post_form(info["token_uri"], {
             "client_id": info["client_id"], "client_secret": info["client_secret"],
             "refresh_token": refresh, "grant_type": "refresh_token"})
@@ -338,6 +480,9 @@ class GoogleAuth:
         if not isinstance(access, str):
             raise GoogleUnavailable("google_unexpected", "Google sent an unexpected sign-in reply.")
         with self._lock:
+            current = _oauth_client()
+            if current != info or _sign_in(current) != data:
+                raise NOT_CONNECTED
             self._access = access
             self._expires = time.monotonic() + float(tokens.get("expires_in", 0)) - 60
         return access

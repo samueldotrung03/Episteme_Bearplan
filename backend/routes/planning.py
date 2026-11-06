@@ -9,7 +9,8 @@ from backend.domain.planning import (
     Placement, PlanningSnapshot, create_placement, get_planning, move_placement, remove_placement, set_placement_time,
 )
 
-from backend.domain.google_reading import SourceEvent, list_events
+from backend.domain.google_reading import SourceEvent
+from backend.routes.google import cached_google_events
 
 router = APIRouter(prefix="/api")
 
@@ -40,7 +41,7 @@ class PlacementTimeRequest(BaseModel):
 def planning(request: Request, week: str | None = None) -> PlanningView:
     snapshot = get_planning(request.app.state.db, week)
     try:
-        events = list_events(request.app.state.db, snapshot.week_start.isoformat(), snapshot.week_end.isoformat())
+        events = cached_google_events(request, snapshot.week_start.isoformat(), snapshot.week_end.isoformat())
     except sqlite3.Error:
         events = []
     return PlanningView(**snapshot.model_dump(), calendar_events=events)

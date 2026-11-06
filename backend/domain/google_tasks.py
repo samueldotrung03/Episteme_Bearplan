@@ -23,13 +23,16 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol, TypeVar
 
 from pydantic import BaseModel
 
 from backend.domain.calendar import application_today
 from backend.domain.google_calendar import CalendarClient, sync_calendar
+from backend.domain.google_account import account_review_key, check_account
 from backend.domain.google_reading import read_calendars
 from backend.domain.tasks import Task, _list_tasks, _set_completion_tx
 from backend.storage.db import Database, utc_now
@@ -38,6 +41,7 @@ _LOG = logging.getLogger("bearplans.google")
 PERIOD_SECONDS = 120
 NUDGE_DELAY_SECONDS = 4
 NOTES_LIMIT = 8000
+_Result = TypeVar("_Result")
 
 
 class TasksClient(Protocol):
@@ -51,12 +55,19 @@ class TasksClient(Protocol):
     def delete_task(self, list_id: str, task_id: str) -> None: ...
 
 
+GoogleAccountStatus = Literal["unverified", "verified", "different_account", "unowned_links"]
+ProviderActivity = Literal["idle", "syncing", "refreshing_calendars"]
+
+
 class SyncStatus(BaseModel):
     last_attempt_at: str | None
     last_success_at: str | None
     last_error: str | None
     paused_at: str | None = None  # Automatic sync is paused since then (manual Sync now still works).
     syncing: bool = False  # A sync is running right now.
+    account_status: GoogleAccountStatus = "unverified"
+    account_review_key: str | None = None
+    other_account: bool = False  # Signed in to a different Google account; see google_account.py.
     synced_lists: int
     synced_tasks: int
     synced_events: int
@@ -73,28 +84,42 @@ class _Mapping:
 # --------------------------------------------------------------------------- reading
 
 
-def get_status(db: Database) -> SyncStatus:
+def get_status(db: Database, verified_key: str | None = None) -> SyncStatus:
     with db.read() as conn:
-        row = conn.execute("SELECT * FROM google_sync WHERE id = 1").fetchone()
-        lists = conn.execute("SELECT count(*) FROM google_task_lists").fetchone()[0]
-        tasks = conn.execute("SELECT count(*) FROM google_tasks").fetchone()[0]
-        events = conn.execute("SELECT count(*) FROM google_events").fetchone()[0]
+        row = conn.execute(
+            "SELECT (SELECT count(*) FROM google_task_lists) AS lists,"
+            " (SELECT count(*) FROM google_tasks) AS tasks,"
+            " (SELECT count(*) FROM google_events) AS events, google_sync.*"
+            " FROM (SELECT 1 AS id) AS singleton LEFT JOIN google_sync USING (id)"
+        ).fetchone()
+    owner, candidate = row["account_key"], row["other_account_key"]
+    account_status: GoogleAccountStatus = "unverified"
+    review_key = None
+    if verified_key is not None:
+        if verified_key == owner:
+            account_status = "verified"
+        elif verified_key == candidate:
+            account_status = "different_account" if owner else "unowned_links"
+            review_key = account_review_key(owner, verified_key)
     return SyncStatus(
-        last_attempt_at=row["last_attempt_at"] if row else None,
-        last_success_at=row["last_success_at"] if row else None,
-        last_error=row["last_error"] if row else None,
-        paused_at=row["paused_at"] if row else None,
-        synced_lists=lists, synced_tasks=tasks, synced_events=events)
+        last_attempt_at=row["last_attempt_at"], last_success_at=row["last_success_at"],
+        last_error=row["last_error"], paused_at=row["paused_at"],
+        account_status=account_status, account_review_key=review_key, other_account=review_key is not None,
+        synced_lists=row["lists"], synced_tasks=row["tasks"], synced_events=row["events"],
+    )
 
 
-def set_paused(db: Database, paused: bool) -> None:
-    """Pause or resume automatic sync; pausing again keeps the original time."""
+def set_paused(db: Database, paused: bool) -> bool:
+    """Return whether the preference changed, preserving the first Pause time."""
     with db.write() as conn:
         conn.execute("INSERT INTO google_sync (id) VALUES (1) ON CONFLICT(id) DO NOTHING")
         if paused:
-            conn.execute("UPDATE google_sync SET paused_at = coalesce(paused_at, ?) WHERE id = 1", (utc_now(),))
-        else:
-            conn.execute("UPDATE google_sync SET paused_at = NULL WHERE id = 1")
+            return conn.execute(
+                "UPDATE google_sync SET paused_at = ? WHERE id = 1 AND paused_at IS NULL", (utc_now(),)
+            ).rowcount == 1
+        return conn.execute(
+            "UPDATE google_sync SET paused_at = NULL WHERE id = 1 AND paused_at IS NOT NULL"
+        ).rowcount == 1
 
 
 def is_paused(db: Database) -> bool:
@@ -202,9 +227,11 @@ def _apply_ticks(db: Database, ticks: dict[str, str]) -> int:
 
 
 def sync(db: Database, client: TasksClient, unavailable: type[Exception],
-         calendar: CalendarClient | None = None) -> SyncStatus:
+         calendar: CalendarClient | None = None, remember: Callable[[str], None] | None = None) -> SyncStatus:
     """One full sync (Tasks, BearPlans calendar, then reading followed calendars). Raises `unavailable` (after recording it) when Google fails."""
     try:
+        if calendar is not None:
+            check_account(db, calendar, unavailable, remember)  # type: ignore[arg-type]
         _sync(db, client)
         if calendar is not None:
             sync_calendar(db, calendar)
@@ -303,13 +330,22 @@ class GoogleSyncService:
     """Runs sync in the background: every PERIOD_SECONDS, and shortly after a change."""
 
     def __init__(self, db: Database, client_factory: Any, unavailable: type[Exception], connected: Any,
-                 calendar_factory: Any = None) -> None:
+                 calendar_factory: Any = None, remember: Callable[[str], None] | None = None) -> None:
         self._db = db
         self._client_factory = client_factory
         self._calendar_factory = calendar_factory
+        self._remember_account = remember
         self._unavailable = unavailable
         self._connected = connected
         self._lock = threading.Lock()
+        self._preference_lock = threading.Lock()
+        self._manual_sync_lock = threading.Lock()
+        self.pausing = False
+        self.activity: ProviderActivity = "idle"
+        self.connection_lock = threading.Lock()
+        # None blocks new provider work. A fresh object invalidates old queued work
+        # even if the credential was replaced and the user is already signed in again.
+        self._connection_epoch: object | None = object()
         self._wake = threading.Event()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -329,35 +365,123 @@ class GoogleSyncService:
                 tuple(tuple(row) for row in conn.execute("SELECT calendar_id, summary, followed, in_source FROM google_source_calendars ORDER BY calendar_id")),
             ))
 
+    def sync_once(self) -> None:
+        """Run one deliberate sync and reject overlapping requests."""
+        if not self._manual_sync_lock.acquire(blocking=False):
+            raise self._unavailable("google_sync_busy", "A requested Google sync is already in progress.")
+        try:
+            self.sync_now()
+        finally:
+            self._manual_sync_lock.release()
+
     def sync_now(self, automatic: bool = False) -> SyncStatus | None:
         """One sync. An automatic one is skipped (None) while sync is paused; the
         check happens under the lock, so a Pause that returned stops later automatic work."""
-        with self._lock:  # one sync at a time
-            if automatic and is_paused(self._db):
+        epoch = self._connection_epoch
+        with self._lock:  # one provider operation at a time
+            if not self._current_connection(epoch):
+                if automatic:
+                    return None
+                raise self._connection_changed()
+            if not self._connected():
+                if automatic:
+                    return None
+                raise self._unavailable("google_not_connected", "Google is not connected. Choose Connect Google first.")
+            if automatic and (self.pausing or is_paused(self._db)):
                 return None
-            calendar = self._calendar_factory() if self._calendar_factory else None
-            before = self._fingerprint()
-            try:
-                return sync(self._db, self._client_factory(), self._unavailable, calendar)
-            finally:
-                if self._fingerprint() != before:
-                    self._version += 1
+            with self._active("syncing"):
+                calendar = self._calendar_factory() if self._calendar_factory else None
+                before = self._fingerprint()
+                try:
+                    return sync(self._db, self._client_factory(), self._unavailable, calendar, self._remember_account)
+                finally:
+                    if self._fingerprint() != before:
+                        self._version += 1
 
     @property
     def syncing(self) -> bool:
-        return self._lock.locked()
+        return self.activity == "syncing"
 
-    def status(self) -> SyncStatus:
-        return get_status(self._db).model_copy(update={"syncing": self.syncing})
+    @property
+    def connection_changing(self) -> bool:
+        return self._connection_epoch is None
 
-    def while_idle(self, action: Any, wait_seconds: float = 30.0) -> Any:
-        """Run action once no sync is running (or after wait_seconds), and keep syncs out meanwhile."""
-        acquired = self._lock.acquire(timeout=wait_seconds)
+    @contextmanager
+    def _active(self, activity: ProviderActivity) -> Iterator[None]:
+        # Only set under the provider operation lock.
+        self.activity = activity
+        try:
+            yield
+        finally:
+            self.activity = "idle"
+
+    @contextmanager
+    def changing_connection(self) -> Iterator[None]:
+        """Exclude new provider work and other connection changes during teardown."""
+        with self.connection_lock:
+            self._connection_epoch = None
+            try:
+                yield
+            finally:
+                self._connection_epoch = object()
+
+    def _current_connection(self, epoch: object | None) -> bool:
+        return epoch is not None and self._connection_epoch is epoch
+
+    def _connection_changed(self) -> Exception:
+        return self._unavailable(
+            "google_connection_changed", "The Google connection is being updated or changed. Check Settings and try again."
+        )
+
+    def publish_authorization(self, publish: Callable[[], bool]) -> None:
+        with self.changing_connection():
+            if self.while_idle(publish):
+                self._version += 1
+
+    def read_from_google(self, action: Callable[[], _Result], *, automatic: bool = False) -> _Result | None:
+        epoch = self._connection_epoch
+
+        def read() -> _Result | None:
+            if not self._current_connection(epoch):
+                raise self._connection_changed()
+            if automatic and (self.pausing or is_paused(self._db)):
+                return None
+            with self._active("refreshing_calendars"):
+                return action()
+
+        return self.while_idle(read)
+
+    def change_pause(self, paused: bool, snapshot: Callable[[], _Result]) -> _Result:
+        """Acknowledge a preference change at the provider operation boundary."""
+        if not self._preference_lock.acquire(blocking=False):
+            raise self._unavailable(
+                "google_preference_busy", "Google sync settings are already changing. Wait for that change, then try again."
+            )
+        self.pausing = paused
+        try:
+            def apply() -> tuple[_Result, bool]:
+                changed = set_paused(self._db, paused)
+                self.pausing = False
+                return snapshot(), changed
+
+            result, changed = self.while_idle(apply)
+            if changed and not paused:
+                self.nudge()
+            return result
+        finally:
+            self.pausing = False
+            self._preference_lock.release()
+
+    def while_idle(self, action: Callable[[], _Result], wait_seconds: float = 30.0) -> _Result:
+        """Run action after active Google work, or fail without running it."""
+        if not self._lock.acquire(timeout=wait_seconds):
+            raise self._unavailable(
+                "google_sync_busy", "Google sync or a calendar refresh is still running. Wait for it to finish, then try again."
+            )
         try:
             return action()
         finally:
-            if acquired:
-                self._lock.release()
+            self._lock.release()
 
     def nudge(self) -> None:
         self._wake.set()

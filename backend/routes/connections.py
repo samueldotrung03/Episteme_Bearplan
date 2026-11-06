@@ -8,20 +8,21 @@ bad paste keeps the previous value. The assistant has no tool that reaches them.
 """
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import Lock
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from backend.domain.errors import InvalidInput
 from backend.platform.bcourses import TOKEN_KEY, BCoursesClient, BCoursesUnavailable
-from backend.platform.google import client_file, current_client_id, parse_client_file
+from backend.platform import google
+from backend.platform.google import GoogleClientCleanupError, GoogleSetup, client_file, parse_client_file
 from backend.routes.google import disconnect_google
 from backend.platform.secrets import (
-    read_secret, read_status, remove_private_file, remove_secret, secrets_dir, update_status, write_private_file,
+    read_secret, read_status, remove_private_file, remove_secret, secrets_dir, update_status,
     write_secret,
 )
 
@@ -30,6 +31,8 @@ router = APIRouter(prefix="/api/connections")
 BCOURSES = "bcourses_token"
 GOOGLE = "google_client"
 TOKEN_MAX = 512
+_bcourses_lock = Lock()
+_google_setup_lock = Lock()
 
 
 class CredentialStatus(BaseModel):
@@ -41,7 +44,9 @@ class CredentialStatus(BaseModel):
 
 
 class GoogleClientStatus(CredentialStatus):
+    setup: GoogleSetup
     connected: bool
+    revoked: bool | None = None  # Result for the saved grant on removal only.
 
 
 class ConnectionsState(BaseModel):
@@ -78,12 +83,16 @@ def _folder() -> str:
         return str(folder)
 
 
-def _state(request: Request) -> ConnectionsState:
-    return ConnectionsState(
-        folder=_folder(),
-        bcourses=CredentialStatus(**_status(BCOURSES, read_secret(TOKEN_KEY) is not None)),
-        google=GoogleClientStatus(**_status(GOOGLE, current_client_id() is not None),
-                                  connected=request.app.state.google_auth.connected()))
+def _state(request: Request, revoked: bool | None = None) -> ConnectionsState:
+    with _bcourses_lock:
+        bcourses = CredentialStatus(**_status(BCOURSES, read_secret(TOKEN_KEY) is not None))
+    with _google_setup_lock:
+        auth = request.app.state.google_auth.authorization_status()
+        google_status = GoogleClientStatus(
+            **_status(GOOGLE, auth.setup == "configured"),
+            setup=auth.setup, connected=auth.connected, revoked=revoked,
+        )
+    return ConnectionsState(folder=_folder(), bcourses=bcourses, google=google_status)
 
 
 def _token_checker(request: Request) -> Callable[[str], None]:
@@ -116,26 +125,56 @@ def save_bcourses_token(body: TokenRequest, request: Request) -> ConnectionsStat
     accepted, message = _check_token(request, token)
     if not accepted:
         raise InvalidInput("token", f"{message} The previous token was kept.")
-    write_secret(TOKEN_KEY, token)
-    now = _now()
-    update_status(BCOURSES, {"saved_at": now, "checked_at": now, "check_ok": True, "check_message": message})
+    with _bcourses_lock:
+        # Invalidate the old check first. A stopped or failed save must never
+        # associate that check with a different token.
+        try:
+            update_status(BCOURSES, None)
+            write_secret(TOKEN_KEY, token)
+        except (OSError, UnicodeError):
+            raise HTTPException(
+                503, "The token was not replaced. Check disk space and folder permissions, then try again."
+            ) from None
+        now = _now()
+        try:
+            update_status(BCOURSES, {"saved_at": now, "checked_at": now, "check_ok": True, "check_message": message})
+        except OSError:
+            raise HTTPException(
+                503, "The new bCourses token was saved, but its check result could not be recorded. "
+                "Check disk space and folder permissions, then try Check and save again."
+            ) from None
     return _state(request)
 
 
 @router.post("/bcourses/check")
 def check_bcourses_token(request: Request) -> ConnectionsState:
-    token = read_secret(TOKEN_KEY)
+    with _bcourses_lock:
+        token = read_secret(TOKEN_KEY)
     if token is None:
         raise InvalidInput("token", "No bCourses token is saved yet.")
     accepted, message = _check_token(request, token)
-    update_status(BCOURSES, {"checked_at": _now(), "check_ok": accepted, "check_message": message})
+    with _bcourses_lock:
+        if read_secret(TOKEN_KEY) != token:
+            raise HTTPException(409, "The saved bCourses token changed during the check. Reload Settings and try again.")
+        try:
+            update_status(BCOURSES, {"checked_at": _now(), "check_ok": accepted, "check_message": message})
+        except OSError:
+            raise HTTPException(
+                503, "The bCourses check result could not be recorded. Check disk space and folder permissions, then retry."
+            ) from None
     return _state(request)
 
 
 @router.delete("/bcourses")
 def remove_bcourses_token(request: Request) -> ConnectionsState:
-    remove_secret(TOKEN_KEY)
-    update_status(BCOURSES, None)
+    with _bcourses_lock:
+        try:
+            update_status(BCOURSES, None)
+            remove_secret(TOKEN_KEY)
+        except (OSError, UnicodeError):
+            raise HTTPException(
+                503, "The bCourses token was not removed. Check disk space and folder permissions, then try again."
+            ) from None
     return _state(request)
 
 
@@ -145,21 +184,53 @@ def save_google_client(body: ClientFileRequest, request: Request) -> Connections
         stored = parse_client_file(body.client_file)
     except ValueError as error:
         raise InvalidInput("client_file", f"{error} The previous sign-in file was kept.") from None
-    other_client = current_client_id() not in (None, stored["installed"]["client_id"])
-    # Write first: if saving fails, the old file and its sign-in are both still there.
-    write_private_file(client_file(), json.dumps(stored, indent=2).encode("utf-8"))
-    if other_client:
-        # The old sign-in belongs to the old client and cannot be used with the new one.
-        disconnect_google(request.app)
-    now = _now()
-    update_status(GOOGLE, {"saved_at": now, "checked_at": now, "check_ok": True,
-                           "check_message": "The file is a Google Desktop app sign-in file. Choose Connect Google next."})
-    return _state(request)
+
+    def save() -> tuple[str | None, bool]:
+        with _google_setup_lock:
+            try:
+                update_status(GOOGLE, None)
+                refresh = request.app.state.google_auth.replace_client(stored)
+            except GoogleClientCleanupError:
+                raise HTTPException(
+                    503, "The new Google sign-in file was saved and the previous sign-in is inactive here. "
+                    "BearPlans could not remove its old token. Check folder permissions, then save the same file again."
+                ) from None
+            except OSError:
+                raise HTTPException(
+                    503, "The Google sign-in file was not replaced. Check disk space and folder permissions, then try again."
+                ) from None
+            now = _now()
+            try:
+                update_status(GOOGLE, {"saved_at": now, "checked_at": now, "check_ok": True,
+                                       "check_message": "The file is a Google Desktop app sign-in file."})
+            except OSError:
+                return refresh, False
+            return refresh, True
+
+    sync = request.app.state.google_sync
+    with sync.changing_connection():
+        refresh, recorded = sync.while_idle(save)
+        if refresh is not None:
+            google.revoke_token(refresh)
+        if not recorded:
+            raise HTTPException(
+                503, "The Google sign-in file was saved, but its check result could not be recorded. "
+                "Check disk space and folder permissions, then save the same file again."
+            )
+        return _state(request)
 
 
 @router.delete("/google")
 def remove_google_client(request: Request) -> ConnectionsState:
-    disconnect_google(request.app)
-    remove_private_file(client_file())
-    update_status(GOOGLE, None)
-    return _state(request)
+    with request.app.state.google_sync.changing_connection():
+        revoked = disconnect_google(request)
+        with _google_setup_lock:
+            try:
+                update_status(GOOGLE, None)
+                remove_private_file(client_file())
+            except OSError:
+                raise HTTPException(
+                    503, "Google is signed out here, but the setup file could not be removed. "
+                    "Check folder permissions, then try removing it again."
+                ) from None
+        return _state(request, revoked=revoked)

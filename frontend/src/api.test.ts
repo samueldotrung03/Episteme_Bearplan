@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import { getStreaks, startTimer } from "./api";
+import { getConnections, getStreaks, startTimer, syncGoogleTasks, type ConnectionsState } from "./api";
 
 const operationId = "00000000-0000-4000-8000-000000000001";
 const taskId = "00000000-0000-4000-8000-000000000002";
@@ -35,4 +35,27 @@ test("daily streak reads preserve service dates and use an abortable same-origin
   const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValue(json(streak));
   await expect(getStreaks(controller.signal)).resolves.toEqual(streak);
   expect(fetcher).toHaveBeenCalledWith("/api/streaks", { signal: controller.signal, headers: { Accept: "application/json" } });
+});
+
+
+test("connection setup reads use the local API and retain credential evidence independently", async () => {
+  const controller = new AbortController();
+  const empty = { set: false, saved_at: null, checked_at: null, check_ok: null, check_message: null };
+  const setup: ConnectionsState = {
+    folder: "~/fixture",
+    bcourses: { ...empty, set: true, check_ok: false, checked_at: "2026-11-06T15:30:00Z", check_message: "Token rejected." },
+    google: { ...empty, set: true, setup: "configured", connected: false, revoked: null },
+  };
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(json(setup));
+  await expect(getConnections(controller.signal)).resolves.toEqual(setup);
+  expect(fetch).toHaveBeenCalledWith("/api/connections", { signal: controller.signal, headers: { Accept: "application/json" } });
+});
+
+test("the local API client retains the structured error code with the message and field", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(json({
+    error: { code: "google_other_account", message: "Review this account.", field: "account" },
+  }, 502));
+  await expect(syncGoogleTasks()).rejects.toMatchObject({
+    status: 502, code: "google_other_account", message: "Review this account.", field: "account",
+  });
 });

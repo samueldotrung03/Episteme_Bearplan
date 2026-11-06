@@ -32,13 +32,17 @@ export function BCourses({ visible, onChanged }: { visible: boolean; onChanged?:
   const [status, setStatus] = useState("");
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const loaded = useRef(false);
+  const actionRunning = useRef(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
-  const accept = useCallback((next: BCoursesState) => {
+  const accept = useCallback((next: BCoursesState, keepSelection = false) => {
     setState(next);
-    setChosen(new Set(next.courses.filter((course) => course.followed).map((course) => course.course_id)));
+    if (!keepSelection) setChosen(new Set(next.courses.filter((course) => course.followed).map((course) => course.course_id)));
   }, []);
 
   const run = useCallback(async (label: string, action: () => Promise<BCoursesState | void>, done = "") => {
+    if (actionRunning.current) return;
+    actionRunning.current = true;
     setBusy(label);
     setError(null);
     setStatus("");
@@ -47,23 +51,38 @@ export function BCourses({ visible, onChanged }: { visible: boolean; onChanged?:
       if (next) accept(next);
       if (done) setStatus(done);
     } catch (caught) {
-      setError(message(caught, "Something went wrong. Nothing was changed."));
-      // The service records failed refreshes; show its saved state too.
-      try { accept(await getBCourses()); } catch { /* keep the current view */ }
+      setError(message(caught, "Could not confirm the bCourses action. Refresh to check what was saved."));
+      // A course save may have persisted before the provider refresh failed.
+      try { accept(await getBCourses(), label === "follow"); } catch { /* keep the current view */ }
     } finally {
+      actionRunning.current = false;
       setBusy(null);
     }
   }, [accept]);
 
   useEffect(() => {
     if (!visible || loaded.current) return;
-    loaded.current = true;
-    void run("load", async () => {
-      const first = await getBCourses();
-      // First visit with a token: fetch the course list so courses can be chosen.
-      return first.configured && !first.sync.last_attempt_at ? refreshBCourses() : first;
-    });
-  }, [visible, run]);
+    const controller = new AbortController();
+    setBusy("load");
+    setError(null);
+    void (async () => {
+      try {
+        const first = await getBCourses(controller.signal);
+        if (controller.signal.aborted) return;
+        loaded.current = true;
+        accept(first);
+        // First visit with a token: fetch the course list so courses can be chosen.
+        if (first.configured && !first.sync.last_attempt_at) {
+          await run("refresh", refreshBCourses);
+        }
+      } catch (caught) {
+        if (!controller.signal.aborted) setError(message(caught, "Could not read bCourses."));
+      } finally {
+        if (!controller.signal.aborted) setBusy(null);
+      }
+    })();
+    return () => controller.abort();
+  }, [visible, loadAttempt, run, accept]);
 
   const followed = state?.courses.filter((course) => course.followed) ?? [];
   const now = Date.now();
@@ -108,12 +127,14 @@ export function BCourses({ visible, onChanged }: { visible: boolean; onChanged?:
     <p className="muted">Assignments from the courses you follow wait here. Nothing becomes a task until you choose Add. BearPlans only reads bCourses; it never changes anything there.</p>
     {state?.sync.last_success_at ? <p className="muted">Last updated {stampLabel.format(new Date(state.sync.last_success_at))}.</p> : null}
     {error ? <p role="alert" className="error">{error}</p> : null}
+    {error && !state ? <button type="button" disabled={busy !== null} onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Retry status</button> : null}
+    {state?.sync.last_error && state.sync.last_error !== error ? <p role="alert" className="error">Last refresh failed: {state.sync.last_error}</p> : null}
     {status ? <p role="status">{status}</p> : null}
     {state && !state.configured ? <p className="bcourses-setup">No bCourses token is set. In bCourses, open Account → Settings → New Access Token. Paste the token after <code>BCOURSES_TOKEN=</code> in <code>bearplans.secrets.env</code> in the BearPlans secrets folder (<code>~/Library/Application Support/BearPlans/secrets/</code>), save the file, then reload this page.</p> : null}
 
     {state?.courses.length ? <details className="bcourses-courses" open={followed.length === 0}>
       <summary>Courses to follow ({followed.length} of {state.courses.filter((course) => course.in_source).length})</summary>
-      <fieldset>
+      <fieldset disabled={busy !== null}>
         <legend>Choose the courses whose assignments you want to see</legend>
         {state.courses.filter((course) => course.in_source || course.followed).map((course) => <label key={course.course_id}>
           <input type="checkbox" checked={chosen.has(course.course_id)} onChange={(event) => setChosen((current) => {

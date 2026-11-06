@@ -182,7 +182,13 @@ def test_failed_refresh_keeps_cache_and_records_the_message(db, fake):
 
 
 def test_http_flow_and_errors(db, fake):
-    api = TestClient(create_app(db, bcourses_client=fake), base_url="http://127.0.0.1:8765")
+    app = create_app(db, bcourses_client=fake)
+    app.state.bcourses_token_checker = lambda token: None
+    api = TestClient(app, base_url="http://127.0.0.1:8765")
+    token = "bcourses-status-fixture-canary"
+    checked = api.put("/api/connections/bcourses", json={"token": token}).json()["bcourses"]
+    assert checked["set"] and checked["check_ok"] and checked["checked_at"]
+    assert api.get("/api/bcourses").json()["sync"]["last_success_at"] is None
     state = api.post("/api/bcourses/refresh").json()
     assert state["configured"] and len(state["courses"]) == 2 and "token" not in json.dumps(state).lower()
     state = api.put("/api/bcourses/courses", json={"course_ids": ["1"]}).json()
@@ -195,6 +201,12 @@ def test_http_flow_and_errors(db, fake):
     fake.fail = BCoursesUnavailable("bcourses_token_rejected", "bCourses did not accept the token.")
     failed = api.post("/api/bcourses/refresh")
     assert failed.status_code == 502 and failed.json()["error"]["code"] == "bcourses_token_rejected"
+    cached = api.get("/api/bcourses").json()
+    assert cached["sync"]["last_success_at"] == state["sync"]["last_success_at"]
+    assert cached["sync"]["last_error"] == "bCourses did not accept the token."
+    setup = api.get("/api/connections")
+    assert setup.json()["bcourses"] == checked  # The old credential check and failed refresh are different evidence.
+    assert token not in setup.text
     assert api.post("/api/bcourses/refresh", headers={"Origin": "https://evil.example"}).status_code == 403
 
 

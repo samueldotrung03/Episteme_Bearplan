@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { BCourses } from "./BCourses";
@@ -90,4 +90,36 @@ test("a refresh error shows the service message and keeps the saved assignments"
   await user.click(await screen.findByRole("button", { name: "Refresh" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Cannot reach bCourses.");
   expect(screen.getByRole("list", { name: "Upcoming assignments" })).toBeVisible();
+});
+
+
+test("a failed course save reads back saved data and keeps the requested selection for retry", async () => {
+  const fetch = vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(json(state()))
+    .mockResolvedValueOnce(json({ error: { code: "storage_unavailable", message: "Save could not finish." } }, 503))
+    .mockResolvedValueOnce(json(state()));
+  const user = userEvent.setup();
+  render(<BCourses visible />);
+  await user.click(await screen.findByText(/Courses to follow/));
+  const course = screen.getByRole("checkbox", { name: "Old club" });
+  await user.click(course);
+  await user.click(screen.getByRole("button", { name: "Save courses" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Save could not finish.");
+  await waitFor(() => expect(screen.getByRole("button", { name: "Save courses" })).toBeEnabled());
+  expect(course).toBeChecked();
+  expect(fetch.mock.calls[2][0]).toBe("/api/bcourses");
+  expect(screen.getByRole("list", { name: "Upcoming assignments" })).toBeVisible();
+});
+
+test("retries the first status read and displays prior refresh failure beside cached work", async () => {
+  const cached = state({ sync: { ...state().sync, last_error: "bCourses did not accept the token." } });
+  const fetch = vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(json({ error: { message: "Local status unavailable." } }, 503))
+    .mockResolvedValueOnce(json(cached));
+  render(<BCourses visible />);
+  await userEvent.click(await screen.findByRole("button", { name: "Retry status" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Last refresh failed: bCourses did not accept the token.");
+  expect(screen.getByText(/Last updated/)).toBeVisible();
+  expect(screen.getByRole("list", { name: "Upcoming assignments" })).toBeVisible();
+  expect(fetch.mock.calls.map(([url]) => url)).toEqual(["/api/bcourses", "/api/bcourses"]);
 });

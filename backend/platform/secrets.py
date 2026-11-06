@@ -18,6 +18,7 @@ import os
 import shutil
 import stat
 import threading
+from contextlib import suppress
 from pathlib import Path
 
 from backend.platform.paths import SOURCE_ROOT, DataDirError, resolve_data_dir
@@ -81,13 +82,20 @@ def move_legacy_secrets(legacy_dir: Path = LEGACY_SECRETS_DIR) -> list[str]:
 
 
 def read_secret(key: str) -> str | None:
-    """The value for key, or None when the file or value is missing."""
+    """The value for key, or None when unavailable."""
+    try:
+        return _read_secret_file(key)
+    except (OSError, UnicodeError):
+        return None
+
+
+def _read_secret_file(key: str) -> str | None:
     path = secrets_file()
     try:
         if path.stat().st_mode & (stat.S_IRWXG | stat.S_IRWXO):
             os.chmod(path, 0o600)  # Keep it readable by the owner only.
         text = path.read_text(encoding="utf-8")
-    except OSError:
+    except FileNotFoundError:
         return None
     for line in text.splitlines():
         name, separator, value = line.partition("=")
@@ -102,7 +110,7 @@ def read_secret(key: str) -> str | None:
 # it; nothing here ever returns a stored value except read_secret().
 
 STATUS_FILENAME = "status.json"  # Dates and check results only, never a credential.
-_write_lock = threading.Lock()
+_write_lock = threading.RLock()
 
 
 def _ensure_dir() -> Path:
@@ -114,15 +122,20 @@ def _ensure_dir() -> Path:
 
 def write_private_file(path: Path, data: bytes) -> None:
     """Replace path with data, owner-only, so a crash leaves the old or the new file."""
-    _ensure_dir()
-    temporary = path.with_name(path.name + ".tmp")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(descriptor, "wb") as handle:
-        handle.write(data)
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.chmod(temporary, 0o600)
-    os.replace(temporary, path)
+    with _write_lock:
+        _ensure_dir()
+        temporary = path.with_name(path.name + ".tmp")
+        try:
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(descriptor, "wb") as handle:
+                handle.write(data)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.chmod(temporary, 0o600)
+            os.replace(temporary, path)
+        finally:
+            with suppress(OSError):
+                temporary.unlink()
 
 
 def remove_private_file(path: Path) -> bool:
@@ -157,24 +170,31 @@ def write_secret(key: str, value: str) -> None:
 def remove_secret(key: str) -> bool:
     """Remove key from the secrets file; True when a value was there."""
     with _write_lock:
-        had = read_secret(key) is not None
+        had = _read_secret_file(key) is not None
         if had:
             _set_line(key, None)
         return had
 
 
-def read_status() -> dict[str, dict[str, object]]:
+def _read_status_file() -> dict[str, dict[str, object]]:
     try:
         data = json.loads((secrets_dir() / STATUS_FILENAME).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except (FileNotFoundError, ValueError):
         return {}
     return {k: v for k, v in data.items() if isinstance(v, dict)} if isinstance(data, dict) else {}
+
+
+def read_status() -> dict[str, dict[str, object]]:
+    try:
+        return _read_status_file()
+    except OSError:
+        return {}
 
 
 def update_status(name: str, entry: dict[str, object] | None) -> None:
     """Record (or with None, forget) when a credential was saved and last checked."""
     with _write_lock:
-        status = read_status()
+        status = _read_status_file()
         if entry is None:
             status.pop(name, None)
         else:

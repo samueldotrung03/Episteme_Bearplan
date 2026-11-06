@@ -115,11 +115,11 @@ def test_routes(db):
         assert client.get("/api/google/calendars").json() == []
         calendars = client.post("/api/google/calendars/refresh").json()
         assert [c["summary"] for c in calendars] == ["Me", "BearPlans", "Lab job"]  # no own calendar recorded here
-        followed = client.put("/api/google/calendars", json={"calendar_ids": ["work@group"]}).json()
+        followed = client.put("/api/google/calendars", json={"account_key": calendars[0]["account_key"], "calendar_ids": ["work@group"]}).json()
         assert [c["followed"] for c in followed] == [False, False, True]
         events = client.get("/api/google/events", params={"start": D1, "end": D3}).json()
         assert [e["summary"] for e in events] == ["Shift"]
-        added = client.post("/api/google/events/add", json={"calendar_id": "work@group", "event_id": "w"}).json()
+        added = client.post("/api/google/events/add", json={"account_key": events[0]["account_key"], "calendar_id": "work@group", "event_id": "w"}).json()
         assert added["task"]["title"] == "Shift" and added["planned"] is True
         assert client.get("/api/google/events", params={"start": D1, "end": "2027-12-31"}).status_code == 422
 

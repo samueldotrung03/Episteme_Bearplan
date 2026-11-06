@@ -5,7 +5,7 @@ import { CalendarEvents } from "./WeeklyPlanner";
 import type { GoogleEvent } from "./api";
 
 const event = (overrides: Partial<GoogleEvent>): GoogleEvent => ({
-  calendar_id: "me", calendar_summary: "Me", color: "#9fc6e7", event_id: "a", summary: "Office hours", location: "Soda 283",
+  account_key: "account-a", calendar_id: "me", calendar_summary: "Me", color: "#9fc6e7", event_id: "a", summary: "Office hours", location: "Soda 283",
   html_link: "", all_day: false, start_at: "2026-11-05T15:00:00-08:00", end_at: "2026-11-05T16:30:00-08:00",
   first_day: "2026-11-05", last_day: "2026-11-05", task_id: null, ...overrides,
 });
@@ -24,7 +24,7 @@ it("shows events and adds one as a task", async () => {
   expect(screen.getByText(/All day · Me/)).toBeTruthy();
   expect(screen.getByText("Added as a task")).toBeTruthy();
   await userEvent.click(screen.getByRole("button", { name: "Add as task" }));
-  expect(fetch).toHaveBeenCalledWith("/api/google/events/add", expect.objectContaining({ method: "POST", body: JSON.stringify({ calendar_id: "me", event_id: "a" }) }));
+  expect(fetch).toHaveBeenCalledWith("/api/google/events/add", expect.objectContaining({ method: "POST", body: JSON.stringify({ account_key: "account-a", calendar_id: "me", event_id: "a" }) }));
   expect(onRun.mock.calls[0][1]).toMatch(/Added “Office hours” as a task/);
 });
 

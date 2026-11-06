@@ -39,6 +39,7 @@ class ReadingClient(Protocol):
 
 
 class SourceCalendar(BaseModel):
+    account_key: str
     calendar_id: str
     summary: str
     color: str
@@ -47,6 +48,7 @@ class SourceCalendar(BaseModel):
 
 
 class SourceEvent(BaseModel):
+    account_key: str
     calendar_id: str
     calendar_summary: str
     color: str
@@ -154,9 +156,10 @@ def read_calendars(db: Database, client: ReadingClient) -> None:
 
 def list_calendars(db: Database) -> list[SourceCalendar]:
     with db.read() as conn:
-        rows = conn.execute("SELECT * FROM google_source_calendars WHERE in_source = 1 "
+        rows = conn.execute("SELECT *, COALESCE((SELECT account_key FROM google_sync WHERE id = 1), '') AS source_account_key "
+                            "FROM google_source_calendars WHERE in_source = 1 "
                             "ORDER BY is_primary DESC, summary COLLATE NOCASE").fetchall()
-    return [SourceCalendar(calendar_id=r["calendar_id"], summary=r["summary"], color=r["color"],
+    return [SourceCalendar(account_key=r["source_account_key"], calendar_id=r["calendar_id"], summary=r["summary"], color=r["color"],
                            is_primary=bool(r["is_primary"]), followed=bool(r["followed"])) for r in rows]
 
 
@@ -174,13 +177,17 @@ def set_followed(db: Database, calendar_ids: list[str]) -> None:
 
 
 _EVENT_SELECT = (
-    "SELECT e.*, c.summary AS calendar_summary, c.color, l.task_id FROM google_source_events e "
+    "SELECT e.*, c.summary AS calendar_summary, c.color, l.task_id, "
+    "COALESCE((SELECT account_key FROM google_sync WHERE id = 1), '') AS source_account_key "
+    "FROM google_source_events e "
     "JOIN google_source_calendars c ON c.calendar_id = e.calendar_id "
-    "LEFT JOIN google_event_tasks l ON l.calendar_id = e.calendar_id AND l.event_id = e.event_id ")
+    "LEFT JOIN google_event_tasks l ON l.calendar_id = e.calendar_id AND l.event_id = e.event_id "
+    "AND l.account_key = COALESCE((SELECT account_key FROM google_sync WHERE id = 1), '') ")
 
 
 def _event(row: sqlite3.Row) -> SourceEvent:
     return SourceEvent(
+        account_key=row["source_account_key"],
         calendar_id=row["calendar_id"], calendar_summary=row["calendar_summary"], color=row["color"],
         event_id=row["event_id"], summary=row["summary"], location=row["location"], html_link=row["html_link"],
         all_day=bool(row["all_day"]), start_at=row["start_at"], end_at=row["end_at"],
@@ -236,6 +243,9 @@ def add_event_task(db: Database, calendar_id: str, event_id: str) -> AddedEvent:
                 planned = True
             except WeekConflict:
                 pass  # that week is closed; the task is kept unscheduled
-        conn.execute("INSERT INTO google_event_tasks (calendar_id, event_id, task_id, created_at) VALUES (?, ?, ?, ?)",
-                     (calendar_id, event_id, task.id, utc_now()))
+        conn.execute(
+            "INSERT INTO google_event_tasks (account_key, calendar_id, event_id, task_id, created_at) "
+            "VALUES (COALESCE((SELECT account_key FROM google_sync WHERE id = 1), ''), ?, ?, ?, ?)",
+            (calendar_id, event_id, task.id, utc_now()),
+        )
         return AddedEvent(event=event.model_copy(update={"task_id": task.id}), task=_read_task(conn, task.id), planned=planned)

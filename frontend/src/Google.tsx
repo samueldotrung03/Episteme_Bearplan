@@ -6,9 +6,16 @@ const message = (caught: unknown, fallback: string) => caught instanceof ApiErro
 
 export function Google({ visible, onChanged }: { visible: boolean; onChanged?: () => void }) {
   const [state, setState] = useState<GoogleState | null>(null);
+  const [statusReadThisVisit, setStatusReadThisVisit] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [readError, setReadError] = useState<string | null>(null);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const viewVisible = useRef(visible);
+  const statusRead = useRef<AbortController | null>(null);
+  const calendarRead = useRef<AbortController | null>(null);
+  const actionRunning = useRef(false);
   const [calendars, setCalendars] = useState<GoogleCalendar[]>([]);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const acceptCalendars = useCallback((list: GoogleCalendar[]) => {
@@ -17,43 +24,108 @@ export function Google({ visible, onChanged }: { visible: boolean; onChanged?: (
   }, []);
 
   const load = useCallback(async () => {
-    try { setState(await getGoogle()); } catch (caught) { setError(message(caught, "Could not read the Google connection.")); }
+    if (!viewVisible.current) return;
+    statusRead.current?.abort();
+    const controller = new AbortController();
+    statusRead.current = controller;
+    try {
+      const next = await getGoogle(controller.signal);
+      if (controller.signal.aborted) return;
+      setState(next);
+      setStatusReadThisVisit(true);
+      setReadError(null);
+    } catch (caught) {
+      if (!controller.signal.aborted) setReadError(message(caught, "Could not read the Google connection."));
+    } finally {
+      if (statusRead.current === controller) statusRead.current = null;
+    }
   }, []);
 
-  useEffect(() => { if (visible) void load(); }, [visible, load]);
-
-  // Calendars to read: show the saved list, and fetch it from Google the first time.
-  const connected = state?.connected ?? false;
   useEffect(() => {
-    if (!visible || !connected) return;
+    viewVisible.current = visible;
+    if (!visible) {
+      setStatusReadThisVisit(false);
+      return;
+    }
+    if (!actionRunning.current) void load();
+    return () => {
+      viewVisible.current = false;
+      statusRead.current?.abort();
+    };
+  }, [visible, load]);
+
+  const connected = state?.connected ?? false;
+  const pending = state?.sign_in_pending ?? false;
+  const tasks = state?.tasks;
+  const paused = Boolean(tasks?.paused_at);
+  const pausing = state?.pausing ?? false;
+  const reviewRequired = tasks?.account_status === "different_account" || tasks?.account_status === "unowned_links";
+  const changing = state?.connection_changing ?? false;
+  const providerBusy = changing || pausing || (state?.activity ?? "idle") !== "idle";
+  const controlsBusy = busy !== null || providerBusy;
+
+  // Read the saved picker state. Preserve the existing first-visit refresh.
+  useEffect(() => {
+    if (!visible) return;
+    acceptCalendars([]);
+    setCalendarError(null);
+    if (!statusReadThisVisit || !connected || pending || changing || reviewRequired) return;
+    const controller = new AbortController();
+    calendarRead.current = controller;
     void (async () => {
       try {
-        const saved = await getGoogleCalendars();
-        acceptCalendars(saved.length ? saved : await refreshGoogleCalendars());
-      } catch (caught) { setError(message(caught, "Could not read your Google calendars.")); }
+        const saved = await getGoogleCalendars(controller.signal);
+        if (controller.signal.aborted) return;
+        const list = saved.length || paused || pausing ? saved : await refreshGoogleCalendars({ automatic: true, signal: controller.signal });
+        if (!controller.signal.aborted) {
+          acceptCalendars(list);
+          if (!saved.length && !paused && !pausing && !actionRunning.current) void load();
+        }
+      } catch (caught) {
+        if (!controller.signal.aborted) {
+          setCalendarError(message(caught, "Could not read your Google calendars."));
+          if (!actionRunning.current) void load();
+        }
+      }
     })();
-  }, [visible, connected, acceptCalendars]);
+    return () => controller.abort();
+  }, [visible, statusReadThisVisit, connected, pending, paused, pausing, changing, reviewRequired, acceptCalendars, load]);
 
-  // While sign-in is open in another tab, check every two seconds until it finishes.
-  const pending = state?.sign_in_pending ?? false;
+  // Poll active backend work without overlapping status reads or local actions.
   useEffect(() => {
-    if (!visible || !pending) return;
-    const timer = window.setInterval(() => { void load(); }, 2000);
+    if (!visible || (!pending && !providerBusy)) return;
+    const timer = window.setInterval(() => {
+      if (!actionRunning.current && !statusRead.current) void load();
+    }, 2000);
     return () => window.clearInterval(timer);
-  }, [visible, pending, load]);
+  }, [visible, pending, providerBusy, load]);
 
   const run = async (label: string, action: () => Promise<GoogleState | void>, done = "") => {
+    if (actionRunning.current) return;
+    actionRunning.current = true;
+    statusRead.current?.abort();
+    if (label === "follow" || label === "calendars") {
+      calendarRead.current?.abort();
+      setCalendarError(null);
+    }
     setBusy(label);
     setError(null);
     setStatus("");
     try {
       const next = await action();
-      if (next) setState(next);
+      if (next) {
+        setState(next);
+        setStatusReadThisVisit(viewVisible.current);
+        setReadError(null);
+      } else {
+        await load();
+      }
       if (done) setStatus(done);
     } catch (caught) {
-      setError(message(caught, "Something went wrong. Nothing was changed."));
+      setError(message(caught, "Could not confirm the Google action. Check the connection and try again."));
       await load();
     } finally {
+      actionRunning.current = false;
       setBusy(null);
     }
   };
@@ -61,50 +133,72 @@ export function Google({ visible, onChanged }: { visible: boolean; onChanged?: (
   const connect = () => run("connect", async () => {
     const { url } = await connectGoogle();
     window.open(url, "_blank", "noopener");
-    setStatus("Google sign-in opened in a new tab. Approve every permission there, then come back here.");
-    return getGoogle();
+  }, "Google sign-in opened in a new tab. Approve every permission there, then come back here.");
+
+  const disconnect = () => run("disconnect", async () => {
+    const next = await disconnectGoogle();
+    setStatus(next.revoked === false
+      ? "Disconnected here. BearPlans could not confirm that Google revoked access."
+      : next.revoked === true ? "Disconnected here. Google confirmed access was revoked." : "Disconnected here.");
+    onChanged?.();
+    return next;
   });
+
   const sync = () => run("sync", async () => {
     const next = await syncGoogleTasks();
     onChanged?.();
     return next;
-  }, "Google Tasks is up to date.");
+  }, "Google sync finished.");
 
-  const tasks = state?.tasks;
   return <section hidden={!visible} className="google" aria-label="Google" aria-busy={busy !== null}>
     <div className="forest-heading"><h2>Google</h2>
-      <button type="button" disabled={busy !== null || !state?.connected} onClick={() => void sync()}>
-        {busy === "sync" ? "Syncing…" : "Sync now"}</button>
+      <button type="button" disabled={controlsBusy || !connected || pending || reviewRequired} onClick={() => void sync()}>
+        {busy === "sync" ? "Syncing…" : paused ? "Sync once" : "Sync now"}</button>
     </div>
     <p className="muted">Every project, task and subtask is copied to Google Tasks: each project becomes a list with the same name. Ticking a task done in Google marks it done here too. Other changes made in Google are replaced by BearPlans. Your own Google lists are never touched.</p>
     {error ? <p role="alert" className="error">{error}</p> : null}
+    {readError ? <div className="form-actions">
+      <p role="alert" className="error">Connection status could not be refreshed. {readError}</p>
+      <button type="button" disabled={busy !== null} onClick={() => void load()}>Retry status</button>
+    </div> : null}
     {status ? <p role="status">{status}</p> : null}
 
-    {state && !state.configured ? <p className="google-setup">No Google sign-in file was found. Save your Desktop app credential as <code>google_oauth_client.json</code> in the BearPlans secrets folder (<code>~/Library/Application Support/BearPlans/secrets/</code>), then reload this page.</p> : null}
+    {state?.setup === "unusable" ? <p role="alert" className="error">BearPlans could not use the saved Google Desktop sign-in file. Replace it with a valid file, then reload this page.</p> : null}
+    {state?.setup === "missing" ? <p className="google-setup">No Google sign-in file was found. Save your Desktop app credential as <code>google_oauth_client.json</code> in the BearPlans secrets folder (<code>~/Library/Application Support/BearPlans/secrets/</code>), then reload this page.</p> : null}
     {state?.configured ? <div className="google-connection">
-      <p>{state.connected ? "Connected to Google." : state.sign_in_pending ? "Waiting for you to finish signing in…" : "Not connected."}</p>
+      <p>{pending ? "Waiting for you to finish signing in…" : connected ? "Google sign-in is saved." : "Sign in to Google to continue."}</p>
+      {changing ? <p>Updating the Google connection…</p>
+        : state.activity === "refreshing_calendars" ? <p>Refreshing calendars…</p>
+        : state.activity === "syncing" && busy !== "sync" ? <p>Syncing with Google…</p> : null}
+      {reviewRequired ? <p role="alert" className="error">{tasks?.account_status === "unowned_links"
+        ? "The existing Google links need an account review before they can be used."
+        : "This account cannot use the saved Google links. Reconnect with the previous account."}</p> : null}
       {state.sign_in_error ? <p role="alert" className="error">{state.sign_in_error}</p> : null}
       {state.missing_permissions.length ? <p role="alert" className="error">Some permissions were not given ({state.missing_permissions.join(", ")}). Choose Reconnect Google and tick every box.</p> : null}
-      <button type="button" disabled={busy !== null} onClick={() => void connect()}>{state.connected ? "Reconnect Google" : "Connect Google"}</button>
-      {state.connected ? <button type="button" className="link" disabled={busy !== null}
-        onClick={() => void run("disconnect", disconnectGoogle, "Disconnected. Your Google lists stay as they are.")}>Disconnect</button> : null}
+      <button type="button" disabled={controlsBusy} onClick={() => void connect()}>{state.connected ? "Reconnect Google" : "Connect Google"}</button>
+      {connected ? <button type="button" className="link" disabled={busy !== null || changing}
+        onClick={() => void disconnect()}>Disconnect</button> : null}
     </div> : null}
 
-    {tasks && state?.connected ? <div className="google-tasks">
+    {pausing ? <p role="status">Pausing… Waiting for current Google work to finish.</p>
+      : paused ? <p>Automatic sync is paused.</p> : null}
+    {tasks && connected ? <div className="google-tasks">
       <h3>Google Tasks</h3>
-      <p>{tasks.synced_tasks} {tasks.synced_tasks === 1 ? "task" : "tasks"} in {tasks.synced_lists} {tasks.synced_lists === 1 ? "list" : "lists"}.
-        {tasks.last_success_at ? ` Last synced ${stampLabel.format(new Date(tasks.last_success_at))}.` : " Not synced yet."}</p>
-      {tasks.last_error ? <p role="alert" className="error">Last sync failed: {tasks.last_error}</p> : null}
+      {tasks.account_status === "verified" ? <p>{tasks.synced_tasks} {tasks.synced_tasks === 1 ? "task" : "tasks"} in {tasks.synced_lists} {tasks.synced_lists === 1 ? "list" : "lists"}.</p> : null}
+      <p>{tasks.last_success_at ? `Last full sync succeeded ${stampLabel.format(new Date(tasks.last_success_at))}.` : "No successful full sync recorded."}</p>
+      {tasks.last_error && tasks.last_error !== error ? <p role="alert" className="error">Last full sync failed: {tasks.last_error}</p> : null}
       <h3>Google Calendar</h3>
-      <p>{tasks.synced_events} upcoming {tasks.synced_events === 1 ? "event" : "events"} in the “BearPlans” calendar.</p>
+      {tasks.account_status === "verified" ? <p>{tasks.synced_events} upcoming {tasks.synced_events === 1 ? "event" : "events"} in the “BearPlans” calendar.</p> : null}
       <p className="muted">Give a planned task a start time (open it on the Plan screen, then “Move or remove”) and it appears in the BearPlans calendar with a reminder 30 minutes before. Finishing the task removes the event.</p>
-      <p className="muted">BearPlans syncs every two minutes and shortly after each change.</p>
+      {!paused && !pausing ? <p className="muted">Automatic sync runs every two minutes and shortly after a change.</p> : null}
     </div> : null}
 
-    {state?.connected ? <div className="google-calendars">
+    {connected && !pending && !reviewRequired ? <div className="google-calendars">
       <h3>Calendars to show</h3>
       <p className="muted">Events from the calendars you tick appear beside each day on the Plan screen, where any event can be added as a task. BearPlans only reads these calendars; it never changes them.</p>
-      {calendars.length ? <fieldset>
+      {paused && !pausing ? <p className="muted">Refresh calendars and Save calendars each contact Google once. Automatic sync stays paused.</p> : null}
+      {calendarError ? <p role="alert" className="error">{calendarError}</p> : null}
+      {calendars.length ? <fieldset disabled={controlsBusy}>
         <legend>Choose the calendars whose events you want to see</legend>
         {calendars.map((calendar) => <label key={calendar.calendar_id}>
           <input type="checkbox" checked={chosen.has(calendar.calendar_id)} onChange={(event) => setChosen((current) => {
@@ -117,11 +211,11 @@ export function Google({ visible, onChanged }: { visible: boolean; onChanged?: (
         </label>)}
       </fieldset> : <p className="muted">No calendars found yet.</p>}
       <div className="form-actions">
-        <button type="button" disabled={busy !== null || !calendars.length} onClick={() => void run("follow", async () => {
-          acceptCalendars(await followGoogleCalendars([...chosen]));
+        <button type="button" disabled={controlsBusy || !calendars.length} onClick={() => void run("follow", async () => {
+          acceptCalendars(await followGoogleCalendars(calendars[0].account_key, [...chosen]));
           onChanged?.();
         }, "Saved your calendars. Their events now appear on the Plan screen.")}>{busy === "follow" ? "Saving…" : "Save calendars"}</button>
-        <button type="button" className="link" disabled={busy !== null} onClick={() => void run("calendars", async () => {
+        <button type="button" className="link" disabled={controlsBusy} onClick={() => void run("calendars", async () => {
           acceptCalendars(await refreshGoogleCalendars());
         }, "Updated your calendar list and events.")}>Refresh calendars</button>
       </div>

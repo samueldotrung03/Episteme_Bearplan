@@ -9,6 +9,125 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — APP-C04.4 Google Sync once and Resume
+
+Sync once retains Pause and rejects overlaps. Resume wakes reconciliation on
+the actual transition and the latest task/calendar state reuses existing
+mappings. On macOS, 48 guarded Google control tests, 177 frontend tests,
+typecheck, a disposable production build and one Chrome walkthrough passed.
+The full non-browser backend run passed with 1,012 tests and one Windows-only
+skip. Pass with follow-ups.
+[One-shot and Resume review](reviews/2026-11-06-google-sync-once-resume.md).
+
+## 2026-11-06 — APP-C04.3 Google Pause acknowledgement
+
+Pause now reports Pausing while active provider work finishes and saves only
+after reaching the provider lock. Overlapping controls return a retryable
+busy error. On macOS, 133 guarded backend tests, 177 frontend tests, typecheck,
+a disposable production build and one Chrome walkthrough passed.
+Pass with follow-ups.
+[Pause acknowledgement review](reviews/2026-11-06-google-pause-acknowledgement.md).
+
+## 2026-11-06 — APP-C04.2 Google automatic Pause gates
+
+Added the server-side Pause guard for empty-cache Calendar refresh on open.
+Verified the queued refresh boundary, the periodic worker and the local-edit
+trigger with fake providers. On macOS, 114 guarded backend tests, 176 frontend
+tests, typecheck, a disposable production build and one Chrome walkthrough
+passed. Pass with follow-ups.
+[Automatic Pause review](reviews/2026-11-06-google-automatic-pause.md).
+
+## 2026-11-06 — APP-C04.1 Google Pause durability
+
+Verified the existing Pause preference across upgrades and fresh app instances.
+Added regression tests for migration rollback, retention of saved work, and
+recovery after failed Pause/Resume writes. On macOS, 141 guarded backend tests
+passed. Pass with follow-ups.
+[Durability review](reviews/2026-11-06-google-pause-durability.md).
+
+## 2026-11-06 — APP-C03.2 Settings frontend status mapping
+
+Typed the provider and credential status reads and preserved structured errors.
+The existing Google and bCourses views retain saved evidence during failures
+and ignore obsolete reads. A failed bCourses course save keeps the selection
+available for retry. On macOS, 175 Vitest checks, type checking, a temporary
+production build and the targeted Chrome flow passed. Pass with follow-ups.
+[Contract and review](reviews/2026-11-06-settings-frontend-state.md).
+
+## 2026-11-06 — APP-C03.1 Settings backend status contract
+
+Separated Google setup and saved authorization from account review, active
+sync or calendar refresh, persistent Pause and historical sync evidence.
+Verified the bCourses credential-check/refresh distinction on the existing routes.
+On macOS, 229 guarded checks, 1,002 non-browser backend checks and 167 frontend
+tests passed. Type checking, a disposable build and the targeted Chrome Google
+flow passed. Pass with follow-ups. [Contract and review](reviews/2026-11-06-settings-backend-status.md).
+
+## 2026-11-05 — APP-C02.4 Google account isolation
+
+Verified account ownership before sync, hid another account's cached events
+from Calendar and Plan, and bound account acceptance to the reviewed connection.
+Migration 22 scopes event imports and retains older records without assigning
+ownership. On macOS, 145 guarded backend checks, 999 non-browser tests and
+167 frontend tests passed. The fresh Chrome Google flow, type checking and the
+disposable build passed. Pass with follow-ups.
+[Review](reviews/2026-11-05-google-account-isolation.md).
+
+## 2026-11-05 — APP-C02.3 Google Disconnect coordination
+
+Serialized Disconnect and setup removal with task sync, calendar refresh and
+new browser sign-in. Old queued work cannot use the next connection. Verified
+retained local data, failed-removal retry and distinct remote revocation results.
+138 guarded backend checks and 166 frontend tests passed on macOS. Typecheck
+and a disposable production build passed. Settings UI and live review remain
+pending. Pass with follow-ups.
+[Review](reviews/2026-11-05-google-disconnect-coordination.md).
+
+## 2026-11-05 — APP-C02.2 Google authorization attempts
+
+Added attempt-specific cancellation and checked the deadline, required permissions
+and attempt identity before saving a Google grant. Denial and other failed or
+obsolete attempts preserve saved authorization. Verified waiting, in-flight and
+late callback behavior with a loopback listener and fake Google responses.
+On macOS, 124 guarded backend checks, 166 frontend tests, typecheck and a disposable
+production build passed. Settings UI wiring and live review remain pending.
+Pass with follow-ups. [Review](reviews/2026-11-05-google-authorization-attempts.md).
+
+## 2026-11-05 — APP-C02.1 Google sign-in file recovery
+
+Bound Google sign-in to its local setup. A same-client replacement keeps
+the sign-in. A different-client replacement invalidates the old sign-in
+when the file is saved, with explicit retry paths for cleanup and status
+write failures. The sync barrier now rejects a timed-out transition.
+Guarded connection checks passed (112), including fake late OAuth and
+token refresh. Fresh-process fault probes preserved Pause and local work,
+and backup/restore excluded credentials. Frontend tests (166), typecheck
+and a disposable production build passed. Pass with follow-ups.
+[Review](reviews/2026-11-05-google-credential-recovery.md).
+
+## 2026-11-05 — APP-C02.1 bCourses credential recovery
+
+Protected bCourses replacement from stale check results and added actionable
+errors for failed local writes. Tested failed invalidation, failed credential
+replacement, failed status publication, retry, delayed checks, local request
+protection and recovery in a fresh process. Disposable backup/restore excluded
+the synthetic credentials and preserved the task. Pass with follow-ups.
+[Review and verification](reviews/2026-11-05-bcourses-credential-recovery.md).
+Google credential recovery and the Settings UI remain open.
+
+## 2026-11-05 — APP-C01 Settings application baseline and fixtures
+
+Reconciled committed credential/Google controls and concurrent migration-21
+account work against CON-01–12 and FIG-01–06. Added an opt-in, in-process pytest
+fixture for disposable paths and loopback-only HTTP. On macOS, 97 guarded backend
+checks and 166 frontend tests passed, including the relocation and fake-account
+baselines. Typecheck, a disposable production build and documentation checks passed.
+Reproduced the sync-lock timeout bug and recorded the mounted-refresh gap and
+credential/status fault boundaries for their own slices. Pass with follow-ups.
+[Review, commands and case map](reviews/2026-11-05-settings-application-baseline.md).
+Live provider, browser accessibility and process restart gates remain open.
+Changes are local and uncommitted.
+
 ## 2026-11-04 — Settings design checkpoint publication
 
 User requested “push the project”. Committed the completed 49-file UX-C06

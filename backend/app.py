@@ -91,12 +91,16 @@ def create_app(
     countdown = TimerService(db, timer_clock, reward_config=config)
     auth = google_auth or GoogleAuth()
     def calendar_factory() -> object | None:
-        return google_calendar_client or (None if google_tasks_client is not None else GoogleCalendarClient(auth))
+        if google_calendar_client is not None:
+            return google_calendar_client
+        if google_tasks_client is None and auth.connected():
+            return GoogleCalendarClient(auth)
+        return None
 
     google_sync = GoogleSyncService(
         db, lambda: google_tasks_client or GoogleTasksClient(auth), GoogleUnavailable,
         lambda: google_tasks_client is not None or auth.connected(),
-        calendar_factory)
+        calendar_factory, auth.remember_account)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):

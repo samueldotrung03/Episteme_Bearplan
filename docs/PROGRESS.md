@@ -11,7 +11,7 @@ in the linked reviews.
 item here and update [Build status](#build-status). Keep this file short; do not
 paste long check logs here.
 
-## Current state — November 4, 2026
+## Current state — November 6, 2026
 
 **UX repair/handoff delivered: 24/24 repair subtickets Done.** R23 passed with
 follow-ups for the bounded user-reported walkthrough; R24 passed with follow-ups
@@ -19,8 +19,8 @@ for the reconciled implementation handoff. Settings overview UX-C02 and bCourses
 under the user’s November 3 requests. UX-C04 Google setup/browser flow is delivered
 with follow-ups under the November 4 “continue” request. UX-C05 Pause/offline/removal
 flow is delivered with follow-ups; the user reported its main flow clear. UX-C06 context/theme and scoped handoff
-are delivered with follow-ups under “go ahead”; no unit is active;
-application delivery remains a later unit. Original UX-01–36 checkpoint
+are delivered with follow-ups under “go ahead”. APP-C01 baseline reconciliation
+is complete. Original UX-01–36 checkpoint
 acceptance remains distinct from this repair subset.
 
 **Start here:** [refined UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md),
@@ -57,11 +57,75 @@ compact navigation/scroll/cancel/session return, Dark readability and selected
 provider recovery/scope examples clear. Second technical review and real browser
 accessibility/resizing/zoom/provider/restart gates remain open.
 
-**Next eligible work:** separately scope APP-C01 baseline/fixture reconciliation
-when application implementation is requested; do not automatically start it.
-Resolve proposed measurement/breakpoint/fallback/Earlier/cross-month decisions
-where they affect that slice. Preserve newer M5/M6 and concurrent account work.
-Legacy provider ordering below was not re-audited by this design handoff.
+**Settings application baseline:** APP-C01 reconciled the existing routes,
+saved Google Pause and concurrent account patch. A disposable fixture blocks
+unexpected provider HTTP. Fresh results: 97 guarded backend checks and 166
+frontend tests passed. Typecheck and the build passed. The sync-lock timeout
+bug was reproduced and the mounted calendar-refresh gap remains open.
+[APP-C01 review and test map](reviews/2026-11-05-settings-application-baseline.md).
+
+**Settings application credential recovery:** APP-C02.1 is complete for
+[bCourses](reviews/2026-11-05-bcourses-credential-recovery.md) and
+[Google](reviews/2026-11-05-google-credential-recovery.md). Google preserves an
+existing sign-in for the same OAuth client. A different client signs out
+locally at file publication, and an incomplete cleanup can be retried after
+restart. Verified with disposable fault, callback, sync-lock and process checks.
+
+**Settings application authorization:** APP-C02.2 is complete. The local API
+cancels a specific attempt and preserves the saved connection on denial, timeout,
+missing permissions and write failure. Discarded exchanges leave remote consent
+alone because Google revocation is project-wide. This supersedes the earlier
+late-exchange revocation wording. Cancel UI and provider verification are pending.
+[Authorization implementation review](reviews/2026-11-05-google-authorization-attempts.md).
+
+**Settings application Disconnect:** APP-C02.3 is complete. Disconnect,
+setup removal and replacement share a barrier with task sync and calendar reads.
+Queued requests for the old connection are invalidated, and the API separates
+local sign-out from acknowledged revocation. Browser and live verification remain
+open. [Disconnect review](reviews/2026-11-05-google-disconnect-coordination.md).
+
+**Settings application account isolation:** APP-C02.4 is complete. Unverified
+or mismatched accounts cannot reuse saved links or expose the prior account's
+cache through Calendar or Plan. Starting fresh requires a current reviewed
+account. Migration 22 scopes event imports by account and retains older import
+records unbound. Google account recovery UI and live verification remain open.
+[Account isolation review](reviews/2026-11-05-google-account-isolation.md).
+
+**Settings backend status:** APP-C03.1 is complete. Google setup, saved
+authorization, account review, provider activity, Pause and full-sync evidence
+are distinguishable. bCourses keeps credential-check and refresh evidence
+separate. [Status contract and review](reviews/2026-11-06-settings-backend-status.md).
+
+**Settings frontend status:** APP-C03.2 is complete. The typed API preserves
+setup, authorization, provider history and structured errors. Existing Google
+and bCourses views handle cancelled reads, retained evidence and retry input.
+[Frontend state and review](reviews/2026-11-06-settings-frontend-state.md).
+
+**Settings Pause durability:** APP-C04.1 is complete. Existing storage preserves
+Pause through upgrades and a fresh app instance. Failed Pause/Resume writes
+retain the prior preference and can be retried. 141 guarded regression tests
+passed. [Durability review](reviews/2026-11-06-google-pause-durability.md).
+
+**Settings automatic Pause coverage:** APP-C04.2 is complete. Mounted Calendar
+refreshes recheck saved Pause inside the provider lock. The worker's periodic
+and local-edit gates were verified after reopening a paused database. Explicit
+calendar refresh still works while paused.
+[Automatic Pause review](reviews/2026-11-06-google-automatic-pause.md).
+
+**Settings Pause acknowledgement:** APP-C04.3 is complete. Pause drains
+in-flight work before saving, reports Pausing during the wait, and blocks
+overlapping preference changes. A timeout leaves the previous preference
+available for retry.
+[Pause acknowledgement review](reviews/2026-11-06-google-pause-acknowledgement.md).
+
+**Settings one-shot and Resume:** APP-C04.4 is complete. Sync once retains
+Pause and rejects overlapping requests. Resume schedules reconciliation on
+the paused-to-enabled transition. Tests confirmed the latest task and calendar
+state is applied with stable mappings.
+[One-shot and Resume review](reviews/2026-11-06-google-sync-once-resume.md).
+
+**Next eligible work:** APP-C05.1. Add the Settings route and preserve work
+context on return. No unit is active.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
@@ -101,7 +165,7 @@ work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint.
 
 ## Next up
 
-1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). No unit active. Next eligible application unit is APP-C01 only when separately requested. Existing core/hardware/runtime gates remain open.
+1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is next. Existing core/hardware/runtime gates remain open.
 2. **User hands-on review of the Assistant in the app preview** (pending).
    **Connection setup baseline:** credential relocation is committed in f375f24
    and write-only setup routes in 674db93. Current source continues to advance;
@@ -171,7 +235,7 @@ work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint.
 
 Stable definitions/tests: [frontend package](../frontend/plans/settings-connections/README.md).
 Only the active small unit/subslice belongs here; completed documentation is not
-visual construction or application delivery. No unit is currently Active. UX-C06
+visual construction or application delivery. No unit is active. UX-C06
 scoped construction/handoff and bounded user design review are delivered with
 follow-ups; see below.
 UX-C06 delivered under “go ahead”: [review](reviews/2026-11-04-settings-context-handoff.md),
@@ -190,7 +254,7 @@ walkthrough. Second technical audit, arbitrary browser resize/zoom, keyboard/foc
 assistive technology and full state/theme matrix remain follow-ups. No new app,
 credential, service, DB/provider work or release gate change. Committed as
 `2eddbe7` and pushed under the later publication request recorded above.
-Next eligible APP-C01 requires separate application scope.
+APP-C01 baseline verification is recorded above.
 
 UX-C05 delivered: [review](reviews/2026-11-04-connection-recovery.md),
 [36-state inventory](../frontend/design/settings-connections/recovery/inventory.json),
@@ -204,10 +268,8 @@ not actual restart/provider/keyboard verification. Four new demo variables join
 all eight full resets; old Google/bCourses/task/session resets retained. No app,
 credential, service, DB or provider work. The user requested a local UX-C05
 checkpoint; Git records the commit. No push requested. UX-C06 bounded follow-up evidence is recorded above; app accessibility/provider
-checks remain separate. **Source gap to carry forward:**
-`GoogleSync.while_idle` still executes after a lock-acquisition timeout; Pause and
-Disconnect cannot yet certify the designed in-flight barrier. Mounted/direct-reader
-automatic work also needs Pause gating. See review for later APP-C02/C04 obligations.
+checks remain separate. APP-C02.1 corrected the lock-acquisition timeout and
+APP-C02.3 added the Disconnect barrier for direct calendar reads. APP-C04.2 added the server-side Pause gate for mounted automatic refresh.
 
 UX-C04 delivered: [review](reviews/2026-11-04-google-settings-flow.md),
 [47-state inventory](../frontend/design/settings-connections/google/inventory.json),
@@ -251,7 +313,18 @@ Pause/status/disconnect work; concurrent account-isolation work remains unverifi
 | UX-C04 | Done — Pass with follow-ups | [Review](reviews/2026-11-04-google-settings-flow.md): 47 states, 59 aggregate installed-action models, file/auth/sync separation; actual preview and broader acceptance pending. |
 | UX-C05 | Done — Pass with follow-ups | [Review](reviews/2026-11-04-connection-recovery.md): 36 states, 58 models, main user report accepted; other walkthroughs/responsive/accessibility/runtime evidence pending. |
 | UX-C06 | Delivered — Pass with follow-ups | Three sizes/Light–Dark, bounded user walkthrough and scoped handoff; [review](reviews/2026-11-04-settings-context-handoff.md). |
-| APP-C01–09 | Not started as this execution sequence | Reuse committed migration/credential routes and any newer concurrent source. Existing capability is not absent because these new ticket definitions are unstarted. Select a small authorized slice before app work. |
+| APP-C01 | Done — Pass with follow-ups | [Baseline and fixture review](reviews/2026-11-05-settings-application-baseline.md). DOC-01/02 and disposable DATA-01 baseline verified. |
+| APP-C02.1 | Done — Pass with follow-ups | [bCourses fault/retry](reviews/2026-11-05-bcourses-credential-recovery.md), [Google fault/retry and OAuth handoff](reviews/2026-11-05-google-credential-recovery.md). |
+| APP-C02.2 | Done — Pass with follow-ups | [Authorization attempts](reviews/2026-11-05-google-authorization-attempts.md). Cancel UI and live provider verification remain pending. |
+| APP-C02.3 | Done — Pass with follow-ups | [Disconnect coordination](reviews/2026-11-05-google-disconnect-coordination.md). Settings recovery and live provider checks remain pending. |
+| APP-C02.4 | Done — Pass with follow-ups | [Account isolation and migration 22](reviews/2026-11-05-google-account-isolation.md). Account recovery UI and live evidence remain pending. |
+| APP-C03.1 | Done — Pass with follow-ups | [Backend status contract](reviews/2026-11-06-settings-backend-status.md). Verified on macOS with disposable data and fake providers. |
+| APP-C03.2 | Done — Pass with follow-ups | [Frontend state and recovery](reviews/2026-11-06-settings-frontend-state.md). Existing provider views verified. Settings shell and live checks remain pending. |
+| APP-C04.1 | Done — Pass with follow-ups | [Pause durability review](reviews/2026-11-06-google-pause-durability.md). |
+| APP-C04.2 | Done — Pass with follow-ups | [Automatic Pause review](reviews/2026-11-06-google-automatic-pause.md). |
+| APP-C04.3 | Done — Pass with follow-ups | [Pause acknowledgement review](reviews/2026-11-06-google-pause-acknowledgement.md). |
+| APP-C04.4 | Done — Pass with follow-ups | [One-shot and Resume review](reviews/2026-11-06-google-sync-once-resume.md). |
+| APP-C05–09 | Not started as this execution sequence | APP-C05.1 Settings route and context is next. |
 
 ## UX delivery register
 This is the sole mutable UX status table; stable ticket details/acceptance live in

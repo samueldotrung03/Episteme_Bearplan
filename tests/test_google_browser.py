@@ -16,29 +16,17 @@ import uvicorn
 
 from backend.app import create_app
 from backend.domain.tasks import list_tasks
-from backend.platform.google import GoogleAuth
 from backend.platform.paths import FRONTEND_DIST
 from backend.storage.db import open_database
 from tests.conftest import free_port
 from tests.test_e2e_browser import browser, evidence, no_horizontal_overflow, playwright_sync
 from tests.test_google_calendar import FakeCalendar
+from tests.test_google_controls import _signed_in
 from tests.test_google_tasks import FakeTasks
 
 pytestmark = [pytest.mark.e2e, pytest.mark.skipif(not (FRONTEND_DIST / "index.html").is_file(), reason="frontend not built")]
 
 TODAY = date.today().isoformat()
-
-
-class ConnectedAuth(GoogleAuth):
-    def configured(self) -> bool:
-        return True
-
-    def connected(self) -> bool:
-        return True
-
-    def granted_scopes(self) -> set[str]:
-        from backend.platform.google import SCOPES
-        return set(SCOPES)
 
 
 class FakeGoogleCalendar(FakeCalendar):
@@ -63,10 +51,11 @@ class FakeGoogleCalendar(FakeCalendar):
 @pytest.fixture
 def served(tmp_path, monkeypatch):
     monkeypatch.setenv("BEARPLANS_TIMEZONE", "America/Los_Angeles")
+    _signed_in()
     db = open_database(tmp_path / "bearplans.sqlite3")
     tasks, calendar = FakeTasks(), FakeGoogleCalendar()
     port = free_port()
-    app = create_app(db, FRONTEND_DIST, google_auth=ConnectedAuth(), google_tasks_client=tasks, google_calendar_client=calendar)
+    app = create_app(db, FRONTEND_DIST, google_tasks_client=tasks, google_calendar_client=calendar)
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
@@ -92,7 +81,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
     try:
         page.goto(url + "/#google")
         tab = page.get_by_role("region", name="Google")
-        expect(tab.get_by_text("Connected to Google.")).to_be_visible()
+        expect(tab.get_by_text("Google sign-in is saved.")).to_be_visible()
         tab.get_by_role("checkbox", name="Me · main calendar").check()
         page.screenshot(path=str(evidence / "google-01-calendars.png"), full_page=True)
         tab.get_by_role("button", name="Save calendars").click()
@@ -121,7 +110,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
 
         page.get_by_role("link", name="Google", exact=True).click()
         tab.get_by_role("button", name="Sync now").click()
-        expect(tab.get_by_role("status")).to_contain_text("up to date")
+        expect(tab.get_by_role("status")).to_contain_text("Google sync finished.")
         expect(tab).to_contain_text("1 upcoming event in the “BearPlans” calendar")
         [event] = calendar.live()
         assert event["summary"] == "Office hours"

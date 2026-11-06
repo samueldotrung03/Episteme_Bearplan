@@ -50,11 +50,13 @@ export interface NewTask extends TaskEdit {
 export class ApiError extends Error {
   readonly field?: string;
   readonly status?: number;
+  readonly code?: string;
 
-  constructor(message: string, field?: string, status?: number) {
+  constructor(message: string, field?: string, status?: number, code?: string) {
     super(message);
     this.field = field;
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -158,9 +160,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    const error = (body as { error?: { message?: unknown; field?: unknown } } | null)?.error;
+    const error = (body as { error?: { message?: unknown; field?: unknown; code?: unknown } } | null)?.error;
     const message = typeof error?.message === "string" ? error.message : `The service returned an error (${response.status}).`;
-    throw new ApiError(message, typeof error?.field === "string" ? error.field : undefined, response.status);
+    throw new ApiError(message, typeof error?.field === "string" ? error.field : undefined,
+      response.status, typeof error?.code === "string" ? error.code : undefined);
   }
   return body as T;
 }
@@ -489,9 +492,35 @@ export interface BCoursesAssignment {
   accepted_due_date: string | null;
 }
 
+interface ProviderSyncEvidence {
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  last_error: string | null;
+}
+
+type GoogleSetup = "missing" | "unusable" | "configured";
+
+interface CredentialStatus {
+  set: boolean;
+  saved_at: string | null;
+  checked_at: string | null;
+  check_ok: boolean | null;
+  check_message: string | null;
+}
+
+export interface ConnectionsState {
+  folder: string;
+  bcourses: CredentialStatus;
+  google: CredentialStatus & { setup: GoogleSetup; connected: boolean; revoked: boolean | null };
+}
+
+export function getConnections(signal?: AbortSignal): Promise<ConnectionsState> {
+  return request("/api/connections", { signal });
+}
+
 export interface BCoursesState {
   configured: boolean;
-  sync: { last_attempt_at: string | null; last_success_at: string | null; last_error: string | null };
+  sync: ProviderSyncEvidence;
   courses: BCoursesCourse[];
   assignments: BCoursesAssignment[];
 }
@@ -515,19 +544,39 @@ export function resolveBCoursesDueDate(id: string, useNew: boolean): Promise<BCo
   return request(`/api/bcourses/assignments/${encodeURIComponent(id)}/due-date`, json("POST", { use_new: useNew }));
 }
 
+interface GoogleSyncStatus extends ProviderSyncEvidence {
+  paused_at: string | null;
+  syncing: boolean;
+  account_status: "unverified" | "verified" | "different_account" | "unowned_links";
+  account_review_key: string | null;
+  other_account: boolean;
+  synced_lists: number;
+  synced_tasks: number;
+  synced_events: number;
+}
+
 export interface GoogleState {
+  setup: GoogleSetup;
+  activity: "idle" | "syncing" | "refreshing_calendars";
+  connection_changing: boolean;
+  pausing: boolean;
   configured: boolean;
+  /** A matching grant is saved locally. This does not establish live access. */
   connected: boolean;
   sign_in_pending: boolean;
+  sign_in_attempt_id: string | null;
   sign_in_error: string | null;
   missing_permissions: string[];
-  tasks: { last_attempt_at: string | null; last_success_at: string | null; last_error: string | null; synced_lists: number; synced_tasks: number; synced_events: number };
+  tasks: GoogleSyncStatus;
+  status: "not_set_up" | "signed_out" | "signing_in" | "needs_attention" | "pausing" | "paused" | "syncing" | "not_synced" | "working";
+  /** Only meaningful on a response to Disconnect. */
+  revoked: boolean | null;
 }
 
 export function getGoogle(signal?: AbortSignal): Promise<GoogleState> {
   return request("/api/google", { signal });
 }
-export function connectGoogle(): Promise<{ url: string }> {
+export function connectGoogle(): Promise<{ url: string; attempt_id: string }> {
   return request("/api/google/connect", { method: "POST" });
 }
 export function disconnectGoogle(): Promise<GoogleState> {
@@ -538,6 +587,7 @@ export function syncGoogleTasks(): Promise<GoogleState> {
 }
 
 export interface GoogleCalendar {
+  account_key: string;
   calendar_id: string;
   summary: string;
   color: string;
@@ -546,6 +596,7 @@ export interface GoogleCalendar {
 }
 
 export interface GoogleEvent {
+  account_key: string;
   calendar_id: string;
   calendar_summary: string;
   color: string;
@@ -562,20 +613,21 @@ export interface GoogleEvent {
   task_id: string | null;
 }
 
-export function getGoogleCalendars(): Promise<GoogleCalendar[]> {
-  return request("/api/google/calendars");
+export function getGoogleCalendars(signal?: AbortSignal): Promise<GoogleCalendar[]> {
+  return request("/api/google/calendars", { signal });
 }
-export function refreshGoogleCalendars(): Promise<GoogleCalendar[]> {
-  return request("/api/google/calendars/refresh", { method: "POST" });
+export function refreshGoogleCalendars(options?: { automatic: true; signal: AbortSignal }): Promise<GoogleCalendar[]> {
+  const path = options ? "/api/google/calendars/refresh?automatic=true" : "/api/google/calendars/refresh";
+  return request(path, { method: "POST", signal: options?.signal });
 }
-export function followGoogleCalendars(calendarIds: string[]): Promise<GoogleCalendar[]> {
-  return request("/api/google/calendars", json("PUT", { calendar_ids: calendarIds }));
+export function followGoogleCalendars(accountKey: string, calendarIds: string[]): Promise<GoogleCalendar[]> {
+  return request("/api/google/calendars", json("PUT", { account_key: accountKey, calendar_ids: calendarIds }));
 }
 export function getGoogleEvents(start: string, end: string, signal?: AbortSignal): Promise<GoogleEvent[]> {
   return request(`/api/google/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`, { signal });
 }
-export function addGoogleEvent(calendarId: string, eventId: string): Promise<{ event: GoogleEvent; task: Task; planned: boolean }> {
-  return request("/api/google/events/add", json("POST", { calendar_id: calendarId, event_id: eventId }));
+export function addGoogleEvent(accountKey: string, calendarId: string, eventId: string): Promise<{ event: GoogleEvent; task: Task; planned: boolean }> {
+  return request("/api/google/events/add", json("POST", { account_key: accountKey, calendar_id: calendarId, event_id: eventId }));
 }
 export function getGoogleChanges(signal?: AbortSignal): Promise<{ version: number }> {
   return request("/api/google/changes", { signal });
