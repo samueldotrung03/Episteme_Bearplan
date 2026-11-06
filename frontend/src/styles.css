@@ -883,6 +883,7 @@ details > summary:focus-visible {
 
 .settings-connections {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   padding: 0;
   list-style: none;
@@ -1197,3 +1198,47 @@ details > summary:focus-visible {
 .day-events ul { list-style: none; margin: 0; padding: 0; }
 .day-event { border: 1px dashed var(--border); border-left: 3px solid var(--muted); border-radius: 0.4rem; padding: 0.4rem 0.5rem; margin-bottom: 0.4rem; overflow-wrap: anywhere; }
 .day-event-title { margin: 0; font-weight: 500; }
+
+.settings-connections h4 {
+  margin: 0;
+}
+
+.connection-actions {
+  margin-top: 0.75rem;
+  align-items: center;
+}
+
+.connection-actions button {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.connection-dialog {
+  width: min(34rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.connection-dialog::backdrop {
+  background: rgb(0 0 0 / 50%);
+}
+
+.connection-dialog h3 {
+  margin-top: 0;
+}
+
+.connection-field {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.connection-field input {
+  width: 100%;
+  min-width: 0;
+}

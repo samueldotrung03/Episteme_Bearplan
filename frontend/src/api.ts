@@ -518,6 +518,22 @@ export function getConnections(signal?: AbortSignal): Promise<ConnectionsState> 
   return request("/api/connections", { signal });
 }
 
+export function saveBCoursesToken(token: string): Promise<ConnectionsState> {
+  return request("/api/connections/bcourses", json("PUT", { token }));
+}
+
+export function checkBCoursesToken(): Promise<ConnectionsState> {
+  return request("/api/connections/bcourses/check", { method: "POST" });
+}
+
+export function removeBCoursesToken(): Promise<ConnectionsState> {
+  return request("/api/connections/bcourses", { method: "DELETE" });
+}
+
+export function saveGoogleClient(clientFile: string): Promise<ConnectionsState> {
+  return request("/api/connections/google", json("PUT", { client_file: clientFile }));
+}
+
 export interface BCoursesState {
   configured: boolean;
   sync: ProviderSyncEvidence;
@@ -579,8 +595,15 @@ export function getGoogle(signal?: AbortSignal): Promise<GoogleState> {
 export function connectGoogle(): Promise<{ url: string; attempt_id: string }> {
   return request("/api/google/connect", { method: "POST" });
 }
+export function cancelGoogleSignIn(attemptId: string): Promise<{ cancelled: boolean }> {
+  return request("/api/google/cancel-sign-in", json("POST", { attempt_id: attemptId }));
+}
+
 export function disconnectGoogle(): Promise<GoogleState> {
   return request("/api/google/disconnect", { method: "POST" });
+}
+export function setGoogleSyncPaused(paused: boolean): Promise<GoogleState> {
+  return request(paused ? "/api/google/pause" : "/api/google/resume", { method: "POST" });
 }
 export function syncGoogleTasks(): Promise<GoogleState> {
   return request("/api/google/tasks/sync", { method: "POST" });

@@ -134,3 +134,31 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         assert errors == []
     finally:
         page.close()
+
+
+def test_settings_pause_sync_once_and_resume(browser, evidence, served):
+    expect = playwright_sync.expect
+    url, _, _, _ = served
+    page = browser.new_page(viewport={"width": 640, "height": 800}, color_scheme="dark")
+    try:
+        page.goto(url + "/#settings")
+        settings = page.get_by_role("region", name="Settings")
+        pause = settings.get_by_role("button", name="Pause automatic sync")
+        resume = settings.get_by_role("button", name="Resume automatic sync")
+        expect(settings.get_by_text("Sign-in saved", exact=True)).to_be_visible()
+        pause.click()
+        expect(resume).to_be_enabled()
+        paused_at = page.request.get(url + "/api/google").json()["tasks"]["paused_at"]
+        assert paused_at
+        page.reload()
+        expect(settings.get_by_text("Automatic sync is paused.")).to_be_visible()
+        settings.get_by_role("button", name="Sync once").click()
+        expect(settings.get_by_text("Google sync finished.")).to_be_visible()
+        assert page.request.get(url + "/api/google").json()["tasks"]["paused_at"] == paused_at
+        assert no_horizontal_overflow(page)
+        page.screenshot(path=evidence / "settings-640-dark-paused.png")
+        resume.click()
+        expect(settings.get_by_text("Automatic sync is enabled.")).to_be_visible()
+        assert page.request.get(url + "/api/google").json()["tasks"]["paused_at"] is None
+    finally:
+        page.close()

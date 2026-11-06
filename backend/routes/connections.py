@@ -14,6 +14,7 @@ from pathlib import Path
 from threading import Lock
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from backend.domain.errors import InvalidInput
@@ -117,8 +118,8 @@ def connections_state(request: Request) -> ConnectionsState:
     return _state(request)
 
 
-@router.put("/bcourses")
-def save_bcourses_token(body: TokenRequest, request: Request) -> ConnectionsState:
+@router.put("/bcourses", response_model=ConnectionsState)
+def save_bcourses_token(body: TokenRequest, request: Request) -> ConnectionsState | JSONResponse:
     token = body.token.strip()
     if not token or any(ch.isspace() or not ch.isprintable() for ch in token):
         raise InvalidInput("token", "Paste the token as one piece, without spaces or line breaks.")
@@ -139,10 +140,14 @@ def save_bcourses_token(body: TokenRequest, request: Request) -> ConnectionsStat
         try:
             update_status(BCOURSES, {"saved_at": now, "checked_at": now, "check_ok": True, "check_message": message})
         except OSError:
-            raise HTTPException(
-                503, "The new bCourses token was saved, but its check result could not be recorded. "
-                "Check disk space and folder permissions, then try Check and save again."
-            ) from None
+            return JSONResponse(
+                {"error": {
+                    "code": "bcourses_token_saved_check_unrecorded",
+                    "message": "The new bCourses token was saved, but its check result could not be recorded. "
+                    "Check disk space and folder permissions, then use Check saved token.",
+                }},
+                status_code=503,
+            )
     return _state(request)
 
 

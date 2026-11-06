@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, connectGoogle, disconnectGoogle, followGoogleCalendars, getGoogle, getGoogleCalendars, getGoogleChanges, refreshGoogleCalendars, syncGoogleTasks, type GoogleCalendar, type GoogleState } from "./api";
+import { ApiError, cancelGoogleSignIn, connectGoogle, disconnectGoogle, followGoogleCalendars, getGoogle, getGoogleCalendars, getGoogleChanges, refreshGoogleCalendars, syncGoogleTasks, type GoogleCalendar, type GoogleState } from "./api";
 
 const stampLabel = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 const message = (caught: unknown, fallback: string) => caught instanceof ApiError ? caught.message : fallback;
 
-export function Google({ visible, onChanged }: { visible: boolean; onChanged?: () => void }) {
+export function Google({ visible, onChanged, onOpenSettings }: { visible: boolean; onChanged?: () => void; onOpenSettings?: React.MouseEventHandler<HTMLAnchorElement> }) {
   const [state, setState] = useState<GoogleState | null>(null);
   const [statusReadThisVisit, setStatusReadThisVisit] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
   const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [signInLink, setSignInLink] = useState<{ url: string; attempt_id: string } | null>(null);
   const [status, setStatus] = useState("");
   const viewVisible = useRef(visible);
   const statusRead = useRef<AbortController | null>(null);
@@ -32,6 +33,7 @@ export function Google({ visible, onChanged }: { visible: boolean; onChanged?: (
       const next = await getGoogle(controller.signal);
       if (controller.signal.aborted) return;
       setState(next);
+      setSignInLink((link) => link?.attempt_id === next.sign_in_attempt_id ? link : null);
       setStatusReadThisVisit(true);
       setReadError(null);
     } catch (caught) {
@@ -56,6 +58,7 @@ export function Google({ visible, onChanged }: { visible: boolean; onChanged?: (
 
   const connected = state?.connected ?? false;
   const pending = state?.sign_in_pending ?? false;
+  const pendingAttemptId = state?.sign_in_attempt_id;
   const tasks = state?.tasks;
   const paused = Boolean(tasks?.paused_at);
   const pausing = state?.pausing ?? false;
@@ -131,9 +134,20 @@ export function Google({ visible, onChanged }: { visible: boolean; onChanged?: (
   };
 
   const connect = () => run("connect", async () => {
-    const { url } = await connectGoogle();
-    window.open(url, "_blank", "noopener");
-  }, "Google sign-in opened in a new tab. Approve every permission there, then come back here.");
+    const attempt = await connectGoogle();
+    setSignInLink(attempt);
+    setState((current) => current ? { ...current, sign_in_pending: true, sign_in_attempt_id: attempt.attempt_id } : current);
+    try { window.open(attempt.url, "_blank", "noopener"); } catch { /* the explicit link is still available */ }
+  }, "Finish signing in to Google, then return here.");
+
+  const cancelSignIn = (attemptId: string) => run("cancel", async () => {
+    const { cancelled } = await cancelGoogleSignIn(attemptId);
+    setSignInLink(null);
+    setState((current) => current && current.sign_in_attempt_id === attemptId
+      ? { ...current, sign_in_pending: false, sign_in_attempt_id: null }
+      : current);
+    setStatus(cancelled ? "Google sign-in cancelled." : "That sign-in attempt is no longer waiting. Check the current status below.");
+  });
 
   const disconnect = () => run("disconnect", async () => {
     const next = await disconnectGoogle();
@@ -163,8 +177,8 @@ export function Google({ visible, onChanged }: { visible: boolean; onChanged?: (
     </div> : null}
     {status ? <p role="status">{status}</p> : null}
 
-    {state?.setup === "unusable" ? <p role="alert" className="error">BearPlans could not use the saved Google Desktop sign-in file. Replace it with a valid file, then reload this page.</p> : null}
-    {state?.setup === "missing" ? <p className="google-setup">No Google sign-in file was found. Save your Desktop app credential as <code>google_oauth_client.json</code> in the BearPlans secrets folder (<code>~/Library/Application Support/BearPlans/secrets/</code>), then reload this page.</p> : null}
+    {state?.setup === "unusable" ? <p role="alert" className="error">BearPlans could not use the saved Google Desktop sign-in file. <a href="#settings" onClick={onOpenSettings}>Open Settings</a> to replace it.</p> : null}
+    {state?.setup === "missing" ? <p className="google-setup">No Google sign-in file was found. <a href="#settings" onClick={onOpenSettings}>Open Settings</a> to add one.</p> : null}
     {state?.configured ? <div className="google-connection">
       <p>{pending ? "Waiting for you to finish signing in…" : connected ? "Google sign-in is saved." : "Sign in to Google to continue."}</p>
       {changing ? <p>Updating the Google connection…</p>
@@ -175,7 +189,12 @@ export function Google({ visible, onChanged }: { visible: boolean; onChanged?: (
         : "This account cannot use the saved Google links. Reconnect with the previous account."}</p> : null}
       {state.sign_in_error ? <p role="alert" className="error">{state.sign_in_error}</p> : null}
       {state.missing_permissions.length ? <p role="alert" className="error">Some permissions were not given ({state.missing_permissions.join(", ")}). Choose Reconnect Google and tick every box.</p> : null}
-      <button type="button" disabled={controlsBusy} onClick={() => void connect()}>{state.connected ? "Reconnect Google" : "Connect Google"}</button>
+      {pending ? <>
+        {signInLink && signInLink.attempt_id === pendingAttemptId
+          ? <p><a href={signInLink.url} target="_blank" rel="noopener noreferrer">Open Google sign-in</a> if the browser tab did not open.</p> : null}
+        {pendingAttemptId ? <button type="button" disabled={busy !== null}
+          onClick={() => void cancelSignIn(pendingAttemptId)}>Cancel sign-in</button> : null}
+      </> : <button type="button" disabled={controlsBusy} onClick={() => void connect()}>{state.connected ? "Reconnect Google" : "Connect Google"}</button>}
       {connected ? <button type="button" className="link" disabled={busy !== null || changing}
         onClick={() => void disconnect()}>Disconnect</button> : null}
     </div> : null}

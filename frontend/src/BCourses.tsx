@@ -25,7 +25,7 @@ function Item({ item, children }: { item: BCoursesAssignment; children?: React.R
   </li>;
 }
 
-export function BCourses({ visible, onChanged }: { visible: boolean; onChanged?: () => void }) {
+export function BCourses({ visible, onChanged, onOpenSettings }: { visible: boolean; onChanged?: () => void; onOpenSettings?: React.MouseEventHandler<HTMLAnchorElement> }) {
   const [state, setState] = useState<BCoursesState | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +130,7 @@ export function BCourses({ visible, onChanged }: { visible: boolean; onChanged?:
     {error && !state ? <button type="button" disabled={busy !== null} onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Retry status</button> : null}
     {state?.sync.last_error && state.sync.last_error !== error ? <p role="alert" className="error">Last refresh failed: {state.sync.last_error}</p> : null}
     {status ? <p role="status">{status}</p> : null}
-    {state && !state.configured ? <p className="bcourses-setup">No bCourses token is set. In bCourses, open Account → Settings → New Access Token. Paste the token after <code>BCOURSES_TOKEN=</code> in <code>bearplans.secrets.env</code> in the BearPlans secrets folder (<code>~/Library/Application Support/BearPlans/secrets/</code>), save the file, then reload this page.</p> : null}
+    {state && !state.configured ? <p className="bcourses-setup">No bCourses token is set. <a href="#settings" onClick={onOpenSettings}>Open Settings</a> to add one.</p> : null}
 
     {state?.courses.length ? <details className="bcourses-courses" open={followed.length === 0}>
       <summary>Courses to follow ({followed.length} of {state.courses.filter((course) => course.in_source).length})</summary>

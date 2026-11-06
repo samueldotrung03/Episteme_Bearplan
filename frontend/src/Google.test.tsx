@@ -32,17 +32,39 @@ describe("Google", () => {
     expect(screen.queryByRole("button", { name: "Connect Google" })).toBeNull();
   });
 
-  it("opens Google sign-in in a new tab", async () => {
+  it("offers a fallback when a tab is blocked and cancels only the current sign-in attempt", async () => {
+    const url = "https://accounts.google.com/o/oauth2/auth?x=1";
+    const attempt = "test-attempt";
     const open = vi.spyOn(window, "open").mockReturnValue(null);
-    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
-      const url = String(input);
-      if (url.endsWith("/connect")) return reply({ url: "https://accounts.google.com/o/oauth2/auth?x=1", attempt_id: "test-attempt" });
-      return reply(signedOut);
+    let pending = false;
+    let failRead = false;
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const path = String(input);
+      if (path.endsWith("/connect")) {
+        pending = true;
+        return reply({ url, attempt_id: attempt });
+      }
+      if (path.endsWith("/cancel-sign-in")) {
+        pending = false;
+        failRead = true;
+        return reply({ cancelled: true });
+      }
+      if (failRead) return reply({ error: { message: "Status unavailable." } }, 503);
+      return reply({ ...signedOut, sign_in_pending: pending, sign_in_attempt_id: pending ? attempt : null });
     });
-    render(<Google visible />);
+    const view = render(<Google visible />);
     await userEvent.click(await screen.findByRole("button", { name: "Connect Google" }));
-    await waitFor(() => expect(open).toHaveBeenCalledWith("https://accounts.google.com/o/oauth2/auth?x=1", "_blank", "noopener"));
-    expect(await screen.findByText(/sign-in opened in a new tab/)).toBeTruthy();
+    expect(open).toHaveBeenCalledWith(url, "_blank", "noopener");
+    expect(await screen.findByRole("link", { name: "Open Google sign-in" })).toHaveAttribute("href", url);
+    view.rerender(<Google visible={false} />);
+    view.rerender(<Google visible />);
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel sign-in" }));
+    const request = fetch.mock.calls.find(([input]) => String(input).endsWith("/cancel-sign-in"));
+    expect(JSON.parse(String(request?.[1]?.body))).toEqual({ attempt_id: attempt });
+    expect(await screen.findByText("Google sign-in cancelled.")).toBeVisible();
+    expect(await screen.findByText(/Status unavailable/)).toBeVisible();
+    expect(await screen.findByRole("button", { name: "Connect Google" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Open Google sign-in" })).toBeNull();
   });
 
   it("syncs now and shows counts", async () => {

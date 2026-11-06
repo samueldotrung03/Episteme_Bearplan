@@ -9,6 +9,33 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — APP-C06.1 bCourses token controls in Settings
+
+Added saved-token Check and reviewed local Remove, with separate rejection and
+unavailable states. A saved token with unrecorded check evidence can be checked
+without submitting the credential again. Verified retention of cached assignments,
+course selections and imported tasks. On macOS, 179 frontend tests, typecheck,
+production build and 107 guarded pytest cases, including six Chrome journeys,
+passed. Pass with follow-ups. [Credential controls review](reviews/2026-11-06-settings-bcourses-token.md).
+
+## 2026-11-06 — APP-C05.3 Settings provider panels
+
+Settings now shows bCourses setup/check/refresh evidence and Google setup,
+authorization and sync status. Added backed Pause, Sync once and Resume with
+pending and retry states. On macOS, 179 frontend tests, typecheck, production
+build and 87 guarded pytest cases, including four Chrome journeys, passed.
+Pass with follow-ups. [Provider panel review](reviews/2026-11-06-settings-provider-panels.md).
+
+## 2026-11-06 — APP-C05.2 Settings credential dialogs
+
+Added separate bCourses token and Google JSON setup dialogs in Settings.
+Verified keyboard dismissal, focus return, pending-save behavior, validation
+and retry with synthetic inputs. Google offers a fallback sign-in link and
+explicit cancellation of the current attempt. On macOS, 177 frontend tests,
+typecheck, production build and 86 guarded pytest cases, including three Chrome
+journeys, passed. Pass with follow-ups.
+[Credential dialog review](reviews/2026-11-06-settings-credential-dialogs.md).
+
 ## 2026-11-06 — APP-C05.1 Settings route and work context
 
 Added Settings to the shared app navigation and a Connections overview linking

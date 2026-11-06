@@ -139,3 +139,165 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         assert errors == []
     finally:
         context.close()
+
+
+def test_credential_dialogs_retry_and_clear_transient_input(browser, settings_url, evidence):
+    expect = playwright_sync.expect
+    page = browser.new_page(viewport={"width": 640, "height": 800}, color_scheme="dark")
+    token_requests = []
+    google_requests = []
+    pending_token = []
+
+    def save_token(route):
+        token_requests.append(route.request.method)
+        if len(token_requests) == 1:
+            pending_token.append(route)
+        else:
+            route.fulfill(json={})
+
+    def save_google(route):
+        google_requests.append(route.request.method)
+        if len(google_requests) == 1:
+            route.fulfill(status=422, json={"error": {"message": "Choose a Desktop app file.", "field": "client_file"}})
+        else:
+            route.fulfill(json={})
+
+    page.route("**/api/connections/bcourses", save_token)
+    page.route("**/api/connections/google", save_google)
+    try:
+        page.goto(settings_url + "/#settings")
+        trigger = page.get_by_role("button", name="Set up or replace bCourses token")
+        trigger.focus()
+        page.keyboard.press("Enter")
+        modal = page.get_by_role("dialog", name="Set up bCourses token")
+        token = modal.get_by_label("New bCourses token")
+        expect(token).to_be_focused()
+        expect(token).to_have_attribute("type", "password")
+        page.keyboard.press("Shift+Tab")
+        assert not trigger.evaluate("node => node === document.activeElement")
+        token.fill("synthetic-token")
+        with page.expect_request("**/api/connections/bcourses"):
+            token.press("Enter")
+        expect(modal.get_by_role("button", name="Cancel")).to_be_disabled()
+        expect(modal.get_by_role("status")).to_contain_text("Waiting for BearPlans")
+        page.keyboard.press("Escape")
+        expect(modal).to_be_visible()
+        pending_token[0].fulfill(status=422, json={"error": {"message": "The previous token was kept.", "field": "token"}})
+        alert = modal.get_by_role("alert")
+        expect(alert).to_have_text("The previous token was kept.")
+        expect(token).to_be_focused()
+        expect(token).to_have_accessible_description("The previous token was kept.")
+        expect(token).to_have_value("synthetic-token")
+        token.fill("synthetic-retry")
+        token.press("Enter")
+        expect(modal).to_have_count(0)
+        expect(trigger).to_be_focused()
+        expect(page.get_by_text("bCourses accepted your token.", exact=False)).to_be_visible()
+        trigger.click()
+        expect(token).to_have_value("")
+        token.fill("discard-this")
+        page.keyboard.press("Escape")
+        expect(modal).to_have_count(0)
+        expect(trigger).to_be_focused()
+        trigger.click()
+        expect(token).to_have_value("")
+        modal.get_by_role("button", name="Cancel").click()
+        assert token_requests == ["PUT", "PUT"]
+
+        google = page.get_by_role("button", name="Set up or replace Google sign-in file")
+        google.click()
+        modal = page.get_by_role("dialog", name="Set up Google sign-in file")
+        file = modal.get_by_label("Google Desktop app JSON file")
+        submit = modal.get_by_role("button", name="Save sign-in file")
+        file.set_input_files({"name": "oversized.json", "mimeType": "application/json", "buffer": b"x" * 17000})
+        submit.click()
+        expect(modal.get_by_role("alert")).to_contain_text("16 KB")
+        assert not google_requests
+        file.set_input_files({"name": "wrong.txt", "mimeType": "text/plain", "buffer": b"{}"})
+        submit.click()
+        expect(modal.get_by_role("alert")).to_contain_text("downloaded Google Desktop app JSON file")
+        assert not google_requests
+        file.set_input_files({"name": "web.json", "mimeType": "application/json", "buffer": b'{"web":{}}'})
+        submit.click()
+        expect(modal.get_by_role("alert")).to_have_text("Choose a Desktop app file.")
+        assert file.evaluate("node => node.files.length") == 1
+        page.screenshot(path=evidence / "settings-640-dark-file-error.png")
+        file.set_input_files({"name": "desktop.json", "mimeType": "application/json", "buffer": b'{"installed":{}}'})
+        submit.click()
+        expect(modal).to_have_count(0)
+        expect(google).to_be_focused()
+        expect(page.get_by_text("Google sign-in file saved.", exact=False)).to_be_visible()
+        google.click()
+        assert file.evaluate("node => node.files.length") == 0
+        page.keyboard.press("Escape")
+        assert google_requests == ["PUT", "PUT"]
+    finally:
+        page.close()
+
+
+def test_saved_bcourses_token_check_and_reviewed_removal(browser, evidence, settings_url, monkeypatch):
+    from backend.platform.bcourses import TOKEN_KEY
+    from backend.platform.secrets import write_secret
+
+    # Isolate the credential even when this test is run without the guard plugin.
+    from tempfile import TemporaryDirectory
+
+    expect = playwright_sync.expect
+    page = browser.new_page(viewport={"width": 640, "height": 800}, color_scheme="dark")
+    with TemporaryDirectory() as temp, monkeypatch.context() as env:
+        env.setenv("BEARPLANS_SECRETS_FILE", f"{temp}/settings.env")
+        write_secret(TOKEN_KEY, "synthetic-settings-token")
+
+        def check(route):
+            if not failures:
+                route.fulfill(status=502, json={"error": {"message": "bCourses is unreachable."}})
+            else:
+                setup = route.fetch(url=settings_url + "/api/connections", method="GET").json()
+                setup["bcourses"].update(checked_at="2026-11-06T12:00:00Z", check_ok=False)
+                route.fulfill(json=setup)
+            failures.append(True)
+
+        failures = []
+        page.route("**/api/connections/bcourses/check", check)
+        try:
+            page.goto(settings_url + "/#settings")
+            check_button = page.get_by_role("button", name="Check saved token")
+            check_button.click()
+            expect(page.get_by_text("Check could not be confirmed.", exact=False)).to_be_visible()
+            expect(page.get_by_text("Last check rejected", exact=False)).to_have_count(0)
+            check_button.click()
+            expect(page.get_by_text("Last check rejected", exact=False)).to_be_visible()
+            expect(page.get_by_text("Token saved", exact=True)).to_be_visible()
+
+            trigger = page.get_by_role("button", name="Remove token…")
+            trigger.click()
+            modal = page.get_by_role("dialog", name="Remove bCourses token?")
+            keep = modal.get_by_role("button", name="Keep token")
+            expect(keep).to_be_focused()
+            expect(modal).to_contain_text("cached assignments and tasks you added will stay")
+            page.screenshot(path=evidence / "settings-bcourses-remove-640-dark.png")
+            page.keyboard.press("Escape")
+            expect(modal).to_have_count(0)
+            expect(trigger).to_be_focused()
+            assert http_json("GET", settings_url + "/api/connections")[1]["bcourses"]["set"]
+
+            trigger.click()
+            keep.click()
+            expect(trigger).to_be_focused()
+            trigger.click()
+            page.route("**/api/connections/bcourses", lambda route: route.fulfill(
+                status=503, json={"error": {"message": "The token was not removed."}}
+            ), times=1)
+            confirm = modal.get_by_role("button", name="Remove token", exact=True)
+            confirm.click()
+            expect(modal.get_by_role("alert")).to_contain_text("Removal could not be confirmed")
+            confirm.click()
+            expect(modal).to_have_count(0)
+            expect(page.get_by_text("bCourses token removed from BearPlans.")).to_be_visible()
+            expect(page.get_by_role("button", name="Set up or replace bCourses token")).to_be_focused()
+            assert no_horizontal_overflow(page)
+            page.reload()
+            expect(check_button).to_have_count(0)
+            assert not http_json("GET", settings_url + "/api/connections")[1]["bcourses"]["set"]
+        finally:
+            page.close()

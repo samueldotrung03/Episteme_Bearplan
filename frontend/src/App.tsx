@@ -21,6 +21,8 @@ import { TaskPlanning, WeeklyPlanner, usePlanning } from "./WeeklyPlanner";
 import { CompactTimer, StartTrackingButton, TrackScreen, useCountdown } from "./Countdown";
 import { Statistics } from "./Statistics";
 import { Assistant } from "./Assistant";
+import { ConnectionPanels } from "./ConnectionPanels";
+import { ConnectionSetup, type SetupProvider } from "./ConnectionSetup";
 import { BCourses } from "./BCourses";
 import { Google, useGoogleChanges } from "./Google";
 
@@ -58,6 +60,10 @@ export default function App() {
   const planning = usePlanning();
   const timer = useCountdown();
   const [screen, setScreen] = useState(readScreen);
+  const [setup, setSetup] = useState<{ provider: SetupProvider } | null>(null);
+  const [setupNotice, setSetupNotice] = useState("");
+  const [credentialVersion, setCredentialVersion] = useState(0);
+  const [bcoursesCredentialVersion, setBCoursesCredentialVersion] = useState(0);
   const settingsEntry = useRef<HTMLAnchorElement>(null);
   const settingsHeading = useRef<HTMLHeadingElement>(null);
   const settingsReturn = useRef<{ screen: Exclude<ReturnType<typeof readScreen>, "settings">; scrollY: number } | null>(null);
@@ -84,7 +90,11 @@ export default function App() {
   const selected = projects?.find((p) => p.id === selectedId) ?? null;
 
   useEffect(() => {
-    const navigate = () => setScreen(readScreen());
+    const navigate = () => {
+      const next = readScreen();
+      if (next !== "settings") setSetup(null);
+      setScreen(next);
+    };
     window.addEventListener("hashchange", navigate);
     return () => window.removeEventListener("hashchange", navigate);
   }, []);
@@ -225,24 +235,32 @@ export default function App() {
       {screen !== "track" ? <CompactTimer timer={timer} onOpen={() => openTrack()} /> : null}
       <TrackScreen timer={timer} plan={planning.plan} projects={projects ?? []} requestedTaskId={trackingTaskId} requestToken={trackingRequest} visible={screen === "track"} planError={planning.error} onRefreshTasks={() => void planning.refresh()} />
       <Statistics visible={screen === "stats"} />
-      <BCourses visible={screen === "bcourses"} onChanged={() => { void retry(); void planning.refresh(); }} />
-      <Google visible={screen === "google"} onChanged={() => { void retry(); void planning.refresh(); }} />
+      <BCourses key={bcoursesCredentialVersion} onOpenSettings={openSettings} visible={screen === "bcourses"} onChanged={() => { void retry(); void planning.refresh(); }} />
+      <Google onOpenSettings={openSettings} visible={screen === "google"} onChanged={() => { void retry(); void planning.refresh(); }} />
       <Assistant visible={screen === "assistant"} projectId={selectedId} date={planning.plan?.week_start}
         onChanged={() => { if (selectedId) void refreshTasks(selectedId); void planning.refresh(); void timer.refresh(); }} />
 
-      {screen === "settings" ? (
-        <section className="settings" aria-labelledby="settings-heading">
-          <div className="settings-heading">
-            <h2 id="settings-heading" ref={settingsHeading} tabIndex={-1}>Settings</h2>
-            <button type="button" onClick={backToWork}>Back to work</button>
-          </div>
-          <h3>Connections</h3>
-          <ul className="settings-connections">
-            <li><a href="#bcourses">Open bCourses</a><p className="muted">Review assignments and manage imported courses.</p></li>
-            <li><a href="#google">Open Google</a><p className="muted">Manage calendars and sync with Google.</p></li>
-          </ul>
-        </section>
-      ) : null}
+      <section className="settings" aria-labelledby="settings-heading" hidden={screen !== "settings"}>
+        <div className="settings-heading">
+          <h2 id="settings-heading" ref={settingsHeading} tabIndex={-1}>Settings</h2>
+          <button type="button" onClick={backToWork}>Back to work</button>
+        </div>
+        <h3>Connections</h3>
+        <ConnectionPanels visible={screen === "settings"} credentialVersion={credentialVersion}
+          onTokenRemoved={() => {
+            setBCoursesCredentialVersion((version) => version + 1);
+            setSetupNotice("");
+          }}
+          onSetup={(provider) => { setSetupNotice(""); setSetup({ provider }); }}
+          onSynced={() => { void retry(); void planning.refresh(); }} />
+        {setupNotice ? <p role="status">{setupNotice}</p> : null}
+        {screen === "settings" && setup ? <ConnectionSetup provider={setup.provider} onDismiss={() => setSetup(null)} onSaved={(notice) => {
+          setCredentialVersion((version) => version + 1);
+          if (setup.provider === "bCourses") setBCoursesCredentialVersion((version) => version + 1);
+          setSetupNotice(notice ?? (setup.provider === "bCourses" ? "bCourses accepted your token. Open bCourses to choose courses or refresh assignments." : "Google sign-in file saved. Open Google to check sign-in status."));
+          setSetup((current) => current === setup ? null : current);
+        }} /> : null}
+      </section>
 
       <div hidden={screen !== "plan"}>
 

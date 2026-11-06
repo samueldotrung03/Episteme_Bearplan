@@ -138,6 +138,9 @@ def test_replacement_disk_fault_has_truthful_readback_and_can_retry(client, db, 
         assert failed.status_code == 503
         message = failed.json()["error"]["message"]
         expected_token = REPLACEMENT if failure == "publish" else TOKEN
+        if failure == "publish":
+            assert failed.json()["error"]["code"] == "bcourses_token_saved_check_unrecorded"
+            assert "use Check saved token" in message
         assert ("new bCourses token was saved" if failure == "publish" else "token was not replaced") in message
         assert read_secret("BCOURSES_TOKEN") == expected_token
         assert seen == [TOKEN, REPLACEMENT]
@@ -204,7 +207,17 @@ def test_slow_token_check_cannot_publish_after_the_token_changes(client, checks,
     assert client.get("/api/connections").json()["bcourses"] == changed.json()["bcourses"]
 
 
-def test_check_and_remove_token(client, checks):
+def test_check_and_remove_token(client, checks, db):
+    from backend.domain.bcourses import add_assignment, get_state, set_followed
+    from backend.domain.tasks import get_task
+    from tests.test_bcourses import FakeClient, sync
+
+    fake = FakeClient()
+    sync(db, fake)
+    set_followed(db, ["1"])
+    sync(db, fake)
+    task = add_assignment(db, "11").task
+    before = get_state(db, True)
     _, outcome = checks
     assert client.post("/api/connections/bcourses/check").status_code == 422
     client.put("/api/connections/bcourses", json={"token": TOKEN})
@@ -214,6 +227,9 @@ def test_check_and_remove_token(client, checks):
     state = client.delete("/api/connections/bcourses").json()["bcourses"]
     assert state == {"set": False, "saved_at": None, "checked_at": None, "check_ok": None, "check_message": None}
     assert read_secret("BCOURSES_TOKEN") is None
+    after = get_state(db, False)
+    assert (after.courses, after.assignments, after.sync) == (before.courses, before.assignments, before.sync)
+    assert get_task(db, task.id) == task
 
 
 @pytest.mark.parametrize("text,phrase", [
