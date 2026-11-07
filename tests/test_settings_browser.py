@@ -304,3 +304,35 @@ def test_saved_bcourses_token_check_and_reviewed_removal(browser, evidence, sett
             assert not http_json("GET", settings_url + "/api/connections")[1]["bcourses"]["set"]
         finally:
             page.close()
+
+
+@pytest.mark.parametrize("width,height", [(640, 800), (800, 900), (1440, 900)])
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_settings_layout_and_keyboard_dialog_at_review_sizes(browser, settings_url, evidence, width, height, theme):
+    expect = playwright_sync.expect
+    page = browser.new_page(viewport={"width": width, "height": height}, color_scheme=theme)
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    try:
+        page.goto(settings_url + "/#settings")
+        heading = page.get_by_role("heading", name="Settings", exact=True)
+        expect(heading).to_be_focused()
+        expect(page.get_by_role("link", name="Review assignments")).to_be_visible()
+        expect(page.get_by_role("link", name="Open Google")).to_be_visible()
+        assert no_horizontal_overflow(page)
+        page.screenshot(path=evidence / f"settings-review-{width}-{theme}.png", full_page=True)
+
+        trigger = page.get_by_role("button", name="Set up or replace bCourses token")
+        trigger.focus()
+        page.keyboard.press("Enter")
+        dialog = page.get_by_role("dialog", name="Set up bCourses token")
+        field = dialog.get_by_label("New bCourses token")
+        expect(field).to_be_focused()
+        assert no_horizontal_overflow(page)
+        page.screenshot(path=evidence / f"settings-dialog-{width}-{theme}.png")
+        page.keyboard.press("Escape")
+        expect(dialog).to_have_count(0)
+        expect(trigger).to_be_focused()
+        assert errors == []
+    finally:
+        page.close()

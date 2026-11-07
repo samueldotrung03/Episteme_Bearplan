@@ -179,8 +179,13 @@ restart preserved Pause and Plan, and a recurring-event read failure kept
 the cache and imported task safe through retry.
 [Integrated review](reviews/2026-11-06-settings-integrated-regression.md).
 
-**Next eligible work:** APP-C08.2. Verify live browser layouts, zoom, keyboard
-and accessibility with disposable data. No unit is active.
+**Active work:** APP-C08.2. Six window-size/theme combinations passed
+automated layout and keyboard dialog checks. Two screenshots were visually
+inspected. Actual 200% browser zoom, assistive-technology behavior and visual
+inspection of the remaining captures remain open.
+[Partial review](reviews/2026-11-06-settings-accessibility-review.md).
+
+**Next step:** Complete the outstanding APP-C08.2 browser and accessibility checks.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
@@ -389,7 +394,8 @@ Pause/status/disconnect work; concurrent account-isolation work remains unverifi
 | APP-C07.3 | Done — Pass with follow-ups | [Plan/calendar/task integration](reviews/2026-11-06-settings-google-plan-integration.md). |
 | APP-C07.4 | Done — Pass with follow-ups | [Google recovery](reviews/2026-11-06-settings-google-recovery.md). |
 | APP-C08.1 | Done — Pass with follow-ups | [Integrated process, fault and regression review](reviews/2026-11-06-settings-integrated-regression.md). |
-| APP-C08.2–09 | Not started as this execution sequence | APP-C08.2 browser and accessibility review is next. |
+| APP-C08.2 | In progress | [Partial browser review](reviews/2026-11-06-settings-accessibility-review.md). Zoom, assistive technology and remaining visual checks are open. |
+| APP-C08.3–09 | Not started as this execution sequence | Follow APP-C08.2. |
 
 ## UX delivery register
 This is the sole mutable UX status table; stable ticket details/acceptance live in
