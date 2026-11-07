@@ -185,7 +185,7 @@ inspected. Chrome exposes the credential error and dialog in its accessibility
 tree. Actual 200% browser zoom and screen-reader behavior remain open.
 [Partial review](reviews/2026-11-06-settings-accessibility-review.md).
 
-**Next step:** Complete the outstanding APP-C08.2 browser and accessibility checks.
+**Next step:** Check actual 200% browser zoom and VoiceOver output interactively. The 320 CSS-pixel diagnostic passed but does not establish either result.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
@@ -225,7 +225,7 @@ work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint.
 
 ## Next up
 
-1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review are complete. APP-C07.1 Google sharing review is complete. APP-C07.2 combined sync feedback is complete. APP-C07.3 Plan/calendar/task integration is complete. APP-C07.4 Google recovery is complete. APP-C08.1 integrated process/fault verification is complete. APP-C08.2 browser and accessibility review is next. Existing core/hardware/runtime gates remain open.
+1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review are complete. APP-C07.1 Google sharing review is complete. APP-C07.2 combined sync feedback is complete. APP-C07.3 Plan/calendar/task integration is complete. APP-C07.4 Google recovery is complete. APP-C08.1 integrated process/fault verification is complete. APP-C08.2 browser and accessibility review is in progress. Existing core/hardware/runtime gates remain open.
 2. **User hands-on review of the Assistant in the app preview** (pending).
    **Connection setup baseline:** credential relocation is committed in f375f24
    and write-only setup routes in 674db93. Current source continues to advance;
@@ -394,7 +394,7 @@ Pause/status/disconnect work; concurrent account-isolation work remains unverifi
 | APP-C07.3 | Done — Pass with follow-ups | [Plan/calendar/task integration](reviews/2026-11-06-settings-google-plan-integration.md). |
 | APP-C07.4 | Done — Pass with follow-ups | [Google recovery](reviews/2026-11-06-settings-google-recovery.md). |
 | APP-C08.1 | Done — Pass with follow-ups | [Integrated process, fault and regression review](reviews/2026-11-06-settings-integrated-regression.md). |
-| APP-C08.2 | In progress | [Partial browser review](reviews/2026-11-06-settings-accessibility-review.md). Zoom, assistive technology and remaining visual checks are open. |
+| APP-C08.2 | In progress | [Partial browser review](reviews/2026-11-06-settings-accessibility-review.md). Actual browser zoom and screen-reader checks are open. |
 | APP-C08.3–09 | Not started as this execution sequence | Follow APP-C08.2. |
 
 ## UX delivery register

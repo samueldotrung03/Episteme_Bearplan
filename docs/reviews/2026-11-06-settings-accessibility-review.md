@@ -36,3 +36,17 @@ Command used the same disposable build and guard described above, with
 Result was one passed. This checks browser accessibility semantics, while
 actual screen-reader output remains unverified. Actual 200% browser zoom
 also remains unverified.
+
+## Narrow reflow follow-up
+
+The existing `test_settings_returns_to_work_and_preserves_countdown`
+passed again in installed Chrome with disposable data. It checks the Settings
+page at a 320 CSS-pixel viewport in Dark mode, including horizontal overflow
+and access to provider entry points. This is a narrow-reflow diagnostic.
+Actual browser zoom was not measured.
+
+A temporary browser profile and local test extension were used to attempt
+Chrome's own tab zoom API. Installed Chrome loaded no extension worker, and
+the previously available Chrome for Testing executable was unavailable. No
+zoom result was claimed. VoiceOver output has not been observed. Both
+checks remain open for an interactive browser and assistive-technology review.
