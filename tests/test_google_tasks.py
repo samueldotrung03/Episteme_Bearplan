@@ -297,6 +297,44 @@ def test_interrupted_sync_is_recorded_and_resumes_without_duplicates(db):
     assert status.last_error is None and status.last_success_at
 
 
+@pytest.mark.xfail(strict=True, reason="Remote create can succeed before its local mapping is saved")
+def test_retry_after_task_mapping_failure_does_not_duplicate_remote_task(db, monkeypatch):
+    from backend.domain import google_tasks
+
+    fake = FakeTasks()
+    create_task(db, "Synthetic duplicate test")
+    save_mapping = google_tasks._save_mapping
+    with monkeypatch.context() as patch:
+        def fail_mapping(*args, **kwargs):
+            raise OSError("injected mapping write failure")
+        patch.setattr(google_tasks, "_save_mapping", fail_mapping)
+        with pytest.raises(OSError, match="injected mapping"):
+            run(db, fake)
+    assert google_tasks._save_mapping is save_mapping
+    run(db, fake)
+    matches = [item for items in fake.items.values() for item in items.values()
+               if item.get("title") == "Synthetic duplicate test" and not item.get("deleted")]
+    assert len(matches) == 1
+
+
+@pytest.mark.xfail(strict=True, reason="Remote create can succeed before its response is lost")
+def test_retry_after_lost_task_create_response_does_not_duplicate_remote_task(db, monkeypatch):
+    fake = FakeTasks()
+    create_task(db, "Synthetic duplicate test")
+    insert_task = fake.insert_task
+    with monkeypatch.context() as patch:
+        def lose_response(*args, **kwargs):
+            insert_task(*args, **kwargs)
+            raise GoogleUnavailable("google_unreachable", "Cannot reach Google.")
+        patch.setattr(fake, "insert_task", lose_response)
+        with pytest.raises(GoogleUnavailable):
+            run(db, fake)
+    run(db, fake)
+    matches = [item for items in fake.items.values() for item in items.values()
+               if item.get("title") == "Synthetic duplicate test" and not item.get("deleted")]
+    assert len(matches) == 1
+
+
 def test_routes_report_status_and_sync_without_exposing_tokens(db):
     fake = FakeTasks()
     create_task(db, "Route task")

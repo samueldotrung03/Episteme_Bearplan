@@ -191,12 +191,19 @@ the older instructions supplied in the chat. The disposable location and
 connection tests passed 40 cases.
 [Credential decision review](reviews/2026-11-06-credential-location-decision.md).
 
-**Active work:** APP-C08.3 delivery review. A self-review and 121 guarded
-connection cases passed. Independent review remains open.
+**Active work:** APP-C08.3 delivery review. Independent review reproduced a
+Google task duplication on retry after remote creation succeeds but local mapping
+fails. A lost create response also duplicates in a regression case. Both are strict
+expected failures; list, calendar and event creates have an analogous unverified
+failure window. This blocks the delivery pass and SYNC-09 / SYNC-12. The
+bCourses token recovery message was corrected and 53 guarded tests passed.
 [Delivery review](reviews/2026-11-06-settings-delivery-review.md).
 
-**Next step:** Complete independent review and record the pending VoiceOver
-walkthrough when its result is available.
+**Next step:** Design and implement durable, account-scoped recovery for uncertain
+Google creates, including mapping-write failure, lost response, restart and all
+four resource types. Do not infer remote identity from title or retry blindly.
+Then rerun the independent review and record the VoiceOver walkthrough when
+available; its old disposable service is no longer running.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04

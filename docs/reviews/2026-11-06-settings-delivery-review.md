@@ -24,3 +24,37 @@ contains browser and zoom evidence.
 
 The VoiceOver walkthrough, independent review and operator/live evidence are
 still open. A passing fake-provider suite does not establish those results.
+
+## Independent review and blocker — November 6
+
+An independent review of the committed Settings and connections delivery found
+that Google task creation is not replay-safe when the provider has created an
+item but the local mapping write fails. The reviewer reproduced two synthetic
+remote tasks after retry using a disposable database and in-memory provider.
+A lost create response has the same ambiguity. Source inspection found the
+same remote-create-before-local-mapping window for task lists, calendars and
+calendar events; those three paths have not yet been individually reproduced.
+Matching by title alone cannot safely establish identity. This blocks the
+SYNC-09 and SYNC-12 retry acceptance and APP-C08.3 delivery pass.
+
+The independent reviewer ran the guarded connection suite: 121 passed on
+macOS with local loopback access. An earlier sandboxed run had 17 failures and
+104 passes because loopback listeners were denied; it was rerun successfully.
+No real provider or credentials were accessed.
+
+Two strict expected-failure regression tests now document task mapping-write
+and lost-response windows. On macOS arm64, the command
+`.venv/bin/python -m pytest -q -p no:cacheprovider -p tests.connections_sandbox tests/test_google_tasks.py`
+reported 17 passed, 2 xfailed. Expected failures are open defects, not passes.
+A durable repair must cover both uncertainty windows, restart, and all affected
+create types without guessing identity or duplicating existing user data.
+
+The reviewer also found outdated bCourses error recovery text. Missing and
+rejected token messages now point to Settings. The guarded command
+`.venv/bin/python -m pytest -q -p no:cacheprovider -p tests.connections_sandbox tests/test_bcourses.py tests/test_connections.py`
+passed 53 tests. Error codes and credential storage were unchanged.
+
+The VoiceOver and operator gates remain open. The former disposable local
+VoiceOver app was no longer listening when checked and must be recreated.
+A check of 207 relative links across the README, progress, delivery review and
+Settings planning documents found no missing local targets.

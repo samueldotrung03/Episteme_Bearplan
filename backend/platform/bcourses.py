@@ -56,9 +56,7 @@ class BCoursesClient:
         if not token:
             raise BCoursesUnavailable(
                 "bcourses_not_configured",
-                "No bCourses token is set. Paste a token after BCOURSES_TOKEN= in bearplans.secrets.env "
-                "in the secrets folder inside the BearPlans data folder (on a Mac, "
-                "~/Library/Application Support/BearPlans/secrets/), save it, then choose Refresh.")
+                "No bCourses token is set. Open Settings and choose Set up or replace bCourses token.")
         return token
 
     def _get(self, path: str, pages: int = MAX_PAGES, **params: Any) -> list[dict[str, Any]]:
@@ -81,7 +79,7 @@ class BCoursesClient:
                     raise BCoursesUnavailable(
                         "bcourses_token_rejected",
                         "bCourses did not accept the token (it may be wrong, expired or deleted). "
-                        "Create a new one in bCourses and paste it into bearplans.secrets.env in the BearPlans secrets folder.") from None
+                        "Create a new one in bCourses, then open Settings and choose Set up or replace bCourses token.") from None
                 if error.code == 403:
                     raise BCoursesUnavailable("bcourses_forbidden", "bCourses refused access to this information.") from None
                 raise BCoursesUnavailable("bcourses_unavailable", f"bCourses replied with an error (HTTP {error.code}). Try again later.") from None

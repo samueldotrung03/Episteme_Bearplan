@@ -111,8 +111,11 @@ The implementation stores connection credentials separately from the database
 under the BearPlans data folder's `secrets/` directory, unless
 `BEARPLANS_SECRETS_FILE` overrides that location. Full-database backups do
 not include these credential files.
-Connection flows have been exercised with fake providers. VoiceOver, the
-independent delivery review and real-account operator evidence remain open.
+Connection flows have been exercised with fake providers. Independent review
+found that retrying a Google sync after an uncertain create can duplicate a
+Google item. This is an open delivery blocker; pausing automatic sync prevents
+automatic retries while it is being addressed. VoiceOver and real-account
+operator evidence remain open.
 See [shared progress](docs/PROGRESS.md) for the current gates.
 
 ## Back up and restore

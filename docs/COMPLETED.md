@@ -1,5 +1,16 @@
 # BearPlans — completed work log
 
+## November 6, 2026 — bCourses recovery copy and independent delivery review
+
+Corrected missing/rejected token guidance to point to Settings. On macOS arm64,
+the guarded bCourses and connection tests passed 53 cases. Independent review
+found a Google retry duplication blocker; two strict expected-failure tests
+capture the task cases (17 other Google task tests passed). The review is not a
+delivery pass. Details and remaining work are in the
+[delivery review](reviews/2026-11-06-settings-delivery-review.md) and
+[progress](PROGRESS.md).
+
+
 Append-only record of finished work, newest first. Current status, open items and
 the next action live in [PROGRESS.md](PROGRESS.md). When an item there is
 finished, move its entry to the top of this file with its date, checks,

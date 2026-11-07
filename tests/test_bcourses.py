@@ -266,11 +266,16 @@ def test_client_errors_are_actionable_and_never_contain_the_token(monkeypatch, s
     with pytest.raises(BCoursesUnavailable) as raised:
         client.courses()
     assert raised.value.code == code and "secret-token" not in raised.value.message
+    if status == 401:
+        assert "Settings" in raised.value.message
+        assert "bearplans.secrets.env" not in raised.value.message
 
 
 def test_client_without_token_explains_where_to_put_it():
-    with pytest.raises(BCoursesUnavailable, match="BCOURSES_TOKEN"):
+    with pytest.raises(BCoursesUnavailable, match="Settings") as raised:
         BCoursesClient().courses()
+    assert raised.value.code == "bcourses_not_configured"
+    assert "bearplans.secrets.env" not in raised.value.message
 
 
 def test_migration_0016_is_shipped_and_isolated():
