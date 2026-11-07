@@ -110,10 +110,7 @@ Google confirmed revocation.
 The implementation stores connection credentials separately from the database
 under the BearPlans data folder's `secrets/` directory, unless
 `BEARPLANS_SECRETS_FILE` overrides that location. Full-database backups do
-not include these credential files. The current implementation and shared
-agent guidance describe different default credential locations. This
-discrepancy is recorded in [shared progress](docs/PROGRESS.md).
-
+not include these credential files.
 Connection flows have been exercised with fake providers. VoiceOver, the
 independent delivery review and real-account operator evidence remain open.
 See [shared progress](docs/PROGRESS.md) for the current gates.

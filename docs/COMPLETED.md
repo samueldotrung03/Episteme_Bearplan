@@ -9,6 +9,13 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — Credential location decision
+
+The user confirmed the app data folder's `secrets/` directory. Current
+implementation and checked-in guidance already follow this decision.
+Forty disposable credential-location and connection tests passed.
+[Decision review](reviews/2026-11-06-credential-location-decision.md).
+
 ## 2026-11-06 — Settings dialog positioning at 200% zoom
 
 Fixed connection dialogs that could open partly outside the viewport after
