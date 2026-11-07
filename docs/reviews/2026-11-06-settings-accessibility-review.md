@@ -81,3 +81,8 @@ the receipt exposes a status role. The guarded run of
 `tests/test_google_browser.py::test_reviewed_account_recovery_and_offline_disconnect`
 passed once on macOS using the /tmp/bearplans-c082zoom.MuQjzO build.
 Spoken VoiceOver behavior is still awaiting the operator walkthrough.
+
+The Google account-review walkthrough also passed a forward and reverse
+keyboard check. Tab moved from Cancel to Use this account, and Shift+Tab
+returned to Cancel before Escape restored focus to the trigger. This focused
+test passed once with fake providers and the same disposable Chrome build.

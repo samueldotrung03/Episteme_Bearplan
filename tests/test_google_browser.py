@@ -302,6 +302,10 @@ def test_reviewed_account_recovery_and_offline_disconnect(browser, served, monke
         dialog = page.get_by_role("dialog", name="Use this Google account?")
         expect(dialog).to_contain_text("Automatic sync stays paused.")
         expect(dialog.get_by_role("button", name="Cancel")).to_be_focused()
+        page.keyboard.press("Tab")
+        expect(dialog.get_by_role("button", name="Use this account", exact=True)).to_be_focused()
+        page.keyboard.press("Shift+Tab")
+        expect(dialog.get_by_role("button", name="Cancel")).to_be_focused()
         tree = page.context.new_cdp_session(page).send("Accessibility.getFullAXTree")["nodes"]
         assert any(node.get("role", {}).get("value") == "dialog"
                    and node.get("name", {}).get("value") == "Use this Google account?" for node in tree)
