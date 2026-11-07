@@ -1,7 +1,7 @@
 """Reading followed Google calendars: picker, cached events by day, event -> task."""
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +11,7 @@ from backend.domain.errors import InvalidInput
 from backend.domain.google_reading import add_event_task, list_calendars, list_events, read_calendars, refresh_calendars, refresh_events, set_followed
 from backend.domain.planning import list_placements
 from backend.domain.tasks import get_task
+from backend.platform.google import GoogleUnavailable
 from backend.storage.migrations import load_migrations
 
 TODAY = date.today()
@@ -107,6 +108,49 @@ def test_event_becomes_a_planned_task_once(db):
     assert list_events(db, D1, D1)[1].task_id == added.task.id
     trip = add_event_task(db, "me@example.com", "b")
     assert get_task(db, trip.task.id).estimate_minutes is None and "all day" in trip.task.notes
+
+
+def test_recurring_exception_refresh_preserves_import_and_cache_on_read_failure(db, monkeypatch):
+    fake = FakeReader()
+    calendar_id = "me@example.com"
+    original = {
+        "id": "seminar_1", "recurringEventId": "seminar", "summary": "Seminar",
+        "start": {"date": D1}, "end": {"date": D1},
+    }
+    next_occurrence = {**original, "id": "seminar_2", "start": {"date": D3}, "end": {"date": D3}}
+    fake.events[calendar_id] = [original, next_occurrence]
+    refresh_calendars(db, fake)
+    set_followed(db, [calendar_id, "work@group"])
+    now = datetime.combine(TODAY, datetime.min.time(), tzinfo=UTC)
+    refresh_events(db, fake, now=now)
+    added = add_event_task(db, calendar_id, "seminar_1")
+    [placement] = list_placements(db)
+
+    fake.events[calendar_id] = [
+        {**original, "summary": "Seminar moved", "start": {"date": D3}, "end": {"date": D3}},
+        {**next_occurrence, "status": "cancelled"},
+    ]
+    read = fake.list_events
+
+    def fail_second_calendar(calendar, start, end):
+        if calendar == "work@group":
+            raise GoogleUnavailable("google_unreachable", "Calendar is offline.")
+        return read(calendar, start, end)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(fake, "list_events", fail_second_calendar)
+        with pytest.raises(GoogleUnavailable):
+            refresh_events(db, fake, now=now)
+    assert [event.summary for event in list_events(db, D1, D1)] == ["Seminar"]
+
+    refresh_events(db, fake, now=now)
+    assert list_events(db, D1, D1) == []
+    occurrences = [event for event in list_events(db, D3, D3) if event.calendar_id == calendar_id]
+    [moved] = occurrences
+    assert (moved.summary, moved.task_id) == ("Seminar moved", added.task.id)
+    assert add_event_task(db, calendar_id, "seminar_1").task.id == added.task.id
+    assert get_task(db, added.task.id) == added.task
+    assert list_placements(db) == [placement]
 
 
 def test_routes(db):

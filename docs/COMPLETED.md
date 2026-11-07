@@ -9,6 +9,15 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — APP-C08.1 Integrated process, fault and regression review
+
+Verified Pause and Plan through abrupt and graceful service restarts. Verified
+that a failed recurring-event read preserves the cache and that retry preserves
+the imported task. On macOS with Chrome, the full suite passed 1,041 checks
+with one Windows-only skip. Nine focused cases, 178 frontend tests, typecheck
+and production build also passed. Pass with follow-ups.
+[Integrated review](reviews/2026-11-06-settings-integrated-regression.md).
+
 ## 2026-11-06 — APP-C07.4 Google reconnect and disconnect recovery
 
 Added reviewed account recovery and disconnect to Google detail. Verified

@@ -173,8 +173,14 @@ unconfirmed revocation receipts stay distinct. Settings explains blocked
 sync and links to the recovery controls.
 [Google recovery review](reviews/2026-11-06-settings-google-recovery.md).
 
-**Next eligible work:** APP-C08.1. Run the integrated process, fault and
-regression checks using fake providers and disposable data. No unit is active.
+**Integrated process and fault review:** APP-C08.1 is complete. The full
+guarded suite passed with only the Windows API test skipped. A real service
+restart preserved Pause and Plan, and a recurring-event read failure kept
+the cache and imported task safe through retry.
+[Integrated review](reviews/2026-11-06-settings-integrated-regression.md).
+
+**Next eligible work:** APP-C08.2. Verify live browser layouts, zoom, keyboard
+and accessibility with disposable data. No unit is active.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
@@ -214,7 +220,7 @@ work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint.
 
 ## Next up
 
-1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review are complete. APP-C07.1 Google sharing review is complete. APP-C07.2 combined sync feedback is complete. APP-C07.3 Plan/calendar/task integration is complete. APP-C07.4 Google recovery is complete. APP-C08.1 integrated verification is next. Existing core/hardware/runtime gates remain open.
+1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review are complete. APP-C07.1 Google sharing review is complete. APP-C07.2 combined sync feedback is complete. APP-C07.3 Plan/calendar/task integration is complete. APP-C07.4 Google recovery is complete. APP-C08.1 integrated process/fault verification is complete. APP-C08.2 browser and accessibility review is next. Existing core/hardware/runtime gates remain open.
 2. **User hands-on review of the Assistant in the app preview** (pending).
    **Connection setup baseline:** credential relocation is committed in f375f24
    and write-only setup routes in 674db93. Current source continues to advance;
@@ -382,7 +388,8 @@ Pause/status/disconnect work; concurrent account-isolation work remains unverifi
 | APP-C07.2 | Done — Pass with follow-ups | [Combined sync feedback](reviews/2026-11-06-settings-google-combined-sync.md). |
 | APP-C07.3 | Done — Pass with follow-ups | [Plan/calendar/task integration](reviews/2026-11-06-settings-google-plan-integration.md). |
 | APP-C07.4 | Done — Pass with follow-ups | [Google recovery](reviews/2026-11-06-settings-google-recovery.md). |
-| APP-C08–09 | Not started as this execution sequence | APP-C08.1 integrated process, fault and regression verification is next. |
+| APP-C08.1 | Done — Pass with follow-ups | [Integrated process, fault and regression review](reviews/2026-11-06-settings-integrated-regression.md). |
+| APP-C08.2–09 | Not started as this execution sequence | APP-C08.2 browser and accessibility review is next. |
 
 ## UX delivery register
 This is the sole mutable UX status table; stable ticket details/acceptance live in

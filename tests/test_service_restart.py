@@ -302,3 +302,32 @@ def test_planning_changes_and_shared_completion_survive_service_restart(tmp_path
         _, reopened = http_json("GET", f"{second.url}/api/planning?week=2026-10-12")
         assert reopened["placements"] == [moved]
         assert all(not task["completed"] for task in reopened["tasks"])
+
+
+def test_google_pause_and_local_plan_survive_abrupt_service_restart(tmp_path: Path) -> None:
+    data_dir = tmp_path / "PausedConnections"
+    with running_service(data_dir) as first:
+        status, paused = http_json("POST", f"{first.url}/api/google/pause")
+        assert status == 200 and paused["tasks"]["paused_at"]
+        assert paused["configured"] is False and paused["connected"] is False
+        status, task = http_json("POST", f"{first.url}/api/tasks", {"title": "Plan while Google is paused"})
+        assert status == 201
+        status, placement = http_json("POST", f"{first.url}/api/placements", {
+            "task_id": task["id"], "planned_date": "2026-10-15",
+        })
+        assert status == 201
+        status, plan = http_json("GET", f"{first.url}/api/planning?week=2026-10-12")
+        assert status == 200 and plan["placements"] == [placement]
+        first.kill()
+
+    with running_service(data_dir) as second:
+        assert http_json("GET", f"{second.url}/api/google") == (200, paused)
+        assert http_json("GET", f"{second.url}/api/planning?week=2026-10-12") == (200, plan)
+        status, resumed = http_json("POST", f"{second.url}/api/google/resume")
+        assert status == 200 and resumed["tasks"]["paused_at"] is None
+        assert http_json("GET", f"{second.url}/api/planning?week=2026-10-12") == (200, plan)
+        assert second.stop() == 0
+
+    with running_service(data_dir) as third:
+        assert http_json("GET", f"{third.url}/api/google") == (200, resumed)
+        assert http_json("GET", f"{third.url}/api/planning?week=2026-10-12") == (200, plan)
