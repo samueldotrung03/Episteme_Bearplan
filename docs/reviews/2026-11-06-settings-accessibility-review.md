@@ -96,3 +96,12 @@ The recorded provider and persistence results remain those in the individual
 implementation reviews. The full tracked Settings change range passed
 `git diff 88203e4^..HEAD --check`. This is a preliminary inspection by the
 implementing agent. The planned independent final review remains open.
+
+## Zoom follow-up for both credential dialogs
+
+The actual Chrome 200% zoom test now runs in Light and Dark at a
+640 × 800 browser viewport. Both the bCourses token and Google sign-in file
+dialogs stayed within the viewport, exposed their focused input and allowed
+the Cancel button to be scrolled into view. Escape returned focus to the
+respective trigger. Both parameterized cases passed with the same disposable
+build and fake-provider guard.

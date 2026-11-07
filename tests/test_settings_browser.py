@@ -366,12 +366,13 @@ def test_credential_error_exposes_name_and_description_in_accessibility_tree(bro
         page.close()
 
 
-def test_settings_at_actual_chrome_200_percent_zoom(settings_url, tmp_path, evidence):
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_settings_at_actual_chrome_200_percent_zoom(settings_url, tmp_path, evidence, theme):
     expect = playwright_sync.expect
     with playwright_sync.sync_playwright() as playwright:
         context = playwright.chromium.launch_persistent_context(
             str(tmp_path / "chrome-profile"), channel="chrome", headless=True,
-            viewport={"width": 640, "height": 800}, device_scale_factor=1,
+            viewport={"width": 640, "height": 800}, device_scale_factor=1, color_scheme=theme,
         )
         try:
             settings = context.new_page()
@@ -386,7 +387,7 @@ def test_settings_at_actual_chrome_200_percent_zoom(settings_url, tmp_path, evid
             expect(page.get_by_role("link", name="Review assignments")).to_be_visible()
             expect(page.get_by_role("link", name="Open Google")).to_be_visible()
             assert no_horizontal_overflow(page)
-            page.screenshot(path=evidence / "settings-200-percent.png", full_page=True)
+            page.screenshot(path=evidence / f"settings-200-percent-{theme}.png", full_page=True)
             trigger = page.get_by_role("button", name="Set up or replace bCourses token")
             trigger.click()
             dialog = page.get_by_role("dialog", name="Set up bCourses token")
@@ -398,8 +399,22 @@ def test_settings_at_actual_chrome_200_percent_zoom(settings_url, tmp_path, evid
             cancel.scroll_into_view_if_needed()
             expect(cancel).to_be_in_viewport()
             assert no_horizontal_overflow(page)
-            page.screenshot(path=evidence / "settings-dialog-200-percent.png")
+            page.screenshot(path=evidence / f"settings-dialog-200-percent-{theme}.png")
             page.keyboard.press("Escape")
             expect(trigger).to_be_focused()
+
+            google = page.get_by_role("button", name="Set up or replace Google sign-in file")
+            google.click()
+            dialog = page.get_by_role("dialog", name="Set up Google sign-in file")
+            expect(dialog.get_by_label("Google Desktop app JSON file")).to_be_focused()
+            box = dialog.bounding_box()
+            assert box is not None and box["y"] >= 0 and box["y"] + box["height"] <= 400
+            cancel = dialog.get_by_role("button", name="Cancel")
+            cancel.scroll_into_view_if_needed()
+            expect(cancel).to_be_in_viewport()
+            assert no_horizontal_overflow(page)
+            page.screenshot(path=evidence / f"settings-google-dialog-200-percent-{theme}.png")
+            page.keyboard.press("Escape")
+            expect(google).to_be_focused()
         finally:
             context.close()
