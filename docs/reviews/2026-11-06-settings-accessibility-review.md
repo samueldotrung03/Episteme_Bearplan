@@ -22,3 +22,17 @@ Remaining before completion: actual browser 200% zoom and reflow, targeted
 assistive-technology behavior, and visual inspection of the other captured
 width/theme combinations. Existing keyboard tests cover dialog retry and
 accessible field errors, but they do not establish a screen-reader result.
+
+## Additional review
+
+Visually inspected Settings in all six Light/Dark and 640/800/1440
+combinations. The provider controls and text were visible in these captures.
+A targeted Chrome accessibility-tree test passed for the bCourses token
+failure. Chrome exposed the named dialog, named token input, associated error
+description and alert role, and focus returned to the input after failure.
+
+Command used the same disposable build and guard described above, with
+`tests/test_settings_browser.py::test_credential_error_exposes_name_and_description_in_accessibility_tree`.
+Result was one passed. This checks browser accessibility semantics, while
+actual screen-reader output remains unverified. Actual 200% browser zoom
+also remains unverified.

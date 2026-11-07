@@ -336,3 +336,31 @@ def test_settings_layout_and_keyboard_dialog_at_review_sizes(browser, settings_u
         assert errors == []
     finally:
         page.close()
+
+
+def test_credential_error_exposes_name_and_description_in_accessibility_tree(browser, settings_url):
+    page = browser.new_page(viewport={"width": 640, "height": 800})
+    page.route("**/api/connections/bcourses", lambda route: route.fulfill(
+        status=422, json={"error": {"message": "The previous token was kept.", "field": "token"}}
+    ))
+    try:
+        page.goto(settings_url + "/#settings")
+        page.get_by_role("button", name="Set up or replace bCourses token").click()
+        dialog = page.get_by_role("dialog", name="Set up bCourses token")
+        field = dialog.get_by_label("New bCourses token")
+        field.fill("synthetic-token")
+        dialog.get_by_role("button", name="Check and save").click()
+        playwright_sync.expect(field).to_have_accessible_description("The previous token was kept.")
+        playwright_sync.expect(field).to_be_focused()
+
+        cdp = page.context.new_cdp_session(page)
+        tree = cdp.send("Accessibility.getFullAXTree")["nodes"]
+        controls = [node for node in tree if node.get("role", {}).get("value") == "textbox"
+                    and node.get("name", {}).get("value") == "New bCourses token"]
+        assert len(controls) == 1
+        assert controls[0]["description"]["value"] == "The previous token was kept."
+        assert any(node.get("role", {}).get("value") == "dialog"
+                   and node.get("name", {}).get("value") == "Set up bCourses token" for node in tree)
+        assert any(node.get("role", {}).get("value") == "alert" for node in tree)
+    finally:
+        page.close()

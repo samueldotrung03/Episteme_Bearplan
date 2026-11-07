@@ -180,9 +180,9 @@ the cache and imported task safe through retry.
 [Integrated review](reviews/2026-11-06-settings-integrated-regression.md).
 
 **Active work:** APP-C08.2. Six window-size/theme combinations passed
-automated layout and keyboard dialog checks. Two screenshots were visually
-inspected. Actual 200% browser zoom, assistive-technology behavior and visual
-inspection of the remaining captures remain open.
+automated layout and keyboard dialog checks. All six Settings screenshots were visually
+inspected. Chrome exposes the credential error and dialog in its accessibility
+tree. Actual 200% browser zoom and screen-reader behavior remain open.
 [Partial review](reviews/2026-11-06-settings-accessibility-review.md).
 
 **Next step:** Complete the outstanding APP-C08.2 browser and accessibility checks.
