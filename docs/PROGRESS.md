@@ -199,10 +199,14 @@ strict expected failures cover these cases. This blocks the delivery pass and SY
 bCourses token recovery message was corrected and 53 guarded tests passed.
 [Delivery review](reviews/2026-11-06-settings-delivery-review.md).
 
-**Next step:** Implement and verify the independently reviewed durable,
-account-scoped pending-create and explicit recovery design in the delivery review.
-Cover mapping-write failure, lost response, restart, account changes and all four
-resource types. Do not infer remote identity from title or retry blindly.
+**Storage slice:** Migration 23 and the account-bound create-intent primitive
+are implemented and tested. They are not wired into sync and do not prevent the
+five reproduced duplicate cases. [Storage review](reviews/2026-11-06-google-create-intent-storage.md).
+
+**Next step:** Wire the intent into all four provider-create paths, surface
+truthful uncertainty and add reviewed recovery. Cover mapping-write failure,
+lost response, restart and account changes. Do not infer remote identity from
+title or retry blindly. The existing sync is still unsafe on uncertain creates.
 Then rerun the independent review and record the VoiceOver walkthrough when
 available; its old disposable service is no longer running.
 

@@ -1,5 +1,14 @@
 # BearPlans — completed work log
 
+## November 6, 2026 — Google create-intent storage
+
+Added migration 23 and an account-bound intent storage primitive, with atomic
+mapping publication and rollback/restart/upgrade checks. Guarded checks passed
+46 migration/account cases and 159 broader cases, with five existing expected
+failures. The primitive is not yet used by sync; the duplication blocker and
+recovery UI remain open. See the [storage review](reviews/2026-11-06-google-create-intent-storage.md).
+
+
 ## November 6, 2026 — Google create failure coverage
 
 Reproduced duplicate list, calendar and event creates with disposable databases

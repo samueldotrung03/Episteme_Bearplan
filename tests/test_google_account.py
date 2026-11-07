@@ -249,8 +249,8 @@ def test_upgrade_quarantines_unowned_imports_without_reusing_links(tmp_path, ver
                      "VALUES ('shared', 'event', ?, '2026-11-05T00:00:00Z')", (task.id,))
     if version == 21:
         migrations = load_migrations()
-        new_migration = migrations[-1]
-        migrations[-1] = replace(new_migration, sql=new_migration.sql + "\nSELECT * FROM missing_fault_table;")
+        new_migration = migrations[version]
+        migrations[version] = replace(new_migration, sql=new_migration.sql + "\nSELECT * FROM missing_fault_table;")
         with pytest.raises(MigrationError, match="rolled back"):
             migrate(old, migrations)
         assert current_version(old) == version
