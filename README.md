@@ -1,6 +1,6 @@
 # BearPlans
 
-A personal, local-only laptop planner. Your data stays on your computer.
+A personal laptop planner that stores its work locally. Optional connections read bCourses and exchange data with Google.
 Current state: **weekly planning, closed-week history, reviewed carryover and
 countdown tracking with checkpoint recovery, growing trees, a saved forest,
 coins, a species shop, daily streaks, statistics, reviewed session corrections and
@@ -23,8 +23,7 @@ count leaf work items once, excluding containers. Put additional parent work in 
 explicit subtask. Subtask removal is available through Edit and requires confirmation;
 removing the last child leaves an incomplete task with an enabled checkbox.
 General task/project deletion and re-parenting are deferred. Reopening closed weeks,
-recurring tasks, automatic bulk carryover, advanced reports, assistant writes and
-integrations are later work. Finishing a timer never automatically completes its task.
+recurring tasks, automatic bulk carryover and advanced reports are later work. Finishing a timer never automatically completes its task.
 
 ## Project folder
 
@@ -82,7 +81,42 @@ The local read-only assistant preview is available alongside the core trial.
 The [assistant preview guide](docs/LOCAL_ASSISTANT.md) explains the separate code
 and data folders; [shared progress](docs/PROGRESS.md) records current acceptance.
 Use the preserved Desktop core copy for the trial rather than the evolving
-development checkout. Assistant writes and integrations remain later work.
+development checkout. See [shared progress](docs/PROGRESS.md) for assistant and connection acceptance status.
+
+## Settings and connections
+
+Open **Settings** in the top navigation to manage bCourses and Google.
+**Back to work** returns to the work view you opened Settings from.
+
+For bCourses, choose **Set up or replace bCourses token** and paste your
+access token. After saving, open **Manage courses** to refresh and choose
+courses. Open **Review assignments** to inspect the results. An assignment
+becomes a local task only when you choose Add. A changed source due date
+requires your review before it changes the task.
+
+For Google, choose **Set up or replace Google sign-in file** and select your
+Desktop app OAuth JSON file. Open Google, review the sharing details and
+connect in the browser. Selected calendars supply read-only events to Plan.
+Timed plans can be published to the BearPlans calendar, and all local
+projects, tasks and subtasks can sync to BearPlans-created Google Tasks lists.
+This includes bCourses assignments you have added as tasks.
+
+Settings provides **Pause automatic sync**, **Sync once** and **Resume automatic
+sync**. Pause persists across restarts. Sync once keeps automatic sync paused.
+Google's connection page provides calendar selection, account recovery and
+reviewed Disconnect. Disconnect removes the local sign-in and reports whether
+Google confirmed revocation.
+
+The implementation stores connection credentials separately from the database
+under the BearPlans data folder's `secrets/` directory, unless
+`BEARPLANS_SECRETS_FILE` overrides that location. Full-database backups do
+not include these credential files. The current implementation and shared
+agent guidance describe different default credential locations. This
+discrepancy is recorded in [shared progress](docs/PROGRESS.md).
+
+Connection flows have been exercised with fake providers. VoiceOver, the
+independent delivery review and real-account operator evidence remain open.
+See [shared progress](docs/PROGRESS.md) for the current gates.
 
 ## Back up and restore
 

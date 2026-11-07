@@ -184,6 +184,14 @@ and zoom checks are recorded. VoiceOver output is awaiting the requested
 walkthrough and this slice remains incomplete.
 [Accessibility review](reviews/2026-11-06-settings-accessibility-review.md).
 
+**Credential-location discrepancy:** The supplied root guidance says the
+token lives in the repository's git-ignored `.secrets/bearplans.secrets.env`.
+Current `backend/platform/secrets.py` instead uses `secrets/` inside the
+data folder by default and documents a November 3 decision and one-time
+legacy copy. The current implementation, tests and README describe the latter.
+Reconcile this conflict before changing credential storage or treating the
+guidance as satisfied. Existing credentials were not inspected.
+
 **Active work:** APP-C08.3 delivery review. A self-review and 121 guarded
 connection cases passed. Independent review remains open.
 [Delivery review](reviews/2026-11-06-settings-delivery-review.md).
