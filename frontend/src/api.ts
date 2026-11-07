@@ -566,6 +566,8 @@ interface GoogleSyncStatus extends ProviderSyncEvidence {
   account_status: "unverified" | "verified" | "different_account" | "unowned_links";
   account_review_key: string | null;
   other_account: boolean;
+  pending_create_unverified?: boolean;
+  pending_create?: { kind: "task_list" | "task" | "calendar" | "event"; review_key: string; context: string } | null;
   synced_lists: number;
   synced_tasks: number;
   synced_events: number;
@@ -604,6 +606,12 @@ export function disconnectGoogle(): Promise<GoogleState> {
 }
 export function useGoogleAccount(reviewKey: string): Promise<GoogleState> {
   return request("/api/google/use-this-account", json("POST", { review_key: reviewKey }));
+}
+export function verifyGoogleCreate(): Promise<GoogleState> {
+  return request("/api/google/verify-pending-create", { method: "POST" });
+}
+export function resolveGoogleCreate(reviewKey: string): Promise<GoogleState> {
+  return request("/api/google/resolve-uncertain-create", json("POST", { review_key: reviewKey, accept_possible_duplicate: true }));
 }
 export function setGoogleSyncPaused(paused: boolean): Promise<GoogleState> {
   return request(paused ? "/api/google/pause" : "/api/google/resume", { method: "POST" });

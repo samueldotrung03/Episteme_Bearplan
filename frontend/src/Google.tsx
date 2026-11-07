@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, cancelGoogleSignIn, connectGoogle, disconnectGoogle, followGoogleCalendars, getGoogle, getGoogleCalendars, getGoogleChanges, refreshGoogleCalendars, syncGoogleTasks, useGoogleAccount, type GoogleCalendar, type GoogleState } from "./api";
+import { ApiError, cancelGoogleSignIn, connectGoogle, disconnectGoogle, followGoogleCalendars, getGoogle, getGoogleCalendars, getGoogleChanges, refreshGoogleCalendars, resolveGoogleCreate, syncGoogleTasks, useGoogleAccount, verifyGoogleCreate, type GoogleCalendar, type GoogleState } from "./api";
 
 import { ConnectionDialog } from "./ConnectionSetup";
 
@@ -14,7 +14,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
   const [readError, setReadError] = useState<string | null>(null);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [reviewingScope, setReviewingScope] = useState(false);
-  const [recovery, setRecovery] = useState<{ kind: "disconnect" } | { kind: "account"; key: string } | null>(null);
+  const [recovery, setRecovery] = useState<{ kind: "disconnect" } | { kind: "account"; key: string } | { kind: "create"; key: string } | null>(null);
   const [signInLink, setSignInLink] = useState<{ url: string; attempt_id: string } | null>(null);
   const [status, setStatus] = useState("");
   const viewVisible = useRef(visible);
@@ -70,6 +70,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
   const pausing = state?.pausing ?? false;
   const reviewRequired = tasks?.account_status === "different_account" || tasks?.account_status === "unowned_links";
   const accountReviewKey = tasks?.account_review_key;
+  const uncertainCreate = tasks?.pending_create;
   const changing = state?.connection_changing ?? false;
   const providerBusy = changing || pausing || (state?.activity ?? "idle") !== "idle";
   const controlsBusy = busy !== null || providerBusy;
@@ -174,6 +175,12 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
     return next;
   }, "Google account updated. Sync will create new links for this account.");
 
+  const resolveCreate = (key: string) => run("create", async () => {
+    const next = await resolveGoogleCreate(key);
+    setRecovery(null);
+    return next;
+  }, "Review saved. A future sync may create a new Google copy.");
+
   const sync = () => run("sync", async () => {
     try {
       return await syncGoogleTasks();
@@ -184,7 +191,7 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
 
   return <section hidden={!visible} className="google" aria-label="Google" aria-busy={busy !== null}>
     <div className="forest-heading"><h2>Google</h2>
-      <button type="button" disabled={controlsBusy || !connected || pending || reviewRequired} onClick={() => void sync()}>
+      <button type="button" disabled={controlsBusy || !connected || pending || reviewRequired || Boolean(uncertainCreate || tasks?.pending_create_unverified)} onClick={() => void sync()}>
         {busy === "sync" ? "Syncing…" : paused ? "Sync once" : "Sync now"}</button>
     </div>
     <p className="muted">Every project, task and subtask is copied to Google Tasks: each project becomes a list with the same name. Checking or unchecking a task with no subtasks in Google can update it here. Other changes made in Google are replaced by BearPlans. Your own Google lists are never touched.</p>
@@ -205,6 +212,16 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
       {reviewRequired ? <p role="alert" className="error">{tasks?.account_status === "unowned_links"
         ? "The existing Google links need an account review before they can be used."
         : "This account cannot use the saved Google links. Reconnect with the previous account or review starting fresh."}</p> : null}
+      {tasks?.pending_create_unverified && connected ? <>
+        <p role="alert" className="error">A saved Google connection needs review. Verify this account to see the details.</p>
+        <button type="button" className="secondary" disabled={controlsBusy || !statusReadThisVisit || Boolean(readError)}
+          onClick={() => void run("verify", verifyGoogleCreate)}>Verify Google account</button>
+      </> : null}
+      {uncertainCreate ? <>
+        <p role="alert" className="error">A Google {uncertainCreate.kind.replace("_", " ")} may have been created, but BearPlans could not confirm it. Review this before syncing again.</p>
+        <button type="button" className="secondary" disabled={controlsBusy || !statusReadThisVisit || Boolean(readError)}
+          onClick={() => { setError(null); setRecovery({ kind: "create", key: uncertainCreate.review_key }); }}>Review uncertain Google create…</button>
+      </> : null}
       {state.sign_in_error ? <p role="alert" className="error">{state.sign_in_error}</p> : null}
       {state.missing_permissions.length ? <p role="alert" className="error">Some permissions were not given ({state.missing_permissions.join(", ")}). Choose Reconnect Google and tick every box.</p> : null}
       {pending ? <>
@@ -223,11 +240,14 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
     </div> : null}
 
     {visible && recovery ? <ConnectionDialog
-      title={recovery.kind === "disconnect" ? "Disconnect Google?" : "Use this Google account?"}
+      title={recovery.kind === "disconnect" ? "Disconnect Google?" : recovery.kind === "account" ? "Use this Google account?" : "Review uncertain Google create"}
       busy={busy !== null} onDismiss={() => setRecovery(null)}>
       {recovery.kind === "disconnect" ? <>
         <p>BearPlans will remove the saved Google sign-in here and stop Google sync. Your setup file, local work, and cached calendar events will stay. Copies already in Google will stay there.</p>
         <p>BearPlans will ask Google to revoke access and report whether Google confirms it.</p>
+      </> : recovery.kind === "create" ? <>
+        <p>Current local work (may have changed): <strong>{uncertainCreate?.context}</strong>. A copy may already exist in Google. Check your Google Tasks or BearPlans calendar before continuing. BearPlans cannot tell whether the earlier request succeeded.</p>
+        <p>BearPlans will not link to any earlier copy or delete anything in Google. Check carefully before removing a copy yourself; matching names do not prove it is the same item. Continuing clears this local review, and a future sync may create a duplicate. {paused ? "Automatic sync stays paused." : "Automatic sync may run after you continue."}</p>
       </> : <>
         <p>BearPlans will clear the previous Google sync links, calendar selections, and cached calendar events here. Your tasks, including imported tasks, and your history will stay. Copies in the previous Google account will stay there.</p>
         <p>The next sync will create new Google Tasks lists for all local projects and publish timed plans to a separate BearPlans calendar in this account. {paused ? "Automatic sync stays paused." : "Automatic sync may start after you confirm."}</p>
@@ -237,9 +257,10 @@ export function Google({ visible, onChanged, onOpenSettings }: { visible: boolea
         <button type="button" className="secondary" autoFocus disabled={busy !== null}
           onClick={() => setRecovery(null)}>Cancel</button>
         <button type="button" disabled={busy !== null || changing || Boolean(readError)
-          || (recovery.kind === "account" && (!connected || pending || tasks?.account_review_key !== recovery.key))}
-          onClick={() => void (recovery.kind === "disconnect" ? disconnect() : adoptAccount(recovery.key))}>
-          {recovery.kind === "disconnect" ? "Disconnect Google" : "Use this account"}
+          || (recovery.kind === "account" && (!connected || pending || tasks?.account_review_key !== recovery.key))
+          || (recovery.kind === "create" && (!connected || pending || uncertainCreate?.review_key !== recovery.key))}
+          onClick={() => void (recovery.kind === "disconnect" ? disconnect() : recovery.kind === "account" ? adoptAccount(recovery.key) : resolveCreate(recovery.key))}>
+          {recovery.kind === "disconnect" ? "Disconnect Google" : recovery.kind === "account" ? "Use this account" : "Continue after review"}
         </button>
       </div>
     </ConnectionDialog> : null}

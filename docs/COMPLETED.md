@@ -1,5 +1,15 @@
 # BearPlans — completed work log
 
+## November 6, 2026 — Google uncertain-create review controls
+
+Added account-verified, operation-bound review and local resolution, with
+restart verification and contextual duplicate warnings in Settings/Google.
+Guarded checks passed 136 cases with five existing expected failures, 180
+frontend tests, typecheck/build and a paused 640 × 800 Chrome walkthrough.
+The create paths and background sync are not yet protected; the delivery
+blocker remains open. [Recovery review](reviews/2026-11-06-google-create-review-controls.md).
+
+
 ## November 6, 2026 — Google create-intent storage
 
 Added migration 23 and an account-bound intent storage primitive, with atomic

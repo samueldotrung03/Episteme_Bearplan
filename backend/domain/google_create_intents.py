@@ -56,3 +56,26 @@ def publish(db: Database, intent: CreateIntent, save_mapping: Callable[[sqlite3.
             raise PendingCreate("Google account or create intent changed; review is required.")
         save_mapping(conn)
         conn.execute("DELETE FROM google_create_intents WHERE operation_id = ?", (intent.operation_id,))
+
+
+def review_key(intent: CreateIntent) -> str:
+    """Bind a confirmation to one account and one particular unresolved operation."""
+    import hashlib
+    return hashlib.sha256(f"bearplans-create-review:{intent.account_key}:{intent.operation_id}".encode()).hexdigest()[:32]
+
+
+def resolve_reviewed(db: Database, account_key: str, reviewed_key: str) -> None:
+    """Forget one reviewed intent locally; this never inspects or modifies Google.
+
+    Caller must freshly verify the provider account and hold its operation lock.
+    An explicit user review must explain that a subsequent create can duplicate.
+    """
+    with db.write() as conn:
+        owner = conn.execute("SELECT account_key FROM google_sync WHERE id = 1").fetchone()
+        row = conn.execute("SELECT * FROM google_create_intents WHERE account_key = ?", (account_key,)).fetchone()
+        if not owner or owner["account_key"] != account_key or not row:
+            raise PendingCreate("The Google account or pending create changed. Refresh and review again.")
+        intent = CreateIntent(*(row[k] for k in ("operation_id", "account_key", "resource_kind", "local_id", "parent_id")))
+        if review_key(intent) != reviewed_key:
+            raise PendingCreate("The pending Google create changed. Refresh and review again.")
+        conn.execute("DELETE FROM google_create_intents WHERE operation_id = ?", (intent.operation_id,))

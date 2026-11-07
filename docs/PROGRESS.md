@@ -203,10 +203,16 @@ bCourses token recovery message was corrected and 53 guarded tests passed.
 are implemented and tested. They are not wired into sync and do not prevent the
 five reproduced duplicate cases. [Storage review](reviews/2026-11-06-google-create-intent-storage.md).
 
-**Next step:** Wire the intent into all four provider-create paths, surface
-truthful uncertainty and add reviewed recovery. Cover mapping-write failure,
-lost response, restart and account changes. Do not infer remote identity from
-title or retry blindly. The existing sync is still unsafe on uncertain creates.
+**Recovery slice:** Account-bound review and local resolution controls are
+implemented and tested, including explicit account verification after restart.
+These controls do not guard sync until the create paths are wired.
+[Recovery review](reviews/2026-11-06-google-create-review-controls.md).
+
+**Next step:** Wire the intent into all four provider-create paths and block
+manual and automatic sync before mutations when a matching intent is pending.
+Cover mapping-write failure, lost response, restart, local changes and account
+switches. Do not infer remote identity from title or retry blindly. The existing
+sync is still unsafe on uncertain creates.
 Then rerun the independent review and record the VoiceOver walkthrough when
 available; its old disposable service is no longer running.
 

@@ -32,6 +32,7 @@ from pydantic import BaseModel
 
 from backend.domain.calendar import application_today
 from backend.domain.google_calendar import CalendarClient, sync_calendar
+from backend.domain.google_create_intents import pending_for, review_key as create_review_key
 from backend.domain.google_account import account_review_key, check_account
 from backend.domain.google_reading import read_calendars
 from backend.domain.tasks import Task, _list_tasks, _set_completion_tx
@@ -68,6 +69,8 @@ class SyncStatus(BaseModel):
     account_status: GoogleAccountStatus = "unverified"
     account_review_key: str | None = None
     other_account: bool = False  # Signed in to a different Google account; see google_account.py.
+    pending_create: dict[str, str] | None = None
+    pending_create_unverified: bool = False
     synced_lists: int
     synced_tasks: int
     synced_events: int
@@ -82,6 +85,20 @@ class _Mapping:
 
 
 # --------------------------------------------------------------------------- reading
+
+
+def _create_context(db: Database, kind: str, local_id: str) -> str:
+    """Display local context only; never use names to infer a remote identity."""
+    if kind == "calendar":
+        return "BearPlans calendar"
+    queries = {
+        "task_list": "SELECT name FROM projects WHERE id = ?",
+        "task": "SELECT title FROM tasks WHERE id = ?",
+        "event": "SELECT t.title FROM planned_items p JOIN tasks t ON t.id = p.task_id WHERE p.id = ?",
+    }
+    with db.read() as conn:
+        row = conn.execute(queries[kind], (local_id,)).fetchone()
+    return row[0] if row else "This local item is no longer available"
 
 
 def get_status(db: Database, verified_key: str | None = None) -> SyncStatus:
@@ -101,7 +118,12 @@ def get_status(db: Database, verified_key: str | None = None) -> SyncStatus:
         elif verified_key == candidate:
             account_status = "different_account" if owner else "unowned_links"
             review_key = account_review_key(owner, verified_key)
+    pending = pending_for(db, owner) if owner else None
+    visible_pending = pending if verified_key == owner else None
     return SyncStatus(
+        pending_create_unverified=bool(pending and not visible_pending),
+        pending_create={"kind": visible_pending.resource_kind, "review_key": create_review_key(visible_pending),
+                        "context": _create_context(db, visible_pending.resource_kind, visible_pending.local_id)} if visible_pending else None,
         last_attempt_at=row["last_attempt_at"], last_success_at=row["last_success_at"],
         last_error=row["last_error"], paused_at=row["paused_at"],
         account_status=account_status, account_review_key=review_key, other_account=review_key is not None,

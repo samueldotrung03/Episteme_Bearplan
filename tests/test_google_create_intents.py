@@ -79,3 +79,44 @@ def test_upgrade_failure_preserves_prior_database_and_retries(tmp_path):
     upgraded = open_database(path)
     intent = begin(upgraded, ACCOUNT_A, "calendar", "bearplans")
     assert pending_for(open_database(path), ACCOUNT_A) == intent
+
+
+def test_reviewed_resolution_is_bound_to_account_and_exact_operation(db):
+    from backend.domain.google_create_intents import resolve_reviewed, review_key
+
+    set_account(db, ACCOUNT_A)
+    intent = begin(db, ACCOUNT_A, "task", "local-id")
+    reviewed = review_key(intent)
+    with pytest.raises(PendingCreate):
+        resolve_reviewed(db, ACCOUNT_A, "0" * 32)
+    set_account(db, ACCOUNT_B)
+    with pytest.raises(PendingCreate):
+        resolve_reviewed(db, ACCOUNT_A, reviewed)
+    assert pending_for(db, ACCOUNT_A) == intent
+    set_account(db, ACCOUNT_A)
+    resolve_reviewed(db, ACCOUNT_A, reviewed)
+    assert pending_for(db, ACCOUNT_A) is None
+    with pytest.raises(PendingCreate):
+        resolve_reviewed(db, ACCOUNT_A, reviewed)
+    replacement = begin(db, ACCOUNT_A, "task", "local-id")
+    with pytest.raises(PendingCreate):
+        resolve_reviewed(db, ACCOUNT_A, reviewed)
+    assert pending_for(db, ACCOUNT_A) == replacement
+
+
+def test_pending_details_remain_hidden_until_the_owner_is_verified(db):
+    from backend.domain.google_tasks import get_status
+    from backend.domain.tasks import create_task
+
+    set_account(db, ACCOUNT_A)
+    task = create_task(db, "Private synthetic title")
+    intent = begin(db, ACCOUNT_A, "task", task.id)
+    for verified in (None, ACCOUNT_B):
+        status = get_status(db, verified)
+        assert status.pending_create_unverified
+        assert status.pending_create is None
+        assert "Private synthetic title" not in status.model_dump_json()
+    status = get_status(db, ACCOUNT_A)
+    assert not status.pending_create_unverified
+    assert status.pending_create["context"] == "Private synthetic title"
+    assert pending_for(db, ACCOUNT_A) == intent

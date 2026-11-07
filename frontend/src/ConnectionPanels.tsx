@@ -184,6 +184,8 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSyncSe
         {google?.sign_in_error ? <p role="alert" className="error">{google.sign_in_error}</p> : null}
         {google?.missing_permissions.length ? <p role="alert" className="error">Some permissions are missing. Open Google to reconnect.</p> : null}
         {accountReview ? <p role="alert" className="error">Google sync is blocked. Open Google to reconnect or review using this account.</p> : null}
+        {google?.tasks.pending_create_unverified ? <p role="alert" className="error">A saved Google connection needs review. Open Google to verify the account.</p> : null}
+        {google?.tasks.pending_create ? <p role="alert" className="error">A Google item may have been created without confirmation. Open Google to review before syncing again.</p> : null}
         {google?.tasks.last_error && google.tasks.last_error !== actionError ? <p role="alert" className="error">Last sync failed. {google.tasks.last_error}</p> : null}
         {googleError ? <p role="alert" className="error">Could not refresh Google status. {googleError}</p> : null}
         {actionError ? <p role="alert" className="error">{actionError}</p> : null}
@@ -193,13 +195,13 @@ export function ConnectionPanels({ visible, credentialVersion, onSetup, onSyncSe
           : google?.connection_changing ? <p role="status">Updating Google connection…</p>
           : null}
         {showGoogleControls ? <>
-          <p role="status">{paused ? "Automatic sync is paused." : accountReview ? "Automatic sync is blocked until account review." : "Automatic sync is enabled."}</p>
+          <p role="status">{paused ? "Automatic sync is paused." : (google?.tasks.pending_create || google?.tasks.pending_create_unverified) ? "Automatic sync needs review." : accountReview ? "Automatic sync is blocked until account review." : "Automatic sync is enabled."}</p>
           {action === "sync" || google?.activity === "syncing" ? <p role="status">Syncing with Google…</p>
             : google?.activity === "refreshing_calendars" ? <p role="status">Refreshing calendars…</p> : null}
           {receipt ? <p role="status">{receipt}</p> : null}
           <div className="form-actions connection-actions">
             <button type="button" disabled={controlsBusy} onClick={() => void run(paused ? "resume" : "pause")}>{paused ? "Resume automatic sync" : "Pause automatic sync"}</button>
-            <button type="button" className="secondary" disabled={controlsBusy || accountReview || google?.activity !== "idle"}
+            <button type="button" className="secondary" disabled={controlsBusy || accountReview || Boolean(google?.tasks.pending_create || google?.tasks.pending_create_unverified) || google?.activity !== "idle"}
               onClick={() => void run("sync")}>{paused ? "Sync once" : "Sync now"}</button>
           </div>
         </> : null}

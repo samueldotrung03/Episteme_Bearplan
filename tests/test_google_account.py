@@ -303,3 +303,35 @@ def test_oauth_publication_waits_for_active_google_operation(db, monkeypatch):
         active.result(4)
     assert _settled(client)["sign_in_error"] is None
     assert token_file().read_bytes() != original
+
+
+def test_reviewed_create_resolution_requires_current_account_and_exact_review(db):
+    from backend.domain.google_create_intents import begin, pending_for, review_key
+
+    first, other = Account("me@example.com"), Account("other@example.com")
+    sync(db, first.tasks, GoogleUnavailable, first)
+    owner = account_key(first)
+    assert owner is not None
+    intent = begin(db, owner, "task", "local-task")
+    _signed_in()
+    app = create_app(db, google_tasks_client=first.tasks, google_calendar_client=first)
+    client = TestClient(app, base_url="http://127.0.0.1:8765")
+    before = client.get("/api/google").json()
+    assert before["tasks"]["pending_create_unverified"] is True
+    assert before["tasks"]["pending_create"] is None
+    assert client.post("/api/google/verify-pending-create").status_code == 200
+    status = client.get("/api/google").json()
+    assert status["tasks"]["pending_create"] == {"kind": "task", "review_key": review_key(intent), "context": "This local item is no longer available"}
+    assert status["status"] == "needs_attention"
+    assert client.post("/api/google/resolve-uncertain-create", json={"review_key": review_key(intent)}).status_code == 422
+    assert client.post("/api/google/resolve-uncertain-create", json={"review_key": "0" * 32, "accept_possible_duplicate": True}).status_code == 409
+    app.state.google_calendar_factory = lambda: other
+    assert client.post("/api/google/resolve-uncertain-create", json={"review_key": review_key(intent), "accept_possible_duplicate": True}).status_code == 409
+    assert pending_for(db, owner) == intent
+    app.state.google_calendar_factory = lambda: first
+    payload = {"review_key": review_key(intent), "accept_possible_duplicate": True}
+    assert client.post("/api/google/resolve-uncertain-create", json=payload).status_code == 200
+    assert pending_for(db, owner) is None
+    replacement = begin(db, owner, "task", "local-task")
+    assert client.post("/api/google/resolve-uncertain-create", json=payload).status_code == 409
+    assert pending_for(db, owner) == replacement

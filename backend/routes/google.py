@@ -18,6 +18,7 @@ from backend.domain.google_account import (
     adopt_other_account, cache_owner, check_account, verify_account,
 )
 from backend.domain.google_tasks import ProviderActivity, SyncStatus, get_status
+from backend.domain.google_create_intents import PendingCreate, resolve_reviewed
 from backend.platform import google
 from backend.platform.google import NOT_CONNECTED, GoogleSetup, GoogleUnavailable
 
@@ -78,7 +79,7 @@ def _state(request: Request, revoked: bool | None = None) -> GoogleState:
         status = "signing_in"
     elif not auth.connected:
         status = "signed_out"
-    elif tasks.last_error or tasks.other_account or auth.missing_permissions:
+    elif tasks.last_error or tasks.other_account or tasks.pending_create or tasks.pending_create_unverified or auth.missing_permissions:
         status = "needs_attention"
     elif tasks.paused_at:
         status = "paused"
@@ -170,6 +171,49 @@ def google_use_this_account(body: AccountReview, request: Request) -> GoogleStat
         state.google_sync.nudge()
         result = _state(request)
     return result.model_copy(update={"connection_changing": False})
+
+
+@router.post("/verify-pending-create")
+def google_verify_pending_create(request: Request) -> GoogleState:
+    """Explicitly verify the account for an existing pending-create review."""
+    state = request.app.state
+
+    def verify() -> None:
+        reader = state.google_calendar_factory()
+        if reader is None:
+            raise NOT_CONNECTED
+        check_account(state.db, reader, GoogleUnavailable, state.google_auth.remember_account)
+
+    with state.google_sync.connection_lock:
+        state.google_sync.while_idle(verify)
+        return _state(request)
+
+
+class CreateReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    review_key: StrictStr = Field(pattern=r"^[0-9a-f]{32}$")
+    accept_possible_duplicate: Literal[True]
+
+
+@router.post("/resolve-uncertain-create")
+def google_resolve_uncertain_create(body: CreateReview, request: Request) -> GoogleState:
+    """Clear a specifically reviewed local intent; never change a Google resource."""
+    state = request.app.state
+
+    def resolve() -> None:
+        reader = state.google_calendar_factory()
+        if reader is None:
+            raise NOT_CONNECTED
+        current = verify_account(reader, GoogleUnavailable)
+        try:
+            resolve_reviewed(state.db, current, body.review_key)
+        except PendingCreate as error:
+            raise HTTPException(status_code=409, detail=str(error)) from None
+        state.google_auth.remember_account(current)
+
+    with state.google_sync.connection_lock:
+        state.google_sync.while_idle(resolve)
+        return _state(request)
 
 
 @router.post("/resume")

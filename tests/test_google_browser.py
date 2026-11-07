@@ -351,3 +351,43 @@ def test_reviewed_account_recovery_and_offline_disconnect(browser, served, monke
         assert no_horizontal_overflow(page)
     finally:
         page.close()
+
+
+def test_uncertain_create_review_after_restart_while_paused(browser, served):
+    from backend.domain.google_account import account_key, check_account
+    from backend.domain.google_create_intents import begin, pending_for
+    from backend.domain.google_tasks import set_paused
+    from backend.domain.tasks import create_task
+
+    expect = playwright_sync.expect
+    url, db, tasks, calendar = served
+    set_paused(db, True)
+    check_account(db, calendar, GoogleUnavailable)
+    owner = account_key(calendar)
+    task = create_task(db, "Read synthetic source")
+    intent = begin(db, owner, "task", task.id)
+    page = browser.new_page(viewport={"width": 640, "height": 800})
+    try:
+        page.goto(url + "/#google")
+        tab = page.get_by_role("region", name="Google")
+        expect(tab.get_by_text("A saved Google connection needs review. Verify this account to see the details.")).to_be_visible()
+        expect(tab.get_by_role("button", name="Sync once")).to_be_disabled()
+        tab.get_by_role("button", name="Verify Google account").click()
+        trigger = tab.get_by_role("button", name="Review uncertain Google create…")
+        expect(trigger).to_be_visible()
+        trigger.click()
+        dialog = page.get_by_role("dialog", name="Review uncertain Google create")
+        expect(dialog).to_contain_text("Read synthetic source")
+        expect(dialog).to_contain_text("a future sync may create a duplicate")
+        expect(dialog.get_by_role("button", name="Cancel")).to_be_focused()
+        page.keyboard.press("Escape")
+        expect(trigger).to_be_focused()
+        assert pending_for(db, owner) == intent
+        trigger.click()
+        dialog.get_by_role("button", name="Continue after review").click()
+        expect(dialog).to_have_count(0)
+        assert pending_for(db, owner) is None
+        assert tasks.calls == [] and calendar.calls == []
+        assert no_horizontal_overflow(page)
+    finally:
+        page.close()

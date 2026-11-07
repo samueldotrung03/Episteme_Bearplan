@@ -153,6 +153,63 @@ describe("Google", () => {
     expect(fetch.mock.calls.map(([url]) => url)).toEqual(["/api/google", "/api/google"]);
   });
 
+  it("offers account verification when a pending create is hidden after restart", async () => {
+    let verified = false;
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url.endsWith("/verify-pending-create")) verified = true;
+      return reply({ ...base, status: "needs_attention", tasks: { ...base.tasks,
+        paused_at: "2026-11-06T00:00:00Z", account_status: verified ? "verified" : "unverified",
+        pending_create_unverified: !verified,
+        pending_create: verified ? { kind: "task", review_key: "a".repeat(32), context: "Read" } : null,
+      } }, 200, url);
+    });
+    render(<Google visible />);
+    expect(await screen.findByText(/Verify this account to see the details/)).toBeVisible();
+    expect(screen.queryByText("Read")).toBeNull();
+    expect(screen.getByRole("button", { name: "Sync once" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Verify Google account" }));
+    expect(await screen.findByRole("button", { name: "Review uncertain Google create…" })).toBeVisible();
+    expect(fetch).toHaveBeenCalledWith("/api/google/verify-pending-create", expect.objectContaining({ method: "POST" }));
+  });
+
+  it("requires an explicit review before clearing an uncertain create", async ({ onTestFinished }) => {
+    const prototype = HTMLDialogElement.prototype;
+    const showModal = Object.getOwnPropertyDescriptor(prototype, "showModal");
+    const close = Object.getOwnPropertyDescriptor(prototype, "close");
+    Object.defineProperties(prototype, {
+      showModal: { configurable: true, value(this: HTMLDialogElement) { this.setAttribute("open", ""); } },
+      close: { configurable: true, value(this: HTMLDialogElement) { this.removeAttribute("open"); } },
+    });
+    onTestFinished(() => {
+      for (const [key, descriptor] of [["showModal", showModal], ["close", close]] as const) {
+        if (descriptor) Object.defineProperty(prototype, key, descriptor);
+        else Reflect.deleteProperty(prototype, key);
+      }
+    });
+    const reviewKey = "a".repeat(32);
+    const pendingState: GoogleState = { ...base, status: "needs_attention", tasks: {
+      ...base.tasks, account_status: "verified", paused_at: "2026-11-06T00:00:00Z",
+      pending_create: { kind: "task", review_key: reviewKey, context: "Read the primary source" },
+    } };
+    const cleared = { ...pendingState, tasks: { ...pendingState.tasks, pending_create: null } };
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation((input) =>
+      reply(String(input).endsWith("/resolve-uncertain-create") ? cleared : pendingState, 200, String(input)));
+    render(<Google visible />);
+    expect(await screen.findByText(/may have been created, but BearPlans could not confirm/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Sync once" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Review uncertain Google create…" }));
+    expect(screen.getByText(/a future sync may create a duplicate/)).toBeVisible();
+    expect(screen.getByText("Read the primary source")).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(fetch.mock.calls.some(([url]) => String(url).endsWith("/resolve-uncertain-create"))).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: "Review uncertain Google create…" }));
+    await userEvent.click(screen.getByRole("button", { name: "Continue after review" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/google/resolve-uncertain-create", expect.objectContaining({
+      method: "POST", body: JSON.stringify({ review_key: reviewKey, accept_possible_duplicate: true }),
+    })));
+  });
+
   it("distinguishes account review from a successful saved grant", async () => {
     const reviewed: GoogleState = {
       ...base, status: "needs_attention",
