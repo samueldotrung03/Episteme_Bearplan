@@ -191,30 +191,21 @@ the older instructions supplied in the chat. The disposable location and
 connection tests passed 40 cases.
 [Credential decision review](reviews/2026-11-06-credential-location-decision.md).
 
-**Active work:** APP-C08.3 delivery review. Independent review reproduced a
-Google task duplication on retry after remote creation succeeds but local mapping
-fails. A lost create response also duplicates in a regression case. List,
-calendar and event mapping-write failures now also reproduce duplicates. Five
-strict expected failures cover these cases. This blocks the delivery pass and SYNC-09 / SYNC-12. The
-bCourses token recovery message was corrected and 53 guarded tests passed.
-[Delivery review](reviews/2026-11-06-settings-delivery-review.md).
+**Settings delivery review:** APP-C08.3 passed with follow-ups for the
+reviewed implementation and fake-provider evidence. The Google create guard
+now records an account-bound intent before each provider create and blocks
+uncertain retries until reviewed. The full guarded backend suite passed 1,083
+cases with one Windows-only skip; the complete create-guard module passed 20,
+frontend tests passed 180, and two Chrome recovery walkthroughs passed. The
+independent reviewer found no remaining confirmed blocker in this scoped fix.
+[Create guard review](reviews/2026-11-06-google-create-guard.md).
 
-**Storage slice:** Migration 23 and the account-bound create-intent primitive
-are implemented and tested. They are not wired into sync and do not prevent the
-five reproduced duplicate cases. [Storage review](reviews/2026-11-06-google-create-intent-storage.md).
-
-**Recovery slice:** Account-bound review and local resolution controls are
-implemented and tested, including explicit account verification after restart.
-These controls do not guard sync until the create paths are wired.
-[Recovery review](reviews/2026-11-06-google-create-review-controls.md).
-
-**Next step:** Wire the intent into all four provider-create paths and block
-manual and automatic sync before mutations when a matching intent is pending.
-Cover mapping-write failure, lost response, restart, local changes and account
-switches. Do not infer remote identity from title or retry blindly. The existing
-sync is still unsafe on uncertain creates.
-Then rerun the independent review and record the VoiceOver walkthrough when
-available; its old disposable service is no longer running.
+**Next step:** APP-C08.2 still needs the user's actual VoiceOver walkthrough;
+recreate its disposable service before using it. Prepare APP-C09 operator
+walkthrough and handoff when eligible. Real-provider tests require their own
+bounded authorization; core trial, hardware and release gates remain separate.
+A reviewed continuation can create a duplicate if a remote copy already
+exists, and the guard cannot identify older duplicates.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
@@ -254,7 +245,7 @@ work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint.
 
 ## Next up
 
-1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review are complete. APP-C07.1 Google sharing review is complete. APP-C07.2 combined sync feedback is complete. APP-C07.3 Plan/calendar/task integration is complete. APP-C07.4 Google recovery is complete. APP-C08.1 integrated process/fault verification is complete. APP-C08.2 awaits VoiceOver evidence. APP-C08.3 delivery review is in progress. Existing core/hardware/runtime gates remain open.
+1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review are complete. APP-C07.1 Google sharing review is complete. APP-C07.2 combined sync feedback is complete. APP-C07.3 Plan/calendar/task integration is complete. APP-C07.4 Google recovery is complete. APP-C08.1 integrated process/fault verification is complete. APP-C08.2 awaits VoiceOver evidence. APP-C08.3 delivery review passed with follow-ups. Existing core/hardware/runtime gates remain open.
 2. **User hands-on review of the Assistant in the app preview** (pending).
    **Connection setup baseline:** credential relocation is committed in f375f24
    and write-only setup routes in 674db93. Current source continues to advance;
@@ -424,7 +415,7 @@ Pause/status/disconnect work; concurrent account-isolation work remains unverifi
 | APP-C07.4 | Done — Pass with follow-ups | [Google recovery](reviews/2026-11-06-settings-google-recovery.md). |
 | APP-C08.1 | Done — Pass with follow-ups | [Integrated process, fault and regression review](reviews/2026-11-06-settings-integrated-regression.md). |
 | APP-C08.2 | Awaiting manual evidence | [Partial browser review](reviews/2026-11-06-settings-accessibility-review.md). VoiceOver output remains open. |
-| APP-C08.3 | In progress | [Delivery self-review](reviews/2026-11-06-settings-delivery-review.md). Independent review remains open. |
+| APP-C08.3 | Done — Pass with follow-ups | [Independent create-guard review and final checks](reviews/2026-11-06-google-create-guard.md). VoiceOver and operator/live evidence remain separate. |
 | APP-C09 | Not started as this execution sequence | Operator walkthrough and handoff follow review. |
 
 ## UX delivery register

@@ -43,7 +43,10 @@ def _signed_in(scope="https://www.googleapis.com/auth/tasks https://www.googleap
 
 
 def _app(db, fake=None):
-    return TestClient(create_app(db, google_tasks_client=fake or FakeTasks()), base_url="http://127.0.0.1:8765")
+    reader = FakeReader()
+    app = create_app(db, google_tasks_client=fake or FakeTasks(), google_calendar_client=reader)
+    app.state.google_calendar_factory = lambda: reader if app.state.google_auth.connected() else None
+    return TestClient(app, base_url="http://127.0.0.1:8765")
 
 
 def test_pause_survives_restart_and_stops_only_automatic_sync(db):
@@ -55,7 +58,7 @@ def test_pause_survives_restart_and_stops_only_automatic_sync(db):
         first = state["tasks"]["paused_at"]
         assert client.post("/api/google/pause").json()["tasks"]["paused_at"] == first  # Pausing again keeps the time.
     reopened = open_database(db.path)
-    service = GoogleSyncService(reopened, lambda: fake, GoogleUnavailable, lambda: True)
+    service = GoogleSyncService(reopened, lambda: fake, GoogleUnavailable, lambda: True, FakeReader)
     assert is_paused(reopened)
     assert service.sync_now(automatic=True) is None and fake.calls == []
     with _app(reopened, fake) as client:
@@ -65,7 +68,7 @@ def test_pause_survives_restart_and_stops_only_automatic_sync(db):
         assert client.post("/api/google/resume").json()["tasks"]["paused_at"] is None
     resumed = open_database(db.path)
     assert not is_paused(resumed)
-    assert GoogleSyncService(resumed, lambda: fake, GoogleUnavailable, lambda: True).sync_now(automatic=True) is not None
+    assert GoogleSyncService(resumed, lambda: fake, GoogleUnavailable, lambda: True, FakeReader).sync_now(automatic=True) is not None
 
 
 @pytest.mark.parametrize("version", [19, 20])
@@ -230,7 +233,7 @@ def test_pause_waits_for_a_running_sync(db, monkeypatch, stage):
             return super().lists()
 
     fake = Slow()
-    monkeypatch.setattr(google_tasks, "sync_calendar", lambda *_: visit("publish"))
+    monkeypatch.setattr(google_tasks, "sync_calendar", lambda *_, **__: visit("publish"))
     monkeypatch.setattr(google_tasks, "read_calendars", lambda *_: visit("read"))
     app = create_app(db, google_tasks_client=fake, google_calendar_client=FakeReader())
     client = TestClient(app, base_url="http://127.0.0.1:8765")
@@ -474,7 +477,7 @@ def test_disconnect_drains_active_work_and_rejects_old_queued_reads(db, monkeypa
 
     fake = SlowTasks()
     monkeypatch.setattr(app_module, "GoogleTasksClient", lambda auth: fake)
-    monkeypatch.setattr(app_module, "GoogleCalendarClient", lambda auth: SlowCalendar() if active == "calendar" else None)
+    monkeypatch.setattr(app_module, "GoogleCalendarClient", lambda auth: SlowCalendar())
     app = create_app(db)
     client = TestClient(app, base_url="http://127.0.0.1:8765")
     operation = "/api/google/tasks/sync" if active == "sync" else "/api/google/calendars/refresh"
@@ -526,7 +529,7 @@ def test_sync_queued_under_old_connection_cannot_use_a_new_one(db, monkeypatch, 
     queued, release = threading.Event(), threading.Event()
     fake = FakeTasks()
     create_task(db, "Essay")
-    service = GoogleSyncService(db, lambda: fake, GoogleUnavailable, lambda: True)
+    service = GoogleSyncService(db, lambda: fake, GoogleUnavailable, lambda: True, FakeReader)
     lock = service._lock
 
     class DelayedSyncLock:

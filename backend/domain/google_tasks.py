@@ -14,8 +14,8 @@ User decisions (2026-11-02):
 - BearPlans touches only the lists and tasks it created (remembered in google_* tables).
   Tasks the user adds in Google, and their own lists, are left alone.
 
-Network calls happen outside any transaction; each Google item created is recorded
-in its own short write, so an interrupted sync never creates duplicates on retry.
+Network calls happen outside transactions. An unresolved create blocks sync
+until explicitly reviewed, including when the provider response is lost.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from pydantic import BaseModel
 
 from backend.domain.calendar import application_today
 from backend.domain.google_calendar import CalendarClient, sync_calendar
-from backend.domain.google_create_intents import pending_for, review_key as create_review_key
+from backend.domain.google_create_intents import PendingCreate, begin, pending_for, publish, require_clear, returned_id, review_key as create_review_key
 from backend.domain.google_account import account_review_key, check_account
 from backend.domain.google_reading import read_calendars
 from backend.domain.tasks import Task, _list_tasks, _set_completion_tx
@@ -214,6 +214,13 @@ def _set_sync(db: Database, *, success: bool, error: str | None) -> None:
             conn.execute("UPDATE google_sync SET last_attempt_at = ?, last_error = ? WHERE id = 1", (now, error))
 
 
+def _try_record_sync_error(db: Database, message: str) -> None:
+    try:
+        _set_sync(db, success=False, error=message)
+    except (sqlite3.Error, OSError):
+        pass  # A durable intent, if present, remains the source of truth.
+
+
 def _apply_ticks(db: Database, ticks: dict[str, str]) -> int:
     """Bring completion ticked in Google into BearPlans; returns how many tasks changed.
 
@@ -244,28 +251,56 @@ def sync(db: Database, client: TasksClient, unavailable: type[Exception],
          calendar: CalendarClient | None = None, remember: Callable[[str], None] | None = None) -> SyncStatus:
     """One full sync (Tasks, BearPlans calendar, then reading followed calendars). Raises `unavailable` (after recording it) when Google fails."""
     failure_context = ""
+    owner = None
     try:
-        if calendar is not None:
-            check_account(db, calendar, unavailable, remember)  # type: ignore[arg-type]
-        _sync(db, client)
+        if calendar is None:
+            raise unavailable("google_account_unverified", "Verify the Google account before syncing.")
+        owner = check_account(db, calendar, unavailable, remember)  # type: ignore[arg-type]
+        require_clear(db, owner)
+        _sync(db, client, owner)
         if calendar is not None:
             failure_context = "Google Tasks finished, but publishing to the BearPlans calendar did not finish."
-            sync_calendar(db, calendar)
+            sync_calendar(db, calendar, account_key=owner)
             failure_context = "Google Tasks and calendar publishing finished, but reading selected calendars did not finish."
             read_calendars(db, calendar)  # type: ignore[arg-type]
+        _set_sync(db, success=True, error=None)
+        return get_status(db)
+    except PendingCreate as error:
+        message = f"{failure_context} {error}".strip()
+        _try_record_sync_error(db, message)
+        raise unavailable("google_create_review_required", message) from None
     except unavailable as error:
         message = getattr(error, "message", str(error))
+        if owner and pending_for(db, owner):
+            message = "Google could not confirm a create. Open Google to review before syncing again."
+            if failure_context:
+                message = f"{failure_context} {message}"
+            _try_record_sync_error(db, message)
+            raise unavailable("google_create_review_required", message) from None
         if failure_context:
             message = f"{failure_context} {message}"
-        _set_sync(db, success=False, error=message)
+        _try_record_sync_error(db, message)
         if failure_context:
             raise unavailable(error.code, message) from None  # type: ignore[attr-defined]
         raise
-    _set_sync(db, success=True, error=None)
-    return get_status(db)
+    except (sqlite3.Error, OSError):
+        try:
+            uncertain = bool(owner and pending_for(db, owner))
+        except (sqlite3.Error, OSError):
+            uncertain = True  # Storage is unavailable; do not assume the create failed.
+        if uncertain:
+            message = "BearPlans could not save Google sync progress. A Google item may already exist; open Google to review before syncing again."
+            code = "google_create_review_required"
+        else:
+            message = "BearPlans could not save Google sync progress. Check storage availability before trying again."
+            code = "google_storage_unavailable"
+        if failure_context:
+            message = f"{failure_context} {message}"
+        _try_record_sync_error(db, message)
+        raise unavailable(code, message) from None
 
 
-def _sync(db: Database, client: TasksClient) -> None:
+def _sync(db: Database, client: TasksClient, owner: str) -> None:
     with db.read() as conn:
         _, _, _, lists, mapped = _snapshot(conn)
 
@@ -302,10 +337,15 @@ def _sync(db: Database, client: TasksClient) -> None:
     for project_id, name in projects.items():
         list_id = lists.get(project_id)
         if list_id is None:
-            created = client.insert_list(name)
-            lists[project_id] = created["id"]
-            _record(db, "INSERT INTO google_task_lists (project_id, list_id, created_at) VALUES (?, ?, ?)",
-                    (project_id, created["id"], utc_now()))
+            intent = begin(db, owner, "task_list", project_id)
+            created_id = returned_id(client.insert_list(name), 200)
+            def save_list(conn: sqlite3.Connection) -> None:
+                if not conn.execute("SELECT 1 FROM projects WHERE id = ?", (project_id,)).fetchone():
+                    raise PendingCreate("The project changed while Google was creating a list. Review the result.")
+                conn.execute("INSERT INTO google_task_lists (project_id, list_id, created_at) VALUES (?, ?, ?)",
+                             (project_id, created_id, utc_now()))
+            publish(db, intent, save_list)
+            lists[project_id] = created_id
         elif titles.get(list_id) != name:
             client.rename_list(list_id, name)
 
@@ -322,9 +362,23 @@ def _sync(db: Database, client: TasksClient) -> None:
                 client.delete_task(current.list_id, current.google_id)  # moved to another project
             current, item = None, None
         if current is None:
-            created = client.insert_task(list_id, {k: v for k, v in desired.items() if v is not None}, parent_google)
-            _save_mapping(db, task.id, list_id, created["id"], desired["status"])
-            google_ids[task.id] = created["id"]
+            intent = begin(db, owner, "task", task.id, list_id)
+            created_id = returned_id(client.insert_task(list_id, {k: v for k, v in desired.items() if v is not None}, parent_google), 200)
+            def save_task(conn: sqlite3.Connection) -> None:
+                row = conn.execute("SELECT project_id, parent_id FROM tasks WHERE id = ?", (task.id,)).fetchone()
+                project_list = conn.execute("SELECT list_id FROM google_task_lists WHERE project_id = ?", (task.project_id,)).fetchone()
+                if not row or row["project_id"] != task.project_id or row["parent_id"] != task.parent_id or not project_list or project_list["list_id"] != list_id:
+                    raise PendingCreate("The task or its project changed while Google was creating it. Review the result.")
+                if task.parent_id:
+                    parent = conn.execute("SELECT google_id FROM google_tasks WHERE task_id = ? AND list_id = ?", (task.parent_id, list_id)).fetchone()
+                    if not parent or parent["google_id"] != parent_google:
+                        raise PendingCreate("The parent task changed while Google was creating it. Review the result.")
+                conn.execute("INSERT INTO google_tasks (task_id, list_id, google_id, pushed_status, updated_at) VALUES (?, ?, ?, ?, ?) "
+                             "ON CONFLICT(task_id) DO UPDATE SET list_id = excluded.list_id, google_id = excluded.google_id, "
+                             "pushed_status = excluded.pushed_status, updated_at = excluded.updated_at",
+                             (task.id, list_id, created_id, desired["status"], utc_now()))
+            publish(db, intent, save_task)
+            google_ids[task.id] = created_id
             continue
         google_ids[task.id] = current.google_id
         if (item.get("parent") or None) != parent_google:

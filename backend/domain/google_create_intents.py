@@ -1,7 +1,7 @@
 """Durable intents for Google creates. No provider call occurs in a transaction.
 
-This storage primitive is not yet connected to sync. An unresolved intent
-represents uncertainty, including a process crash before the request was sent.
+An unresolved intent represents uncertainty, including a process crash before
+the request was sent.
 """
 from __future__ import annotations
 
@@ -79,3 +79,19 @@ def resolve_reviewed(db: Database, account_key: str, reviewed_key: str) -> None:
         if review_key(intent) != reviewed_key:
             raise PendingCreate("The pending Google create changed. Refresh and review again.")
         conn.execute("DELETE FROM google_create_intents WHERE operation_id = ?", (intent.operation_id,))
+
+
+def require_clear(db: Database, account_key: str) -> None:
+    with db.read() as conn:
+        owner = conn.execute("SELECT account_key FROM google_sync WHERE id = 1").fetchone()
+        if not owner or owner["account_key"] != account_key:
+            raise PendingCreate("Google account changed before syncing. Verify the account and try again.")
+        pending = conn.execute("SELECT 1 FROM google_create_intents WHERE account_key = ?", (account_key,)).fetchone()
+    if pending:
+        raise PendingCreate("A Google item may have been created without confirmation. Open Google to review before syncing again.")
+
+
+def returned_id(value: object, maximum: int) -> str:
+    if not isinstance(value, dict) or not isinstance(value.get("id"), str) or not value["id"].strip() or not 1 <= len(value["id"]) <= maximum:
+        raise PendingCreate("Google did not return a usable item ID. Open Google to review before syncing again.")
+    return value["id"]

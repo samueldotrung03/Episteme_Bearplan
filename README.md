@@ -111,11 +111,15 @@ The implementation stores connection credentials separately from the database
 under the BearPlans data folder's `secrets/` directory, unless
 `BEARPLANS_SECRETS_FILE` overrides that location. Full-database backups do
 not include these credential files.
-Connection flows have been exercised with fake providers. Independent review
-found that retrying a Google sync after an uncertain create can duplicate a
-Google item. This is an open delivery blocker; pausing automatic sync prevents
-automatic retries while it is being addressed. VoiceOver and real-account
-operator evidence remain open.
+If BearPlans cannot confirm a Google create, it stops syncing that account and
+asks you to review it in Google settings. A copy may already exist in Google.
+Check carefully: names can change or match multiple items, and BearPlans cannot
+identify or delete an earlier copy for you. After you explicitly continue, a
+later sync can create another copy. Automatic sync stays paused if you paused it.
+The safeguard cannot identify duplicates created before it was installed.
+
+Connection flows and uncertain-create recovery have been exercised with fake
+providers. VoiceOver and real-account operator evidence remain open.
 See [shared progress](docs/PROGRESS.md) for the current gates.
 
 ## Back up and restore

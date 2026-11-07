@@ -9,13 +9,20 @@ from fastapi.testclient import TestClient
 
 from backend.app import create_app
 from backend.domain.errors import InvalidInput
-from backend.domain.google_calendar import start_instant, sync_calendar
+from backend.domain.google_calendar import start_instant, sync_calendar as _sync_calendar
 from backend.domain.planning import create_placement, move_placement, remove_placement, set_placement_time
 from backend.domain.projects import create_project
 from backend.domain.tasks import create_task, set_task_completion
 from backend.storage.migrations import load_migrations
 
 DAY = (date.today() + timedelta(days=2)).isoformat()
+
+
+def sync_calendar(db, fake, **kwargs):
+    owner = "a" * 32
+    with db.write() as conn:
+        conn.execute("INSERT INTO google_sync (id, account_key) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET account_key = excluded.account_key", (owner,))
+    return _sync_calendar(db, fake, account_key=owner, **kwargs)
 
 
 @pytest.fixture(autouse=True)
@@ -90,39 +97,31 @@ def test_timed_placement_becomes_an_event_with_a_30_minute_reminder(db):
     assert event["extendedProperties"]["private"]["bearplansPlacement"] == placement.id
 
 
-@pytest.mark.xfail(strict=True, reason="Remote calendar create can succeed before its mapping is saved")
-def test_retry_after_calendar_mapping_failure_does_not_duplicate_calendar(db, monkeypatch):
+@pytest.mark.parametrize("kind", ["calendar", "event"])
+def test_uncertain_calendar_creates_never_retry_without_review(db, monkeypatch, kind):
     from backend.domain import google_calendar
-
-    fake = FakeCalendar()
-    timed(db)
-    write = google_calendar._write
-    with monkeypatch.context() as patch:
-        def fail_calendar_mapping(db, sql, params):
-            if sql.startswith("INSERT INTO google_calendar "):
-                raise OSError("injected calendar mapping failure")
-            return write(db, sql, params)
-        patch.setattr(google_calendar, "_write", fail_calendar_mapping)
-        with pytest.raises(OSError, match="injected calendar mapping"):
-            sync_calendar(db, fake)
-    sync_calendar(db, fake)
-    assert list(fake.names.values()).count("BearPlans") == 1
-
-
-@pytest.mark.xfail(strict=True, reason="Remote event create can succeed before its mapping is saved")
-def test_retry_after_event_mapping_failure_does_not_duplicate_event(db, monkeypatch):
-    from backend.domain import google_calendar
-
+    from backend.domain.google_create_intents import PendingCreate
+    from backend.storage.db import open_database
     fake = FakeCalendar()
     timed(db, "Synthetic timed task")
+    original = google_calendar.publish
+    def fail_publish(db, intent, save):
+        if intent.resource_kind != kind:
+            return original(db, intent, save)
+        def fail_after_save(conn):
+            save(conn)
+            raise OSError("injected mapping failure")
+        return original(db, intent, fail_after_save)
     with monkeypatch.context() as patch:
-        def fail_event_mapping(*args, **kwargs):
-            raise OSError("injected event mapping failure")
-        patch.setattr(google_calendar, "_save_event", fail_event_mapping)
-        with pytest.raises(OSError, match="injected event mapping"):
+        patch.setattr(google_calendar, "publish", fail_publish)
+        with pytest.raises(OSError):
             sync_calendar(db, fake)
-    sync_calendar(db, fake)
-    assert len(fake.live()) == 1
+    before = list(fake.calls)
+    with pytest.raises(PendingCreate, match="review"):
+        sync_calendar(open_database(db.path), fake)
+    assert fake.calls == before
+    assert list(fake.names.values()).count("BearPlans") == 1
+    assert len(fake.live()) == (1 if kind == "event" else 0)
 
 
 def test_no_calendar_is_created_without_timed_tasks(db):

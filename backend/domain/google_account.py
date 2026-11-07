@@ -46,7 +46,7 @@ def cache_owner(db: Database, *, connected: bool, verified_key: str | None) -> s
 
 
 def check_account(db: Database, client: CalendarLister, unavailable: type[Exception],
-                  remember: Callable[[str], None] | None = None) -> None:
+                  remember: Callable[[str], None] | None = None) -> str:
     key = verify_account(client, unavailable)
     if remember is not None:
         remember(key)
@@ -59,7 +59,7 @@ def check_account(db: Database, client: CalendarLister, unavailable: type[Except
         )
         if owner == key or (owner is None and not unowned_links):
             conn.execute("UPDATE google_sync SET account_key = ?, other_account_key = NULL WHERE id = 1", (key,))
-            return
+            return key
         conn.execute("UPDATE google_sync SET other_account_key = ? WHERE id = 1", (key,))
     if unowned_links:
         raise unavailable(

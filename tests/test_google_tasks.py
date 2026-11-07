@@ -94,7 +94,8 @@ class FakeTasks:
 
 
 def run(db, fake):
-    return sync(db, fake, GoogleUnavailable)
+    from tests.test_google_reading import FakeReader
+    return sync(db, fake, GoogleUnavailable, FakeReader())
 
 
 def test_projects_tasks_and_subtasks_become_lists_tasks_and_subtasks(db):
@@ -282,83 +283,84 @@ def test_task_deleted_in_google_is_sent_again(db):
     assert "Dentist" in fake.live(list_id)
 
 
-def test_interrupted_sync_is_recorded_and_resumes_without_duplicates(db):
+def test_interrupted_create_requires_review_before_retry(db):
     fake = FakeTasks()
     for title in ("One", "Two", "Three"):
         create_task(db, title)
-    fake.fail_after = 2  # the list and one task are created, then Google fails
-    with pytest.raises(GoogleUnavailable):
+    fake.fail_after = 2
+    with pytest.raises(GoogleUnavailable) as failure:
         run(db, fake)
-    assert get_status(db).last_error == "Cannot reach Google."
+    assert failure.value.code == "google_create_review_required"
+    assert "review" in get_status(db).last_error.lower()
     fake.fail_after = None
-    status = run(db, fake)
-    live = fake.live(fake.list_named(_default_name(db)))
-    assert sorted(live) == ["One", "Three", "Two"] and len(fake.lists_by_id) == 2
-    assert status.last_error is None and status.last_success_at
+    before = list(fake.calls)
+    with pytest.raises(GoogleUnavailable, match="review"):
+        run(db, fake)
+    assert fake.calls == before
 
 
-@pytest.mark.xfail(strict=True, reason="Remote create can succeed before its local mapping is saved")
-def test_retry_after_task_mapping_failure_does_not_duplicate_remote_task(db, monkeypatch):
+@pytest.mark.parametrize("failure", ["mapping", "lost_response"])
+def test_uncertain_task_create_never_retries_without_review(db, monkeypatch, failure):
     from backend.domain import google_tasks
-
+    from backend.storage.db import open_database
     fake = FakeTasks()
     create_task(db, "Synthetic duplicate test")
-    save_mapping = google_tasks._save_mapping
+    original_publish = google_tasks.publish
+    original_insert = fake.insert_task
     with monkeypatch.context() as patch:
-        def fail_mapping(*args, **kwargs):
-            raise OSError("injected mapping write failure")
-        patch.setattr(google_tasks, "_save_mapping", fail_mapping)
-        with pytest.raises(OSError, match="injected mapping"):
+        if failure == "mapping":
+            def fail_publish(db, intent, save):
+                if intent.resource_kind != "task":
+                    return original_publish(db, intent, save)
+                def fail_after_save(conn):
+                    save(conn)
+                    raise OSError("injected mapping failure")
+                return original_publish(db, intent, fail_after_save)
+            patch.setattr(google_tasks, "publish", fail_publish)
+            expected = GoogleUnavailable
+        else:
+            def lose_response(*args, **kwargs):
+                original_insert(*args, **kwargs)
+                raise GoogleUnavailable("google_unreachable", "Cannot reach Google.")
+            patch.setattr(fake, "insert_task", lose_response)
+            expected = GoogleUnavailable
+        with pytest.raises(expected):
             run(db, fake)
-    assert google_tasks._save_mapping is save_mapping
-    run(db, fake)
+    before = list(fake.calls)
+    with pytest.raises(GoogleUnavailable, match="review"):
+        run(open_database(db.path), fake)
+    assert fake.calls == before
     matches = [item for items in fake.items.values() for item in items.values()
                if item.get("title") == "Synthetic duplicate test" and not item.get("deleted")]
     assert len(matches) == 1
 
 
-@pytest.mark.xfail(strict=True, reason="Remote create can succeed before its response is lost")
-def test_retry_after_lost_task_create_response_does_not_duplicate_remote_task(db, monkeypatch):
-    fake = FakeTasks()
-    create_task(db, "Synthetic duplicate test")
-    insert_task = fake.insert_task
-    with monkeypatch.context() as patch:
-        def lose_response(*args, **kwargs):
-            insert_task(*args, **kwargs)
-            raise GoogleUnavailable("google_unreachable", "Cannot reach Google.")
-        patch.setattr(fake, "insert_task", lose_response)
-        with pytest.raises(GoogleUnavailable):
-            run(db, fake)
-    run(db, fake)
-    matches = [item for items in fake.items.values() for item in items.values()
-               if item.get("title") == "Synthetic duplicate test" and not item.get("deleted")]
-    assert len(matches) == 1
-
-
-@pytest.mark.xfail(strict=True, reason="Remote list create can succeed before its mapping is saved")
-def test_retry_after_list_mapping_failure_does_not_duplicate_remote_list(db, monkeypatch):
+def test_uncertain_list_create_never_retries_without_review(db, monkeypatch):
     from backend.domain import google_tasks
-
     fake = FakeTasks()
-    run(db, fake)  # Record the default list before targeting the new project.
+    run(db, fake)
     create_project(db, "Synthetic project")
-    record = google_tasks._record
+    original = google_tasks.publish
+    def fail_publish(db, intent, save):
+        def fail_after_save(conn):
+            save(conn)
+            raise OSError("injected mapping failure")
+        return original(db, intent, fail_after_save)
     with monkeypatch.context() as patch:
-        def fail_list_mapping(db, sql, params):
-            if sql.startswith("INSERT INTO google_task_lists"):
-                raise OSError("injected list mapping failure")
-            return record(db, sql, params)
-        patch.setattr(google_tasks, "_record", fail_list_mapping)
-        with pytest.raises(OSError, match="injected list mapping"):
+        patch.setattr(google_tasks, "publish", fail_publish)
+        with pytest.raises(GoogleUnavailable, match="review"):
             run(db, fake)
-    run(db, fake)
+    before = list(fake.calls)
+    with pytest.raises(GoogleUnavailable, match="review"):
+        run(db, fake)
+    assert fake.calls == before
     assert list(fake.lists_by_id.values()).count("Synthetic project") == 1
 
 
 def test_routes_report_status_and_sync_without_exposing_tokens(db):
     fake = FakeTasks()
     create_task(db, "Route task")
-    with TestClient(create_app(db, google_tasks_client=fake), base_url="http://127.0.0.1:8765") as client:
+    with TestClient(create_app(db, google_tasks_client=fake, google_calendar_client=__import__("tests.test_google_reading", fromlist=["FakeReader"]).FakeReader()), base_url="http://127.0.0.1:8765") as client:
         state = client.get("/api/google").json()
         assert state["configured"] is False and state["connected"] is False
         assert state["tasks"]["synced_tasks"] == 0
@@ -371,10 +373,10 @@ def test_sync_route_reports_google_failure(db):
     fake = FakeTasks()
     create_task(db, "Fails")
     fake.fail_after = 0
-    with TestClient(create_app(db, google_tasks_client=fake), base_url="http://127.0.0.1:8765") as client:
+    with TestClient(create_app(db, google_tasks_client=fake, google_calendar_client=__import__("tests.test_google_reading", fromlist=["FakeReader"]).FakeReader()), base_url="http://127.0.0.1:8765") as client:
         response = client.post("/api/google/tasks/sync")
-        assert response.status_code == 502 and response.json()["error"]["code"] == "google_unreachable"
-        assert client.get("/api/google").json()["tasks"]["last_error"] == "Cannot reach Google."
+        assert response.status_code == 502 and response.json()["error"]["code"] == "google_create_review_required"
+        assert "review" in client.get("/api/google").json()["tasks"]["last_error"].lower()
 
 
 def test_not_connected_without_sign_in_files(db):
@@ -397,12 +399,12 @@ def _default_name(db) -> str:
 def test_changes_version_goes_up_only_when_a_sync_changes_what_the_page_shows(db):
     fake = FakeTasks()
     task = create_task(db, "Version")
-    with TestClient(create_app(db, google_tasks_client=fake), base_url="http://127.0.0.1:8765") as client:
+    with TestClient(create_app(db, google_tasks_client=fake, google_calendar_client=__import__("tests.test_google_reading", fromlist=["FakeReader"]).FakeReader()), base_url="http://127.0.0.1:8765") as client:
         assert client.get("/api/google/changes").json() == {"version": 0}
         client.post("/api/google/tasks/sync")
         client.post("/api/google/tasks/sync")
-        assert client.get("/api/google/changes").json() == {"version": 0}  # only Google changed
+        baseline = client.get("/api/google/changes").json()["version"]  # calendar cache may refresh once
         fake.live(fake.list_named(_default_name(db)))["Version"]["status"] = "completed"
         client.post("/api/google/tasks/sync")
-        assert client.get("/api/google/changes").json() == {"version": 1}  # a tick came back
+        assert client.get("/api/google/changes").json() == {"version": baseline + 1}  # a tick came back
         assert get_task(db, task.id).completed

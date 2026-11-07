@@ -1,5 +1,17 @@
 # BearPlans — completed work log
 
+## November 6, 2026 — Google uncertain-create sync guard
+
+Connected durable intents to Google list, task, calendar and event creation.
+Uncertain outcomes block subsequent sync for that account until explicit review.
+The guarded backend suite passed 1,083 tests with one Windows-only skip; the
+complete create-guard module passed 20, frontend tests passed 180, typecheck and
+build passed, and two fake-provider Chrome recovery checks passed. Independent
+review found no remaining confirmed blocker in this scoped implementation.
+Real-provider, VoiceOver, operator and release gates remain open. See the
+[create guard review](reviews/2026-11-06-google-create-guard.md).
+
+
 ## November 6, 2026 — Google uncertain-create review controls
 
 Added account-verified, operation-bound review and local resolution, with

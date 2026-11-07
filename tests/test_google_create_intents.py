@@ -120,3 +120,15 @@ def test_pending_details_remain_hidden_until_the_owner_is_verified(db):
     assert not status.pending_create_unverified
     assert status.pending_create["context"] == "Private synthetic title"
     assert pending_for(db, ACCOUNT_A) == intent
+
+
+def test_guard_rejects_wrong_account_and_blank_google_ids(db):
+    from backend.domain.google_create_intents import require_clear, returned_id
+
+    set_account(db, ACCOUNT_A)
+    require_clear(db, ACCOUNT_A)
+    with pytest.raises(PendingCreate, match="account changed"):
+        require_clear(db, ACCOUNT_B)
+    for value in ({}, {"id": "  "}, {"id": None}):
+        with pytest.raises(PendingCreate, match="usable item ID"):
+            returned_id(value, 200)

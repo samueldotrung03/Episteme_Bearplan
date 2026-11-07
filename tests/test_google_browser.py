@@ -391,3 +391,42 @@ def test_uncertain_create_review_after_restart_while_paused(browser, served):
         assert no_horizontal_overflow(page)
     finally:
         page.close()
+
+
+def test_lost_google_create_response_reaches_review_without_repeating(browser, served, monkeypatch):
+    from backend.domain.google_tasks import set_paused
+    from backend.domain.tasks import create_task
+
+    expect = playwright_sync.expect
+    url, db, tasks, calendar = served
+    set_paused(db, True)
+    create_task(db, "Lost response sample")
+    insert = tasks.insert_task
+    def lose_response(*args, **kwargs):
+        insert(*args, **kwargs)
+        raise GoogleUnavailable("google_unreachable", "Lost simulated response")
+    monkeypatch.setattr(tasks, "insert_task", lose_response)
+    page = browser.new_page(viewport={"width": 640, "height": 800})
+    try:
+        page.goto(url + "/#google")
+        tab = page.get_by_role("region", name="Google")
+        expect(tab.get_by_role("button", name="Sync once")).to_be_enabled()
+        tab.get_by_role("button", name="Sync once").click()
+        trigger = tab.get_by_role("button", name="Review uncertain Google create…")
+        expect(trigger).to_be_visible()
+        expect(tab.get_by_role("button", name="Sync once")).to_be_disabled()
+        assert tasks.calls.count("insert_task") == 1
+        trigger.click()
+        dialog = page.get_by_role("dialog", name="Review uncertain Google create")
+        expect(dialog).to_contain_text("Lost response sample")
+        expect(dialog).to_contain_text("a future sync may create a duplicate")
+        dialog.get_by_role("button", name="Cancel").click()
+        expect(trigger).to_be_focused()
+        assert tasks.calls.count("insert_task") == 1
+        trigger.click()
+        dialog.get_by_role("button", name="Continue after review").click()
+        expect(dialog).to_have_count(0)
+        expect(tab.get_by_text("Automatic sync is paused.", exact=True)).to_be_visible()
+        assert tasks.calls.count("insert_task") == 1
+    finally:
+        page.close()

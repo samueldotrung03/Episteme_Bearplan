@@ -94,3 +94,10 @@ uncertain create. Its [event resource reference](https://developers.google.com/w
 adds format and collision-detection qualifications. Whether and how to use that
 mechanism requires separate design and tests; it does not resolve the other three
 resource types by itself.
+
+## Resolution
+
+The earlier create-retry blocker is addressed by the later
+[Google create-guard implementation review](2026-11-06-google-create-guard.md).
+The observations and expected failures above remain historical evidence; the
+new review records the current checks and remaining gates.

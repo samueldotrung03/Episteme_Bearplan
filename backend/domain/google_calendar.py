@@ -11,8 +11,8 @@ Implementation rules:
   clearing the time or removing the placement deletes the event if it hasn't
   started yet. Past events are never deleted (closing a week keeps them).
 - A placement whose time has already ended does not get a new event.
-- Network calls happen outside any transaction; each created event is recorded in its
-  own short write so a retry never duplicates it.
+- Network calls happen outside transactions. Uncertain creates require review
+  before another sync can write.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
 from backend.domain.calendar import ApplicationCalendar
+from backend.domain.google_create_intents import PendingCreate, begin, publish, require_clear, returned_id
 from backend.domain.tasks import _list_tasks
 from backend.storage.db import Database, utc_now
 
@@ -102,7 +103,8 @@ def _save_event(db: Database, placement_id: str, event_id: str, start: datetime)
            (placement_id, event_id, start.astimezone(UTC).isoformat(), utc_now()))
 
 
-def sync_calendar(db: Database, client: CalendarClient, *, now: datetime | None = None) -> None:
+def sync_calendar(db: Database, client: CalendarClient, *, account_key: str, now: datetime | None = None) -> None:
+    require_clear(db, account_key)
     instant = now or datetime.now(UTC)
     with db.read() as conn:
         row = conn.execute("SELECT calendar_id FROM google_calendar WHERE id = 1").fetchone()
@@ -120,8 +122,11 @@ def sync_calendar(db: Database, client: CalendarClient, *, now: datetime | None 
     if calendar_id is None:
         if not any(start + timedelta(minutes=1) > instant for start, _ in wanted.values()):
             return
-        calendar_id = client.insert_calendar(CALENDAR_NAME)["id"]
-        _write(db, "INSERT INTO google_calendar (id, calendar_id, created_at) VALUES (1, ?, ?)", (calendar_id, utc_now()))
+        intent = begin(db, account_key, "calendar", "bearplans")
+        calendar_id = returned_id(client.insert_calendar(CALENDAR_NAME), 300)
+        def save_calendar(conn):
+            conn.execute("INSERT INTO google_calendar (id, calendar_id, created_at) VALUES (1, ?, ?)", (calendar_id, utc_now()))
+        publish(db, intent, save_calendar)
 
     remote = {event["id"]: event for event in client.events(calendar_id) if isinstance(event.get("id"), str)}
     for placement_id, (start, body) in wanted.items():
@@ -133,8 +138,18 @@ def sync_calendar(db: Database, client: CalendarClient, *, now: datetime | None 
                 if known:  # an ended event the user removed: let it go
                     _write(db, "DELETE FROM google_events WHERE placement_id = ?", (placement_id,))
                 continue
-            created = client.insert_event(calendar_id, body)
-            _save_event(db, placement_id, created["id"], start)
+            intent = begin(db, account_key, "event", placement_id, calendar_id)
+            event_id = returned_id(client.insert_event(calendar_id, body), 300)
+            def save_event(conn):
+                row = conn.execute("SELECT p.planned_date, pt.start_time, t.completed_at FROM planned_items p "
+                                   "JOIN placement_times pt ON pt.placement_id = p.id JOIN tasks t ON t.id = p.task_id WHERE p.id = ?", (placement_id,)).fetchone()
+                current_calendar = conn.execute("SELECT calendar_id FROM google_calendar WHERE id = 1").fetchone()
+                if not row or row["completed_at"] is not None or start_instant(row["planned_date"], row["start_time"]) != start or not current_calendar or current_calendar["calendar_id"] != calendar_id:
+                    raise PendingCreate("The planned task changed while Google was creating its event. Review the result.")
+                conn.execute("INSERT INTO google_events (placement_id, event_id, start_at, updated_at) VALUES (?, ?, ?, ?) "
+                             "ON CONFLICT(placement_id) DO UPDATE SET event_id = excluded.event_id, start_at = excluded.start_at, updated_at = excluded.updated_at",
+                             (placement_id, event_id, start.astimezone(UTC).isoformat(), utc_now()))
+            publish(db, intent, save_event)
         elif _differs(event, body):
             client.patch_event(calendar_id, known[0], body)
             _save_event(db, placement_id, known[0], start)
