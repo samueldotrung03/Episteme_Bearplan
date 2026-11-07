@@ -193,15 +193,16 @@ connection tests passed 40 cases.
 
 **Active work:** APP-C08.3 delivery review. Independent review reproduced a
 Google task duplication on retry after remote creation succeeds but local mapping
-fails. A lost create response also duplicates in a regression case. Both are strict
-expected failures; list, calendar and event creates have an analogous unverified
-failure window. This blocks the delivery pass and SYNC-09 / SYNC-12. The
+fails. A lost create response also duplicates in a regression case. List,
+calendar and event mapping-write failures now also reproduce duplicates. Five
+strict expected failures cover these cases. This blocks the delivery pass and SYNC-09 / SYNC-12. The
 bCourses token recovery message was corrected and 53 guarded tests passed.
 [Delivery review](reviews/2026-11-06-settings-delivery-review.md).
 
-**Next step:** Design and implement durable, account-scoped recovery for uncertain
-Google creates, including mapping-write failure, lost response, restart and all
-four resource types. Do not infer remote identity from title or retry blindly.
+**Next step:** Implement and verify the independently reviewed durable,
+account-scoped pending-create and explicit recovery design in the delivery review.
+Cover mapping-write failure, lost response, restart, account changes and all four
+resource types. Do not infer remote identity from title or retry blindly.
 Then rerun the independent review and record the VoiceOver walkthrough when
 available; its old disposable service is no longer running.
 

@@ -335,6 +335,26 @@ def test_retry_after_lost_task_create_response_does_not_duplicate_remote_task(db
     assert len(matches) == 1
 
 
+@pytest.mark.xfail(strict=True, reason="Remote list create can succeed before its mapping is saved")
+def test_retry_after_list_mapping_failure_does_not_duplicate_remote_list(db, monkeypatch):
+    from backend.domain import google_tasks
+
+    fake = FakeTasks()
+    run(db, fake)  # Record the default list before targeting the new project.
+    create_project(db, "Synthetic project")
+    record = google_tasks._record
+    with monkeypatch.context() as patch:
+        def fail_list_mapping(db, sql, params):
+            if sql.startswith("INSERT INTO google_task_lists"):
+                raise OSError("injected list mapping failure")
+            return record(db, sql, params)
+        patch.setattr(google_tasks, "_record", fail_list_mapping)
+        with pytest.raises(OSError, match="injected list mapping"):
+            run(db, fake)
+    run(db, fake)
+    assert list(fake.lists_by_id.values()).count("Synthetic project") == 1
+
+
 def test_routes_report_status_and_sync_without_exposing_tokens(db):
     fake = FakeTasks()
     create_task(db, "Route task")

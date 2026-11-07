@@ -58,3 +58,39 @@ The VoiceOver and operator gates remain open. The former disposable local
 VoiceOver app was no longer listening when checked and must be recreated.
 A check of 207 relative links across the README, progress, delivery review and
 Settings planning documents found no missing local targets.
+
+## Expanded create-failure reproduction and recovery design
+
+Fake-provider tests now also reproduce duplicate project lists, BearPlans
+calendars and timed events when a remote create succeeds but its local mapping
+write fails. On macOS arm64, the guarded command
+`.venv/bin/python -m pytest -q -p no:cacheprovider -p tests.connections_sandbox tests/test_google_tasks.py tests/test_google_calendar.py`
+reported 33 passed and five strict xfails. The first run had an XPASS caused
+by the list test targeting the wrong list; establishing the default-list mapping
+first corrected the fixture. All five xfails document unresolved failures.
+
+The independently reviewed repair direction is an account-scoped durable intent
+written before each remote create. Record only the operation and local/container
+identities; never store titles, notes or credentials. Publish the returned mapping
+and resolve the exact intent together in one short transaction, outside provider
+calls. An unresolved intent must survive failure, restart, target edits/deletion,
+disconnect and account changes; it must block ambiguous automatic and manual
+retries. Account A → B → A must not discard A's pending intent. A crash before
+sending can be indistinguishable from a lost successful response, so recovery
+cannot rely on titles or assume no remote write occurred.
+
+A user-facing reviewed recovery is still needed: explain that a remote copy may
+already exist, that no remote object was deleted, and that retry after explicit
+resolution may create a duplicate. Revalidate the verified account and the exact
+pending operation/review revision under the provider lock and write transaction;
+make repeated resolution safe. This is a design direction, not implemented or
+approved as a completed feature. The test matrix must cover journal write failure,
+pre-request crash, lost response, mapping-write rollback, restart, account changes,
+local edits/removal, Pause, repeated recovery and all four resource types.
+
+Google's [Calendar event creation guide](https://developers.google.com/workspace/calendar/api/guides/create-events)
+describes client-generated event IDs as a way to prevent duplicates after an
+uncertain create. Its [event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events)
+adds format and collision-detection qualifications. Whether and how to use that
+mechanism requires separate design and tests; it does not resolve the other three
+resource types by itself.

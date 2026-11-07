@@ -1,5 +1,16 @@
 # BearPlans — completed work log
 
+## November 6, 2026 — Google create failure coverage
+
+Reproduced duplicate list, calendar and event creates with disposable databases
+and fake providers, supplementing the earlier task cases. The guarded Tasks and
+Calendar suite passed 33 tests with five strict expected failures. The first
+list fixture produced an XPASS because it targeted the default list; the corrected
+fixture reproduces the intended failure. An independent design review identified
+account, restart and recovery requirements. The blocker remains open; see the
+[delivery review](reviews/2026-11-06-settings-delivery-review.md).
+
+
 ## November 6, 2026 — bCourses recovery copy and independent delivery review
 
 Corrected missing/rejected token guidance to point to Settings. On macOS arm64,
