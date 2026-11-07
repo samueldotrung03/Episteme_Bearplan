@@ -185,7 +185,7 @@ inspected. Chrome exposes the credential error and dialog in its accessibility
 tree. Google account review also exposes its dialog, action and status to Chrome. Actual Chrome 200% zoom exposed a dialog positioning issue, now fixed and verified. VoiceOver output remains open.
 [Partial review](reviews/2026-11-06-settings-accessibility-review.md).
 
-**Next step:** Await the requested VoiceOver walkthrough of the Settings dialog, simulated token error and focus flow. A disposable loopback review session was prepared for this check.
+**Next step:** Await the requested VoiceOver walkthrough of the Settings dialog, simulated token error and focus flow. A disposable loopback review session was prepared for this check. A preliminary implementation inspection is recorded in the partial review; independent final review remains open.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
