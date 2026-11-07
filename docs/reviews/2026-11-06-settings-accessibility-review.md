@@ -105,3 +105,13 @@ dialogs stayed within the viewport, exposed their focused input and allowed
 the Cancel button to be scrolled into view. Escape returned focus to the
 respective trigger. Both parameterized cases passed with the same disposable
 build and fake-provider guard.
+
+## VoiceOver walkthrough preparation
+
+On macOS arm64, started the current built interface at the loopback address
+`http://127.0.0.1:56739/#settings` with disposable data and a synthetic
+bCourses token checker that rejects the example input. The urllib provider
+transport blocks non-loopback requests. A loopback GET returned HTTP 200.
+The user was asked to describe the spoken dialog and error and focus after
+Escape. No VoiceOver result has been reported or inferred; the process and
+its temporary data may not remain available after this session.

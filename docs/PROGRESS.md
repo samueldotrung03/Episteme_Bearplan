@@ -200,8 +200,10 @@ frontend tests passed 180, and two Chrome recovery walkthroughs passed. The
 independent reviewer found no remaining confirmed blocker in this scoped fix.
 [Create guard review](reviews/2026-11-06-google-create-guard.md).
 
-**Next step:** APP-C08.2 still needs the user's actual VoiceOver walkthrough;
-recreate its disposable service before using it. Prepare APP-C09 operator
+**Next step:** APP-C08.2 still needs the user's actual VoiceOver walkthrough.
+A disposable fake-provider service was started on November 6 at
+`http://127.0.0.1:56739/#settings` for that walkthrough; it may need recreation
+after the process stops. Prepare APP-C09 operator
 walkthrough and handoff when eligible. Real-provider tests require their own
 bounded authorization; core trial, hardware and release gates remain separate.
 A reviewed continuation can create a duplicate if a remote copy already
