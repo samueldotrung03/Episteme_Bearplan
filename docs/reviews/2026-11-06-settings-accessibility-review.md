@@ -70,3 +70,14 @@ With the fresh /tmp/bearplans-c082zoom.MuQjzO build, the guarded Settings,
 Google and bCourses browser suites passed 16 tests on macOS using installed
 Chrome. Frontend tests passed 178 cases, typecheck and production build
 passed. Actual VoiceOver output remains open.
+
+## Google recovery accessibility-tree follow-up
+
+The existing fake-provider Chrome recovery walkthrough passed with additional
+assertions. The account-review dialog exposes its name and confirmation
+button in Chrome's accessibility tree. Cancel receives initial focus, and
+Escape returns focus to the review button. After an unconfirmed revocation,
+the receipt exposes a status role. The guarded run of
+`tests/test_google_browser.py::test_reviewed_account_recovery_and_offline_disconnect`
+passed once on macOS using the /tmp/bearplans-c082zoom.MuQjzO build.
+Spoken VoiceOver behavior is still awaiting the operator walkthrough.

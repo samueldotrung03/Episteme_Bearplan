@@ -301,6 +301,12 @@ def test_reviewed_account_recovery_and_offline_disconnect(browser, served, monke
         review.click()
         dialog = page.get_by_role("dialog", name="Use this Google account?")
         expect(dialog).to_contain_text("Automatic sync stays paused.")
+        expect(dialog.get_by_role("button", name="Cancel")).to_be_focused()
+        tree = page.context.new_cdp_session(page).send("Accessibility.getFullAXTree")["nodes"]
+        assert any(node.get("role", {}).get("value") == "dialog"
+                   and node.get("name", {}).get("value") == "Use this Google account?" for node in tree)
+        assert any(node.get("role", {}).get("value") == "button"
+                   and node.get("name", {}).get("value") == "Use this account" for node in tree)
         page.keyboard.press("Escape")
         expect(review).to_be_focused()
         assert page.request.get(url + "/api/google").json()["tasks"]["account_status"] == "different_account"
@@ -331,6 +337,8 @@ def test_reviewed_account_recovery_and_offline_disconnect(browser, served, monke
         trigger.click()
         dialog.get_by_role("button", name="Disconnect Google", exact=True).click()
         expect(tab.get_by_role("status")).to_contain_text("could not confirm that Google revoked access")
+        tree = page.context.new_cdp_session(page).send("Accessibility.getFullAXTree")["nodes"]
+        assert any(node.get("role", {}).get("value") == "status" for node in tree)
         state = page.request.get(url + "/api/google").json()
         assert state["configured"] and not state["connected"] and state["tasks"]["paused_at"]
         assert revocations == [True]
