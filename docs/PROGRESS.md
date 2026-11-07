@@ -182,10 +182,10 @@ the cache and imported task safe through retry.
 **Active work:** APP-C08.2. Six window-size/theme combinations passed
 automated layout and keyboard dialog checks. All six Settings screenshots were visually
 inspected. Chrome exposes the credential error and dialog in its accessibility
-tree. Actual 200% browser zoom and screen-reader behavior remain open.
+tree. Actual Chrome 200% zoom exposed a dialog positioning issue, now fixed and verified. VoiceOver output remains open.
 [Partial review](reviews/2026-11-06-settings-accessibility-review.md).
 
-**Next step:** Check actual 200% browser zoom and VoiceOver output interactively. The 320 CSS-pixel diagnostic passed but does not establish either result.
+**Next step:** Check VoiceOver output interactively for the Settings dialog, error and focus flow.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
@@ -394,7 +394,7 @@ Pause/status/disconnect work; concurrent account-isolation work remains unverifi
 | APP-C07.3 | Done — Pass with follow-ups | [Plan/calendar/task integration](reviews/2026-11-06-settings-google-plan-integration.md). |
 | APP-C07.4 | Done — Pass with follow-ups | [Google recovery](reviews/2026-11-06-settings-google-recovery.md). |
 | APP-C08.1 | Done — Pass with follow-ups | [Integrated process, fault and regression review](reviews/2026-11-06-settings-integrated-regression.md). |
-| APP-C08.2 | In progress | [Partial browser review](reviews/2026-11-06-settings-accessibility-review.md). Actual browser zoom and screen-reader checks are open. |
+| APP-C08.2 | In progress | [Partial browser review](reviews/2026-11-06-settings-accessibility-review.md). VoiceOver output remains open. |
 | APP-C08.3–09 | Not started as this execution sequence | Follow APP-C08.2. |
 
 ## UX delivery register

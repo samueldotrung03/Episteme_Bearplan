@@ -364,3 +364,42 @@ def test_credential_error_exposes_name_and_description_in_accessibility_tree(bro
         assert any(node.get("role", {}).get("value") == "alert" for node in tree)
     finally:
         page.close()
+
+
+def test_settings_at_actual_chrome_200_percent_zoom(settings_url, tmp_path, evidence):
+    expect = playwright_sync.expect
+    with playwright_sync.sync_playwright() as playwright:
+        context = playwright.chromium.launch_persistent_context(
+            str(tmp_path / "chrome-profile"), channel="chrome", headless=True,
+            viewport={"width": 640, "height": 800}, device_scale_factor=1,
+        )
+        try:
+            settings = context.new_page()
+            settings.goto("chrome://settings/appearance")
+            zoom = settings.locator("select").filter(has_text="200%")
+            zoom.select_option(label="200%")
+            expect(zoom).to_have_value("2")
+            page = context.new_page()
+            page.goto(settings_url + "/#settings")
+            assert page.evaluate("window.devicePixelRatio") == 2
+            assert page.evaluate("window.innerWidth") == 320
+            expect(page.get_by_role("link", name="Review assignments")).to_be_visible()
+            expect(page.get_by_role("link", name="Open Google")).to_be_visible()
+            assert no_horizontal_overflow(page)
+            page.screenshot(path=evidence / "settings-200-percent.png", full_page=True)
+            trigger = page.get_by_role("button", name="Set up or replace bCourses token")
+            trigger.click()
+            dialog = page.get_by_role("dialog", name="Set up bCourses token")
+            expect(dialog.get_by_label("New bCourses token")).to_be_focused()
+            cancel = dialog.get_by_role("button", name="Cancel")
+            expect(cancel).to_be_visible()
+            box = dialog.bounding_box()
+            assert box is not None and box["y"] >= 0 and box["y"] + box["height"] <= 400
+            cancel.scroll_into_view_if_needed()
+            expect(cancel).to_be_in_viewport()
+            assert no_horizontal_overflow(page)
+            page.screenshot(path=evidence / "settings-dialog-200-percent.png")
+            page.keyboard.press("Escape")
+            expect(trigger).to_be_focused()
+        finally:
+            context.close()

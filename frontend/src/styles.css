@@ -1214,6 +1214,9 @@ details > summary:focus-visible {
 }
 
 .connection-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   width: min(34rem, calc(100% - 2rem));
   max-height: calc(100% - 2rem);
   overflow: auto;

@@ -9,6 +9,13 @@ Older entries keep the wording they had when written: words like "current",
 "next", "uncommitted" or "pending" describe that moment, not today. Detailed
 evidence remains in the linked reviews.
 
+## 2026-11-06 — Settings dialog positioning at 200% zoom
+
+Fixed connection dialogs that could open partly outside the viewport after
+scrolling. Chrome's actual 200% zoom check and 16 guarded browser cases passed.
+Frontend tests passed 178 cases, typecheck and production build passed.
+[Accessibility review](reviews/2026-11-06-settings-accessibility-review.md).
+
 ## 2026-11-06 — APP-C08.1 Integrated process, fault and regression review
 
 Verified Pause and Plan through abrupt and graceful service restarts. Verified

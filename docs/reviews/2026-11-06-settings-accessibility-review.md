@@ -50,3 +50,23 @@ Chrome's own tab zoom API. Installed Chrome loaded no extension worker, and
 the previously available Chrome for Testing executable was unavailable. No
 zoom result was claimed. VoiceOver output has not been observed. Both
 checks remain open for an interactive browser and assistive-technology review.
+
+## Actual Chrome 200% zoom
+
+Chrome's Appearance settings in a disposable profile were set to 200%.
+At a 640 × 800 browser viewport, Chrome reported a device pixel ratio of 2
+and a 320 CSS-pixel viewport. The Settings entry points were reachable with
+no page-level horizontal overflow.
+
+The first capture exposed a dialog positioned partly below the viewport
+after the page scrolled. Fixed the shared connection dialog to remain
+centered in the viewport. The regression checks its bounds at 200%, scrolls
+to the Cancel button, verifies it is in the viewport, and checks Escape
+returns focus. A previous test attempt used a nonexistent Playwright
+`is_in_viewport` method. Replacing it with the supported assertion produced
+a clean rerun.
+
+With the fresh /tmp/bearplans-c082zoom.MuQjzO build, the guarded Settings,
+Google and bCourses browser suites passed 16 tests on macOS using installed
+Chrome. Frontend tests passed 178 cases, typecheck and production build
+passed. Actual VoiceOver output remains open.
