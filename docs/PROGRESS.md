@@ -322,6 +322,8 @@ Compact Week day buttons now show planned-task counts, with accessible labels an
 
 Active Week cards now group time, deadline and estimate in a wrapping detail row. [Review](reviews/2026-11-11-week-task-details.md).
 
+Crowded project task lists now scroll within a bounded area, retaining in-progress edits across view switches. [Review](reviews/2026-11-11-project-task-scroll.md).
+
 Next: refine the remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 

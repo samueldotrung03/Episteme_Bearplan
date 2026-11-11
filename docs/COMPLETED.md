@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Crowded project task scrolling
+
+- Bounded project task lists and verified lower tasks, keyboard editing and retained drafts at three widths. Frontend: 191 tests and build passed; disposable Chrome project checks passed. [Review](reviews/2026-11-11-project-task-scroll.md).
+
 ## 2026-11-11 — Compact active Week task details
 
 - Grouped time, due date and estimate in a wrapping row while preserving task controls and recovery. Verified 191 frontend tests, build and 12 disposable browser checks. [Review](reviews/2026-11-11-week-task-details.md).

@@ -402,7 +402,7 @@ export default function App() {
               {tasks === null && !loadError ? <p className="muted">Loading…</p> : null}
               {tasks !== null && parents.length === 0 ? <p className="muted">No tasks in this project yet.</p> : null}
 
-              <ul className="tasks">
+              <ul className="tasks" aria-label={`Tasks in ${selected.name}`}>
                 {parents.map((task) => {
                   const children = subtasksOf(task.id);
                   return (
