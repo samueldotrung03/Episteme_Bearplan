@@ -1,5 +1,17 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Repository cleanup (refinement RF-05)
+
+Inventoried all 47 `(1)` duplicate paths, about 152 MB
+([inventory](reviews/2026-11-11-duplicate-inventory.md)). None held content
+missing from Git history under the real paths. With the user's yes, they were
+moved to `~/Desktop/BearPlans-duplicates-2026-11-11/`, and the user committed
+the deletion of 4,453 tracked `(1)` files as `6e5751c` and pushed. `origin/main`
+now equals `main`. Checks after the move: frontend 213 tests passed and the
+build succeeded. The backend run had 4 failed (add-task browser alert tests,
+very likely from the concurrent `400bdfe` UX commit, not the move), 1138
+passed, 1 skipped. No release tag yet.
+
 ## 2026-11-11 — G-02 task-entry keyboard and theme matrix
 
 Passed the bounded form keyboard and light/dark checks at 640, 800 and 1440 px in Chrome on macOS with disposable data. Screen-reader and other accessibility checks remain outside this evidence. [Review](reviews/2026-11-11-task-capture-g02-matrix.md).

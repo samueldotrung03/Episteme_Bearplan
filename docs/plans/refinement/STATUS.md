@@ -12,7 +12,7 @@ Read this first in every session; update it last. Ticket details are in
 | RF-02 | Gate register and limit on waiting work | Done | RF-01 helps | — (answered 2026-11-11) |
 | RF-03 | Decision sheet for the user | Done | — | — (answered 2026-11-11) |
 | RF-04 | New core-trial candidate and trial start | Blocked | UX task-entry slice closed | Trial scope; tag; Day 1 |
-| RF-05 | Repository cleanup | Waiting on user | — | Approval to move duplicates; push |
+| RF-05 | Repository cleanup | Done | — | — (moved and pushed 2026-11-11, `6e5751c`) |
 | RF-06 | One command for every check | Ready | — | Hook and CI, yes or no |
 | RF-07 | Documentation map | Ready | RF-02 (links to gate register) | — |
 | RF-08 | Closing re-evaluation | Blocked | RF-01 to RF-07 | — |
@@ -32,6 +32,19 @@ Copy this template for each session. Keep an entry under 20 lines.
 - Watch out: <anything surprising in the tree; other agents' uncommitted work>
 - Commit: <not committed; proposed message given to user | committed by user as <hash>>
 ```
+
+### 2026-11-11 — Claude — RF-05 — Done
+- Did: confirmed the user's commit `6e5751c` (4,457 files: 4,453 `(1)` deletions
+  plus 4 docs) and push; `git rev-list --count origin/main..main` → 0; no `(1)`
+  paths in `find` or `git status`. Closed board row; COMPLETED entry added.
+- Files: this file; `docs/PROGRESS.md` (pointer); `docs/COMPLETED.md` (top entry).
+- Checks: `git fetch`, `git log`, `git status`, `find`. No tests run (docs only).
+- Not done: nothing in RF-05. No release tag exists yet (RF-04 covers the trial tag).
+- Waiting on user: nothing.
+- Next step: RF-06 (one command for every check), step 1 per TICKETS.md.
+- Watch out: 4 backend browser failures from the previous entry are still
+  unresolved (UX slice, Codex's area). RF-06's check script will hit them.
+- Commit: not committed; proposed message given to user.
 
 ### 2026-11-11 — Claude — RF-05 — Waiting on user (commit + push)
 - Did: step 4 after user's "yes": moved all 47 paths (`mv -n`, layout kept) to

@@ -137,9 +137,8 @@ target dates are in the roadmap's "Next" table. RF-02 is done: [GATES.md](GATES.
 and the AGENTS.md limit. RF-03 is done: all ten decisions answered in
 [DECISIONS_FOR_USER.md](plans/refinement/DECISIONS_FOR_USER.md). RF-05 (repository
 cleanup): the [duplicate inventory](reviews/2026-11-11-duplicate-inventory.md)
-found all 47 `(1)` paths redundant; with the user's yes they were moved to
-`~/Desktop/BearPlans-duplicates-2026-11-11/`. Waiting on the user to commit the
-deletion of the 4,453 tracked `(1)` files and push `main`.
+found all 47 `(1)` paths redundant; they were moved out and the deletion was
+committed and pushed (`6e5751c`), so RF-05 is done. Next: RF-06 (one command for every check).
 RF-04 (new core-trial candidate) waits for the task-entry slice to close (target Nov 14).
 
 ## Handoff notes
