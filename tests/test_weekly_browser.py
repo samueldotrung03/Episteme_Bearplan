@@ -104,6 +104,8 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         # Move only one child's placement across weeks; the other stays unchanged.
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         monday_card = page.locator(".week-board .planned-card").filter(has=page.get_by_role("checkbox", name=f"Draft proof, planned {display(monday)}", exact=True))
+        monday_card.get_by_role("checkbox").click()
+        expect(monday_card.get_by_role("checkbox")).not_to_be_checked()
         monday_card.get_by_text("Move or remove", exact=True).click()
         monday_card.get_by_label(f'Move “Draft proof” from {display(monday)} to').fill(next_monday.isoformat())
         monday_card.get_by_role("button", name="Move placement", exact=True).click()
@@ -114,7 +116,7 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         expect(page.locator(".planner-heading")).to_contain_text(display(next_monday))
         moved_card = page.locator(".week-board .planned-card")
         expect(moved_card).to_have_count(1)
-        expect(moved_card.get_by_role("checkbox")).to_be_checked()
+        expect(moved_card.get_by_role("checkbox")).not_to_be_checked()
         moved_card.get_by_text("Move or remove", exact=True).click()
         move_input = moved_card.get_by_label(f'Move “Draft proof” from {display(next_monday)} to')
         move_input.fill(tuesday.isoformat())
@@ -127,7 +129,7 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         assert len({p["task_id"] for p in after_move["placements"]}) == 2
         page.get_by_role("button", name="Previous week", exact=True).click()
         moved_card = page.locator(".week-board .planned-card").filter(has=page.get_by_role("checkbox", name=f"Draft proof, planned {display(tuesday)}", exact=True))
-        expect(moved_card.get_by_role("checkbox")).to_be_checked()
+        expect(moved_card.get_by_role("checkbox")).not_to_be_checked()
         moved_card.get_by_text("Move or remove", exact=True).click()
         moved_card.get_by_role("button", name="Remove from plan", exact=True).click()
         expect(page.locator(".week-board .planned-card")).to_have_count(1)
@@ -135,6 +137,10 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         assert len(after_remove["placements"]) == 1
         assert after_remove["placements"][0]["planned_date"] == tuesday.isoformat()
         assert len(after_remove["tasks"]) == 4
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
+        page.get_by_label("Draft proof", exact=True).click()
+        expect(page.get_by_label("Draft proof", exact=True)).to_be_checked()
+        _, after_remove = http_json("GET", service.url + "/api/planning")
 
         # Persist across an actual process restart, then inspect selected-day laptop layout.
         assert service.stop() == 0

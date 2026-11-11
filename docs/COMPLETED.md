@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Compact completed Week tasks
+
+- Compacted completed current-week task rows; reopening restores their details and controls, with failure and keyboard focus recovery. Verified 189 frontend tests, build and disposable Chrome planning, timer, drag and history checks. [Review](reviews/2026-11-11-compact-week-tasks.md).
+
 ## 2026-11-11 — Compact empty Week days
 
 - Reduced unused empty-day height and verified drag and planning behavior in disposable Chrome at narrow and wide sizes. [Review](reviews/2026-11-11-week-empty-space.md).

@@ -227,38 +227,47 @@ type DragControls = { start: (event: DragEvent<HTMLElement>, placement: Placemen
 
 function PlannedCard({ task, placement, context, onRun, locked, onTrack, drag }: { task: Task; placement: Placement; context: string; onRun: Run; locked: boolean; onTrack?: (taskId: string) => void; drag: DragControls }) {
   const id = useId();
+  const checkboxRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <li className={`planned-card${task.completed ? " planned-card-done" : ""}`} onDragStart={(event) => {
       if (!(event.target instanceof Element) || !event.target.closest(".placement-drag-handle")) event.preventDefault();
     }}>
-      <div className="planned-card-heading">
+      <div className="planned-card-heading" hidden={task.completed}>
         <span className="placement-drag-handle" draggable={!busy && !locked} role="img" aria-label={`Move “${task.title}” from ${showDate(placement.planned_date)}`} title="Move planned task. Date controls are available below." onDragStart={(event) => drag.start(event, placement, task)} onDragEnd={drag.end}>
           <svg width="12" height="18" viewBox="0 0 12 18" fill="currentColor" aria-hidden="true"><circle cx="3" cy="3" r="1.5" /><circle cx="9" cy="3" r="1.5" /><circle cx="3" cy="9" r="1.5" /><circle cx="9" cy="9" r="1.5" /><circle cx="3" cy="15" r="1.5" /><circle cx="9" cy="15" r="1.5" /></svg>
         </span>
-        <p className="planned-context muted">{context}</p>
+        <p id={`${id}-context`} className="planned-context muted">{context}</p>
       </div>
       <div className="planned-title">
-        <input id={id} type="checkbox" checked={task.completed} disabled={busy || locked} aria-label={`${task.title}, planned ${showDate(placement.planned_date)}`} onChange={async (event) => {
+        <input id={id} ref={checkboxRef} type="checkbox" checked={task.completed} disabled={busy || locked} aria-describedby={task.completed ? `${id}-context` : undefined} aria-label={`${task.title}, planned ${showDate(placement.planned_date)}`} onChange={async (event) => {
+          const restoreFocus = document.activeElement === event.currentTarget;
           const complete = event.target.checked;
           setBusy(true);
           setError(null);
           try { await onRun(() => setTaskCompletion(task.id, complete), complete ? "Task marked complete." : "Task reopened."); }
           catch (caught) { setError(message(caught)); }
-          finally { setBusy(false); }
+          finally {
+            setBusy(false);
+            if (restoreFocus) requestAnimationFrame(() => {
+              if (document.activeElement === document.body) checkboxRef.current?.focus();
+            });
+          }
         }} />
         <label htmlFor={id}>{task.title}</label>
       </div>
+      <div hidden={task.completed}>
       {placement.start_time ? <p className="planned-meta">At {showTime(placement.start_time)}</p> : null}
       {task.deadline ? <p className="planned-meta muted">Due {showDate(task.deadline)}</p> : null}
       {task.estimate_minutes ? <p className="planned-meta muted">{task.estimate_minutes} min estimated</p> : null}
       {onTrack ? <StartTrackingButton task={task} onTrack={() => onTrack(task.id)} disabled={busy || locked} /> : null}
-      {error ? <p role="alert" className="error">{error}</p> : null}
       <details>
         <summary>Move or remove</summary>
         <PlacementActions key={`${placement.id}-${placement.planned_date}-${placement.start_time ?? ""}`} task={task} placement={placement} onRun={onRun} />
       </details>
+      </div>
+      {error ? <p role="alert" className="error">{error}</p> : null}
     </li>
   );
 }

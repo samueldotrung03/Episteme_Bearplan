@@ -568,6 +568,10 @@ details > summary:focus-visible {
   margin-bottom: 0.4rem;
 }
 
+.planned-card-heading[hidden] {
+  display: none;
+}
+
 .planned-card-heading .planned-context {
   margin: 0;
   min-width: 0;
@@ -579,6 +583,10 @@ details > summary:focus-visible {
   overflow-wrap: anywhere;
   min-width: 0;
   cursor: pointer;
+}
+
+.planned-card-done:not(.historical-card) .planned-title {
+  margin-bottom: 0;
 }
 
 .planned-card-done .planned-title label {

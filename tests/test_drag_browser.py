@@ -229,7 +229,7 @@ def test_native_move_alt_move_cancel_controls_keyboard_and_narrow_days(browser, 
 
         card.get_by_role("checkbox").click()
         expect(day_column(page, thursday).get_by_role("checkbox")).to_be_checked()
-        expect(card.get_by_role("button", name="Start tracking")).to_be_disabled()
+        expect(card.get_by_role("button", name="Start tracking")).to_have_count(0)
         card.get_by_role("checkbox").click()
         expect(card.get_by_role("button", name="Start tracking")).to_be_enabled()
         card.get_by_role("button", name="Start tracking").focus()
