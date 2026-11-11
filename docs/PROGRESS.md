@@ -264,7 +264,13 @@ no parent. 83 affected tests and the 30/30 qwen3:8b evaluation passed. See the
 [fix review](reviews/2026-11-11-assistant-project-creation.md). The user confirmed
 the repaired proposal, one task after Apply, and removal after Undo while
 preserving the earlier task and paused timer. This bounded walkthrough is
-complete; other Assistant operator scenarios and broader acceptance remain open.
+complete. The next walkthrough exposed a completion request becoming a notes
+edit. Router v7 and a grounding guard address that explicit-command case; 85
+affected tests and the exact local-model request passed. The
+[completion-routing review](reviews/2026-11-11-assistant-completion-routing.md)
+records scope and checks. The local-model evaluation passed 30/30 with no
+unauthorized changes. The disposable demo has the fix; user retest and broader
+Assistant acceptance remain open.
 
 ## Next up
 

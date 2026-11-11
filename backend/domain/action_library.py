@@ -132,6 +132,7 @@ ALLOWED = {
     "question": ("task", "project", "date"),
 }
 _REOPEN = re.compile(r"\b(re-?open|undo|unmark|uncheck|incomplete|unfinished|uncomplete|not\s+(yet\s+)?(done|complete|completed|finished))\b")
+_COMPLETION_COMMAND = re.compile(r"^(?:please\s+)?mark\s+(?:as\s+)?(?:complete[d]?|done|finished)\b")
 _NUMBER_WORDS = {"a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "half": 0.5}
 
 
@@ -153,6 +154,11 @@ def ground(intent: str, extracted: Slots, message: str) -> tuple[Slots, list[str
     kept: dict[str, Any] = {}
     ignored: list[str] = []
     for name, value in extracted.model_dump(exclude_none=True).items():
+        if intent == "update_task" and _COMPLETION_COMMAND.search(said) and name in ("notes", "title", "deadline", "estimate_minutes"):
+            # A contradictory model route must ask again, never reinterpret a
+            # clear completion command as a field edit (e.g. a title with Notes).
+            ignored.append(name)
+            continue
         if name not in ALLOWED[intent]:
             ignored.append(name)
             continue

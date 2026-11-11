@@ -439,3 +439,40 @@ def test_create_under_task_with_project_in_title_keeps_parent(db):
     route = {"intent": "create_task", "title": "Review Notes"}
     reply = ask(db, FakeProvider(routes=[route]), 'Create "Review Notes" under task Review project')
     assert reply["proposals"][0]["arguments"]["parent_id"] == parent.id
+
+
+def test_completion_command_cannot_become_notes_edit(db):
+    project = create_project(db, "planner check")
+    parent = create_task(db, "Draft seminar notes", project_id=project.id)
+    create_task(db, "Review Notes", project_id=project.id, parent_id=parent.id)
+    before = rows(db)
+    route = {"intent": "update_task", "task": "Review Notes", "complete": True,
+             "notes": "under draft seminar notes complete in planner check"}
+    reply = ask(db, FakeProvider(routes=[route]),
+                "Mark complete the review notes under draft seminar notes complete in planner check")
+    assert reply["kind"] == "clarify" and not reply["proposals"]
+    assert rows(db) == before
+
+
+def test_complete_task_with_notes_in_title_keeps_timer_and_undo(db, timer):
+    project = create_project(db, "planner check")
+    parent = create_task(db, "Draft seminar notes", project_id=project.id)
+    task = create_task(db, "Review Notes", project_id=project.id, parent_id=parent.id)
+    apply_action(db, timer, propose_action(db, timer, "start_timer", {"task_id": task.id, "duration_minutes": 10}), key())
+    apply_action(db, timer, propose_action(db, timer, "pause_timer", {}), key())
+    session = timer.get().active_session.model_dump()
+    route = {"intent": "complete_task", "task": "review notes", "project": "planner check", "complete": True}
+    before = rows(db)
+    reply = ask(db, FakeProvider(routes=[route]),
+                "Mark complete the review notes under draft seminar notes complete in planner check", timer)
+    assert rows(db) == before
+    proposal = reply["proposals"][0]
+    assert proposal["kind"] == "complete_task" and proposal["arguments"]["task_id"] == task.id
+    op = key()
+    apply_action(db, timer, proposal, op)
+    assert get_task(db, task.id).completed and get_task(db, parent.id).completed
+    assert get_task(db, task.id).notes == ""
+    assert timer.get().active_session.model_dump() == session
+    undo_action(db, op, key())
+    assert not get_task(db, task.id).completed and not get_task(db, parent.id).completed
+    assert timer.get().active_session.model_dump() == session

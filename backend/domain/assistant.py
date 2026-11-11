@@ -37,7 +37,7 @@ MAX_ROUNDS = 5
 MAX_CALLS = 10
 MAX_CONTEXT_BYTES = 24000
 REQUEST_SECONDS = 120
-PROMPT_VERSION = "router-v6"
+PROMPT_VERSION = "router-v7"
 SYSTEM = """You are BearPlans' local read-only question agent. You can read plans, tasks and saved time only.
 Changes are prepared by a separate BearPlans step, never by you. Never claim to have changed anything.
 If the user asks for a change, tell them to ask for it directly, for example "Plan Essay on Tuesday".
@@ -71,6 +71,7 @@ Fields are null unless the user stated them; never invent or guess values:
 - task: the user's words naming the existing task to act on.
 - title: the new task's title (create_task) or the replacement title (update_task).
 - project: words naming a project. parent: words naming the existing task a new subtask goes under.
+Task titles may contain "Notes", "Complete" or other field/action words. Choose the intent from the requested action, not words within a title. "Mark complete" means complete_task; it does not edit notes. Copy notes only when the user explicitly asks to change note content.
 - deadline: due date words. date: the words for the day to plan it. Copy the user's words exactly ("Tuesday", "next Friday", "November 12", "tomorrow"); never convert them.
 - estimate_minutes, duration_minutes: whole minutes (1 hour = 60). notes: note text. complete: true or false.
 - topic (questions only): plan = what is planned on a day or week; tasks = find, list or count tasks, subtasks or their completion; time = saved or tracked work time; other = anything else.
@@ -79,6 +80,7 @@ Examples:
 "Plan Essay for Tuesday" -> {"intent": "assign_task_date", "task": "Essay", "date": "Tuesday"}
 "Create Outline and plan it on Friday" -> {"intent": "multiple"}
 "Add a task Read chapter 4 due Nov 12 in History" -> {"intent": "create_task", "title": "Read chapter 4", "deadline": "Nov 12", "project": "History"}
+"Mark complete the review notes under draft seminar notes complete in planner check" -> {"intent": "complete_task", "task": "review notes", "project": "planner check", "complete": true}
 "Start Math for 45 minutes" -> {"intent": "start_timer", "task": "Math", "duration_minutes": 45}
 "Move this week's unfinished tasks to next week" -> {"intent": "carry_over_week"}
 "Carry over last week's unfinished work" -> {"intent": "carry_over_week"}

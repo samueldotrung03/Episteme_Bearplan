@@ -1,5 +1,15 @@
 # BearPlans — completed work log
 
+## November 11, 2026 — Assistant completion routing fix
+
+Fixed the reported completion request for Review Notes being interpreted as
+a notes edit, with router v7 and a guard against contradictory field-edit
+proposals for explicit Mark complete commands. 85 affected tests and 30/30
+local-model cases passed; the exact request now proposes the correct completion
+without writes. [Review](reviews/2026-11-11-assistant-completion-routing.md).
+User retest remains pending.
+
+
 ## November 11, 2026 — Assistant create / Apply / Undo walkthrough
 
 The user confirmed the repaired Review Notes proposal targeted planner check,

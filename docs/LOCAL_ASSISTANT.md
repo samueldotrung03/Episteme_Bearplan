@@ -11,7 +11,9 @@ appear, showing every field it will set; nothing is saved until you choose **App
 To create work directly in a project, say “Create a task called Review Notes
 under this planner check project.” To create a subtask, name the task explicitly,
 for example “Add a subtask called Read under task Essay.” Review the destination
-on the proposal before Apply.
+on the proposal before Apply. To complete work, say “Mark complete Review Notes
+in planner check”; a completion proposal must say it marks the task complete.
+If it offers an unrelated field edit, leave it unapplied and report the result.
 
 Ask for one change at a time. Day words such as “Tuesday”, “next Friday” or
 “November 12” are converted by BearPlans, not the model; check the weekday on
