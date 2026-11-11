@@ -647,7 +647,12 @@ details > summary:focus-visible {
 }
 
 .week-actions {
-  margin: 0.75rem 0;
+  margin: 0.75rem 0 0;
+}
+
+.week-footer .week-actions > button:first-child {
+  display: block;
+  margin-left: auto;
 }
 
 .week-review {

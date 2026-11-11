@@ -158,6 +158,8 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         # A stopped service must retain the intended date; retry succeeds after restart.
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         child_row = page.locator(".subtasks > .task").filter(has=page.get_by_label("Draft proof", exact=True))
+        child_row.get_by_label("Draft proof", exact=True).click()
+        expect(child_row.get_by_label("Draft proof", exact=True)).not_to_be_checked()
         child_row.get_by_text("Plan task", exact=True).click()
         assign = child_row.locator(".planning-form").first
         assign.get_by_label('Planned date for “Draft proof”').fill(friday.isoformat())
@@ -170,6 +172,8 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         assign.get_by_role("button", name="Add to day", exact=True).click()
         expect(child_row.locator(".placement-list > li")).to_have_count(1)
         expect(child_row.get_by_role("button", name="Add to day", exact=True)).to_have_count(0)
+        child_row.get_by_label("Draft proof", exact=True).click()
+        expect(child_row.get_by_label("Draft proof", exact=True)).to_be_checked()
         _, result = http_json("GET", service.url + "/api/planning")
         assert len(result["placements"]) == 2
         assert len(result["tasks"]) == 4

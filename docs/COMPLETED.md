@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Week footer action
+
+- Moved End Week after the weekly board and restored focus on preview cancellation. Verified 189 frontend tests, the build, and disposable browser checks for three widths and close/carryover/planning. [Review](reviews/2026-11-11-week-footer.md).
+
 ## 2026-11-11 — On-demand project task entry
 
 - Made task creation on demand, retained per-project drafts in the running app, and verified error retry and keyboard focus. Frontend: 189 passed and build passed; disposable Chrome checks cover three widths and surrounding journeys. [Review](reviews/2026-11-11-on-demand-task-entry.md).

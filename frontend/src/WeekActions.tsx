@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ApiError, applyCarryover, closeWeek, getCarryover, previewCarryover, previewCloseWeek,
   type CarryoverOptions, type CarryoverPreview, type CarryoverSelection, type ClosePreview,
@@ -33,6 +33,7 @@ export function WeekActions({ plan, onRun, locked }: { plan: Planning; onRun: Ru
 }
 
 function EndWeek({ week, onRun, locked, onClosed }: { week: string; onRun: Run; locked: boolean; onClosed: () => void }) {
+  const endWeekTrigger = useRef<HTMLButtonElement>(null);
   const [preview, setPreview] = useState<ClosePreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,7 @@ function EndWeek({ week, onRun, locked, onClosed }: { week: string; onRun: Run; 
   }
   const tasks = new Map(preview?.snapshot.tasks.map((task) => [task.id, task]));
   return <div className="week-actions">
-    <button type="button" className="secondary" disabled={busy || locked} onClick={() => void review()}>{busy ? "Working…" : preview ? "Refresh end-week preview" : "End Week"}</button>
+    <button ref={endWeekTrigger} type="button" className="secondary" disabled={busy || locked} onClick={() => void review()}>{busy ? "Working…" : preview ? "Refresh end-week preview" : "End Week"}</button>
     {preview ? <section className="week-review" aria-label="End week preview">
       <h3>Review before closing</h3>
       <p>{showDate(preview.snapshot.week_start)} – {showDate(preview.snapshot.week_end)}</p>
@@ -72,7 +73,7 @@ function EndWeek({ week, onRun, locked, onClosed }: { week: string; onRun: Run; 
       })}</ul> : <p>No planned work. This week will close with 0 of 0 complete (0%).</p>}
       <div className="form-actions">
         <button type="button" disabled={busy || locked} onClick={() => void close()}>Close week</button>
-        <button type="button" className="secondary" disabled={busy} onClick={() => { setPreview(null); setError(null); }}>Cancel</button>
+        <button type="button" className="secondary" disabled={busy} onClick={() => { setPreview(null); setError(null); endWeekTrigger.current?.focus(); }}>Cancel</button>
       </div>
     </section> : null}
     {error ? <p role="alert" className="error">{error} Review the preview again if the week has changed.</p> : null}
