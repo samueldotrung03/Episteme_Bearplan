@@ -207,7 +207,11 @@ credential recovery, local task and paused-timer continuity, Google Pause / Sync
 once / Resume, and Pause persistence after restarting the fake-provider service.
 See the [operator review](reviews/2026-11-10-settings-operator-walkthrough.md).
 
-**Next step:** Complete the APP-C09 handoff review. Focused fake-provider
+**Settings handoff:** The [implementation handoff](../frontend/plans/settings-connections/IMPLEMENTATION_HANDOFF.md)
+records the delivered scope and evidence boundaries. APP-C09 is delivered with
+follow-ups; optional live checks and broader acceptance are not certified.
+
+**Next step:** Resolve remaining gates when separately scoped. Focused fake-provider
 account and service-restart checks passed 15 cases on November 11; earlier
 offline Plan regressions and the user’s blocked-provider walkthrough supply
 bounded offline evidence. Real same-account reauthorization and a system-wide
@@ -425,7 +429,7 @@ Pause/status/disconnect work; concurrent account-isolation work remains unverifi
 | APP-C08.1 | Done — Pass with follow-ups | [Integrated process, fault and regression review](reviews/2026-11-06-settings-integrated-regression.md). |
 | APP-C08.2 | Done — Pass with follow-ups | [Accessibility review](reviews/2026-11-06-settings-accessibility-review.md): bounded user-reported VoiceOver and earlier browser checks. |
 | APP-C08.3 | Done — Pass with follow-ups | [Independent create-guard review and final checks](reviews/2026-11-06-google-create-guard.md). VoiceOver and operator/live evidence remain separate. |
-| APP-C09 | In progress — handoff | Bounded [operator walkthrough](reviews/2026-11-10-settings-operator-walkthrough.md) passed with follow-ups; handoff pending; fake-provider reconnect and bounded offline evidence recorded, real-provider evidence open. |
+| APP-C09 | Delivered — Pass with follow-ups | [Implementation handoff](../frontend/plans/settings-connections/IMPLEMENTATION_HANDOFF.md); fake-provider reconnect and bounded offline evidence recorded, real-provider evidence open. |
 
 ## UX delivery register
 This is the sole mutable UX status table; stable ticket details/acceptance live in
