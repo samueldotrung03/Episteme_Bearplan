@@ -1,0 +1,7 @@
+# Task capture separate-window recovery — November 11, 2026
+
+**Result: Pass with follow-ups.** On macOS Darwin arm64, used two distinct Chrome windows in the same profile, the production frontend and a schema-24 disposable local service. A temporary loopback proxy forwarded the first task capture, read its HTTP 201 response, then dropped the response before delivery. The service and proxy were stopped and the test windows closed afterward. The test used synthetic data only; installed browser extensions were present, so this is evidence for this browser/profile, not every environment.
+
+The first window submitted “Separate window saved”. The second already held an independent unsaved task draft. The second window displayed the pending-save notice and recovered the committed request; its draft remained intact and the task appeared once. The original window then showed the resolved-elsewhere warning, and closing its stale form refreshed the list to show that task. A read-only query of the disposable SQLite database found one matching task and one capture receipt. This scenario did not include a planned date; earlier [two-tab evidence](2026-11-11-task-capture-post-commit.md) covered a lost response with a planned date.
+
+The launcher built the current frontend successfully (including typecheck). No application source changed in this check. Real storage/lock failures, dark mode, broader accessibility and user acceptance remain open. This bounded recovery check does not establish every concurrent interleaving or release acceptance.

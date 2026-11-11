@@ -47,8 +47,16 @@ records simulated form-level storage/lock failure checks and a clearer storage
 error. Frontend: 210 tests and build passed on macOS. A separate-window browser
 attempt was interrupted; no real storage/lock fault was verified.
 
-**Next concrete step:** Complete real browser verification of separate windows,
-storage/lock failures, broader keyboard/accessibility and dark-theme coverage, and user acceptance using the
+The [separate-window review](reviews/2026-11-11-task-capture-separate-windows.md)
+verifies a dropped committed response across two Chrome windows, preservation of
+another draft and the original window's refresh; one task and receipt were stored.
+
+The [dark-mode review](reviews/2026-11-11-task-capture-dark-mode.md) checks the
+empty form and outage recovery at one compact Chrome viewport, including a visible
+focus return. It is not a full theme or accessibility audit.
+
+**Next concrete step:** Complete real browser verification of storage/lock failures,
+broader keyboard/accessibility and theme coverage, and user acceptance using the
 [UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md). The task-entry integration
 remains in progress.
 

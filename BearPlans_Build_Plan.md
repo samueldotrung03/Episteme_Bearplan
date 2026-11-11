@@ -245,8 +245,9 @@ Gmail** (Gmail reuses the same Google setup). Estimate: one day, four steps.
    Disconnect cancels a sign-in in progress (a late one is dropped and revoked), waits
    for a running sync, deletes the local token, then revokes at Google and reports
    whether Google confirmed; a `status` summary (not_set_up, signed_out, signing_in,
-   needs_attention, paused, syncing, working). Open: Google account identity, so a
-   different account cannot reuse the previous account's list mappings.
+   needs_attention, paused, syncing, working). Google account identity (migration 21):
+   another account stops sync before anything is written until the user signs back in
+   or chooses "Use this account", which starts fresh links in that account.
 4. **Connections screen (frontend, after Codex's design).** One place for bCourses and Google: status, "Paste token"
    (password field, cleared after save), "Choose sign-in file" (file picker),
    Replace, Remove, Test, and short step-by-step help with links to the bCourses

@@ -44,7 +44,7 @@ test("a malformed success and a rejected request retain the original recovery da
 test("storage failure prevents preparing a request", async () => {
   const storage = { getItem: () => null, setItem: () => { throw new Error("unavailable"); } } as unknown as Storage;
   const fetcher = vi.spyOn(globalThis, "fetch");
-  await expect(startCapture(capture, storage)).rejects.toThrow("unavailable");
+  await expect(startCapture(capture, storage)).rejects.toThrow(/storage is unavailable.*No task was sent/);
   expect(fetcher).not.toHaveBeenCalled();
 });
 

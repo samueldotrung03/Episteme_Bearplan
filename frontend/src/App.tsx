@@ -87,6 +87,7 @@ export default function App() {
   const [taskDraftProjects, setTaskDraftProjects] = useState<string[]>([]);
   const addTaskTrigger = useRef<HTMLButtonElement>(null);
   const [pendingCapture, setPendingCapture] = useState(() => { try { return readPendingCapture(); } catch { return null; } });
+  const [reviewPendingCapture, setReviewPendingCapture] = useState(false);
   useEffect(() => {
     const update = () => { try { setPendingCapture(readPendingCapture()); } catch { /* Form reports unavailable recovery storage. */ } };
     window.addEventListener("storage", update); window.addEventListener("bearplans-capture-change", update);
@@ -307,10 +308,16 @@ export default function App() {
         <button type="button" aria-pressed={planView === "week"} onClick={() => setPlanView("week")}>Week</button>
         <button type="button" aria-pressed={planView === "projects"} onClick={() => setPlanView("projects")}>Projects</button>
       </nav>
-      {pendingCapture ? <div role="status"><span>A task save needs confirmation: {pendingCapture.title}. </span><button type="button" onClick={() => {
-        setScreen("plan"); setPlanView("projects"); setSelectedId(pendingCapture.project_id ?? null);
-        setTaskDraftProjects(ids => ids.includes(pendingCapture.project_id!) ? ids : [...ids, pendingCapture.project_id!]);
-      }}>Review pending task save</button></div> : null}
+      {pendingCapture ? <section aria-label="Pending task save"><p role="status">A task save needs confirmation: {pendingCapture.title}.</p>
+        <button type="button" onClick={() => setReviewPendingCapture(value => !value)} aria-expanded={reviewPendingCapture}>Review pending task save</button>
+        {reviewPendingCapture ? <div>
+          <h2>Review pending task save</h2>
+          <p className="muted">{projects?.find(project => project.id === pendingCapture.project_id)?.name ?? "Project unavailable"}</p>
+          <TaskCaptureForm key={pendingCapture.operation_id} projectId={pendingCapture.project_id!}
+            onCancel={() => setReviewPendingCapture(false)}
+            onSaved={() => { setReviewPendingCapture(false); void run(async () => {}, "Task added.").catch(() => setStatus("Task saved. Refresh your views to see it.")); }} />
+        </div> : null}
+      </section> : null}
       <div hidden={planView !== "today"}>
       <Today visible={screen === "plan" && planView === "today"} lastSessionId={timer.state?.last_session?.id ?? null} plan={planning.plan} projects={projects ?? []} loading={planning.loading} error={planning.error} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onRun={run} onTrack={openTrack} onRetry={() => void planning.refresh()} />
       </div>
@@ -395,18 +402,25 @@ export default function App() {
               {progress ? <p className="muted">{progress.completed} of {progress.total} work items complete</p> : null}
 
               {!taskDraftProjects.includes(selected.id) ? (
-                <button ref={addTaskTrigger} type="button" aria-expanded="false" onClick={() => setTaskDraftProjects((ids) => [...ids, selected.id])}>+ Add task</button>
+                <button ref={addTaskTrigger} type="button" aria-expanded="false" disabled={tasks === null || Boolean(loadError)} onClick={() => setTaskDraftProjects((ids) => [...ids, selected.id])}>+ Add task</button>
               ) : null}
               {taskDraftProjects.map((projectId) => (
                 <div key={projectId} hidden={selected.id !== projectId}>
                   <TaskCaptureForm
                     projectId={projectId}
-                    onCancel={() => {
+                    onCancel={(resolvedElsewhere) => {
                       setTaskDraftProjects((ids) => ids.filter((id) => id !== projectId));
+                      if (resolvedElsewhere && selectedIdRef.current === projectId) {
+                        setTasks(null);
+                        setProgress(null);
+                        void refreshTasks(projectId);
+                        void planning.refresh();
+                      }
                       requestAnimationFrame(() => addTaskTrigger.current?.focus());
                     }}
                     onSaved={() => {
                       setTaskDraftProjects((ids) => ids.filter((id) => id !== projectId));
+                      if (selectedIdRef.current === projectId) requestAnimationFrame(() => addTaskTrigger.current?.focus());
                       void run(async () => {}, "Task added.").catch(() => setStatus("Task saved. Refresh your views to see it."));
                     }}
                   />

@@ -27,8 +27,12 @@ async function locked<T>(work: () => Promise<T>): Promise<T> {
 }
 
 function prepareCapture(capture: TaskCapture, storage: Storage): void {
-  if (storage.getItem(PENDING_KEY) !== null) throw new CaptureRecoveryError("Resolve the pending task save before starting another.");
-  storage.setItem(PENDING_KEY, JSON.stringify(capture));
+  let existing: string | null;
+  try { existing = storage.getItem(PENDING_KEY); }
+  catch { throw new CaptureRecoveryError("Task save recovery storage is unavailable. No task was sent. Check your browser storage settings and try again."); }
+  if (existing !== null) throw new CaptureRecoveryError("Resolve the pending task save before starting another.");
+  try { storage.setItem(PENDING_KEY, JSON.stringify(capture)); }
+  catch { throw new CaptureRecoveryError("Task save recovery storage is unavailable. No task was sent. Check your browser storage settings and try again."); }
 }
 
 async function attempt(storage: Storage): Promise<TaskCaptureResult> {

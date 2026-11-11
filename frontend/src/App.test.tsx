@@ -943,3 +943,78 @@ test("task creation opens on demand and retains separate drafts across projects"
   await user.click(screen.getByRole("button", { name: "Computer science" }));
   expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("CS draft");
 });
+
+test("saving a new task returns keyboard focus to its add control", async () => {
+  fakeService([project(MATH, "Math 55", true)], []);
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  await user.click(await screen.findByRole("button", { name: "+ Add task" }));
+  await user.type(screen.getByLabelText("Title"), "Keyboard task");
+  await user.click(screen.getByRole("button", { name: /^Add task$/ }));
+  await screen.findByRole("checkbox", { name: "Keyboard task" });
+  await waitFor(() => expect(screen.getByRole("button", { name: "+ Add task" })).toHaveFocus());
+});
+
+test("reviewing another window's pending save preserves an open task draft", async () => {
+  fakeService([project(MATH, "Math 55", true)], []);
+  const user = userEvent.setup();
+  render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  await screen.findByText(/no tasks in this project yet/i);
+  await user.click(screen.getByRole("button", { name: "+ Add task" }));
+  await user.type(screen.getByLabelText("Title"), "My unsaved draft");
+  localStorage.setItem("bearplans.task-capture.pending.v1", JSON.stringify({ operation_id: "pending-id", project_id: MATH, title: "Other window task", planned_date: null, notes: null, deadline: null, estimate_minutes: null }));
+  fireEvent(window, new Event("storage"));
+  await user.click(await screen.findByRole("button", { name: "Review pending task save" }));
+  const review = screen.getByRole("region", { name: "Pending task save" });
+  expect(within(review).getByLabelText("Title")).toHaveValue("Other window task");
+  expect(screen.getAllByLabelText("Title").some(input => (input as HTMLInputElement).value === "My unsaved draft")).toBe(true);
+  await user.click(within(review).getByRole("button", { name: "Check save status" }));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "Pending task save" })).not.toBeInTheDocument());
+  expect(screen.getByLabelText("Title")).toHaveValue("My unsaved draft");
+});
+
+test("closing a task save resolved elsewhere refreshes the stale project list", async () => {
+  const tasks: Task[] = [];
+  localStorage.setItem("bearplans.task-capture.pending.v1", JSON.stringify({ operation_id: "pending-id", project_id: MATH, title: "Saved elsewhere", planned_date: null, notes: null, deadline: null, estimate_minutes: null }));
+  fakeService([project(MATH, "Math 55", true)], tasks);
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  await user.click(await screen.findByRole("button", { name: "+ Add task" }));
+  expect(screen.getByLabelText("Title")).toHaveValue("Saved elsewhere");
+  tasks.push(task("1", "Saved elsewhere"));
+  localStorage.removeItem("bearplans.task-capture.pending.v1");
+  fireEvent(window, new Event("storage"));
+  expect(await screen.findByText(/resolved elsewhere/)).toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(await screen.findByRole("checkbox", { name: "Saved elsewhere" })).toBeVisible();
+});
+
+test("failed refresh after a save resolved elsewhere hides stale tasks and allows retry", async () => {
+  const tasks: Task[] = [];
+  localStorage.setItem("bearplans.task-capture.pending.v1", JSON.stringify({ operation_id: "pending-id", project_id: MATH, title: "Saved elsewhere", planned_date: null, notes: null, deadline: null, estimate_minutes: null }));
+  fakeService([project(MATH, "Math 55", true)], tasks);
+  const fetcher = vi.mocked(fetch);
+  const service = fetcher.getMockImplementation()!;
+  let failRefresh = false;
+  fetcher.mockImplementation((input, init) => failRefresh && String(input).startsWith("/api/tasks?") ? Promise.reject(new TypeError("offline")) : service(input, init));
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  await user.click(await screen.findByRole("button", { name: "+ Add task" }));
+  tasks.push(task("1", "Saved elsewhere"));
+  localStorage.removeItem("bearplans.task-capture.pending.v1");
+  fireEvent(window, new Event("storage"));
+  await screen.findByText(/resolved elsewhere/);
+  failRefresh = true;
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(await screen.findByRole("button", { name: "Try again" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "+ Add task" })).toBeDisabled();
+  expect(screen.queryByText(/no tasks in this project yet/i)).not.toBeInTheDocument();
+  failRefresh = false;
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  expect(await screen.findByRole("checkbox", { name: "Saved elsewhere" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "+ Add task" })).toBeEnabled();
+});

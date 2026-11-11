@@ -1,5 +1,33 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Compact dark-mode task capture check
+
+Inspected the empty form and outage recovery in Chrome dark emulation at 589×1167; keyboard recovery saved the synthetic task and returned visible focus. Broader accessibility, themes and user acceptance remain open. [Review](reviews/2026-11-11-task-capture-dark-mode.md).
+
+## 2026-11-11 — Separate-window task capture recovery check
+
+Verified recovery of a deliberately lost successful response across two Chrome windows, preserving a second draft and refreshing the first window; the disposable database contained one task and receipt. Broader failure and user acceptance remain open. [Review](reviews/2026-11-11-task-capture-separate-windows.md).
+
+## 2026-11-11 — Task capture storage failure feedback
+
+Storage preparation failures now explain that no task was sent and suggest checking browser storage settings. Simulated form checks verify draft retention and no request for unavailable storage or Web Locks. Frontend: 210 tests and build passed on macOS; real-browser failure checks remain open. [Review](reviews/2026-11-11-task-capture-storage-feedback.md).
+
+## 2026-11-11 — Task capture save focus and bounded layout check
+
+Successful Save returns focus to Add task in the selected project. Checked keyboard open/cancel/save and light-mode form dimensions at 640, 800 and 1440 pixels in a disposable browser session. Frontend: 208 tests and build passed on macOS; broader accessibility and acceptance remain open. [Review](reviews/2026-11-11-task-capture-keyboard-layout.md).
+
+## 2026-11-11 — Post-commit task capture recovery and stale-list fix
+
+Verified a deliberately lost successful response and replay across two browser tabs with disposable data. Closing the stale form now refreshes its list; failed refresh hides stale content and blocks new task entry until retry. Frontend: 207 tests and build passed on macOS. Wider browser and user acceptance remain open. [Review](reviews/2026-11-11-task-capture-post-commit.md).
+
+## 2026-11-11 — Bounded task capture browser check
+
+Verified planned task save, reload, cancellation and outage recovery across two browser tabs with disposable data. Production build, 205 frontend tests and 15 focused backend tests passed on macOS. Acceptance and additional browser failure/coverage checks remain open. [Review](reviews/2026-11-11-task-capture-browser-check.md).
+
+## 2026-11-11 — Preserve drafts during pending task recovery
+
+Pending-save review now has its own panel, preserving a separate project draft; a stale form stays locked after another view resolves its request. Frontend: 205 tests and typecheck passed on macOS. Real browser and user acceptance remain open. [Review](reviews/2026-11-11-capture-draft-recovery.md).
+
 ## 2026-11-11 — Task capture stale-window safeguard
 
 Retry and resolution now require the reviewed operation ID, preventing a stale window from acting on a different pending capture. Frontend suite: 201 passed; typecheck passed on macOS. The form integration remains open. [Review](reviews/2026-11-11-capture-stale-window.md).

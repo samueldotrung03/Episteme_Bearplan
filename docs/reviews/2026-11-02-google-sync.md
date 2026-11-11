@@ -224,9 +224,26 @@ source findings on Claude's code are addressed here, except account identity.
   not saved and is revoked. Replacing the file now saves it before signing out.
 - **Status summary** on `GET /api/google`: `status` (not_set_up, signed_out, signing_in,
   needs_attention, paused, syncing, working) and `tasks.paused_at` / `tasks.syncing`.
-- **Not done:** Google account identity (a different account must not reuse the previous
-  account's list mappings); no frontend change (`api.ts` types not updated).
+- **Not done:** no frontend change (`api.ts` types not updated). Account identity:
+  see the next section.
 - Checks: `tests/test_google_controls.py` (8, run 3×), connection tests 21; pytest 966
   passed, 1 Windows-only skip. Tests never call Google: `conftest.py` replaces
   `revoke_token`. Migration 19 → 20 runs at the user's next launch, after the automatic
   backup.
+
+## Google account identity (2026-11-03)
+
+`backend/domain/google_account.py`, migration 21 (`google_sync.account_key`,
+`other_account_key`). The account is identified by its primary calendar's ID from the
+calendar list (permission already granted; no new consent), stored only as a one-way
+hash. The first account seen is adopted (covers the user's existing sync). Each sync
+checks the account **before** any Google write, and so do the calendar refresh/follow
+routes; another account stops with `google_other_account` ("signed in to a different
+Google account …"), shown as `needs_attention` with `tasks.other_account`. Signing back
+in to the previous account carries on without duplicates. `POST
+/api/google/use-this-account` (waits for a running sync) forgets the previous account's
+links here (lists, tasks, BearPlans calendar and its events, calendar cache; tasks made
+from events stay) and adopts the new account; the next sync creates them there. Nothing
+is deleted in either Google account. Disconnect keeps the stored account.
+Checks: `tests/test_google_account.py` (5, run 3×); pytest 971 passed, 1 Windows-only
+skip. Migrations 19 → 21 run at the user's next launch, after the automatic backup.

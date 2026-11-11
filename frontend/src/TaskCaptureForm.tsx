@@ -1,11 +1,12 @@
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { ESTIMATE_MAX_MINUTES, ESTIMATE_MIN_MINUTES, TITLE_MAX_LENGTH, type TaskCapture } from "./api";
 import { checkCapture, readPendingCapture, resolveRejectedCapture, startCapture, retryCapture } from "./taskCaptureRecovery";
 
 const message = (error: unknown) => error instanceof Error ? error.message : "Could not save. Try again.";
-const notify = () => window.dispatchEvent(new Event("bearplans-capture-change"));
+const notify = (origin: object) => window.dispatchEvent(new CustomEvent("bearplans-capture-change", { detail: origin }));
 
-export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: string; onCancel: () => void; onSaved: () => void }) {
+export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: string; onCancel: (resolvedElsewhere: boolean) => void; onSaved: () => void }) {
+  const origin = useRef({});
   const [initial] = useState(() => { try { const pending = readPendingCapture(); return pending?.project_id === projectId ? pending : null; } catch { return null; } });
   const [title, setTitle] = useState(initial?.title ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
@@ -14,20 +15,34 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
   const [day, setDay] = useState(initial?.planned_date ?? "");
   const [pending, setPending] = useState<TaskCapture | null>(initial);
   const [rejected, setRejected] = useState(false);
+  const [resolvedElsewhere, setResolvedElsewhere] = useState(false);
+  useEffect(() => {
+    if (!pending) return;
+    const checkOtherWindow = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail === origin.current) return;
+      try {
+        const current = readPendingCapture();
+        if (!current || current.operation_id !== pending.operation_id) setResolvedElsewhere(true);
+      } catch { /* Keep the form locked if recovery storage cannot be read. */ }
+    };
+    window.addEventListener("storage", checkOtherWindow);
+    window.addEventListener("bearplans-capture-change", checkOtherWindow);
+    return () => { window.removeEventListener("storage", checkOtherWindow); window.removeEventListener("bearplans-capture-change", checkOtherWindow); };
+  }, [pending]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(initial ? "The previous save needs confirmation. Check its status before changing it." : null);
   const uid = useId();
-  const locked = busy || (!!pending && !rejected);
+  const locked = busy || resolvedElsewhere || (!!pending && !rejected);
   const validTitle = !!title.trim() && [...title.trim()].length <= TITLE_MAX_LENGTH;
 
-  function saved() { setPending(null); setRejected(false); notify(); onSaved(); }
+  function saved() { setPending(null); setRejected(false); notify(origin.current); onSaved(); }
   function capture(): TaskCapture {
     return { operation_id: crypto.randomUUID(), project_id: projectId, title: title.trim(), notes: notes.trim() || null,
       deadline: deadline || null, estimate_minutes: estimate ? Number(estimate) : null, planned_date: day || null };
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy || !validTitle || (pending && !rejected)) return;
+    if (busy || resolvedElsewhere || !validTitle || (pending && !rejected)) return;
     setBusy(true); setError(null);
     let attempted: TaskCapture | null = null;
     try {
@@ -36,7 +51,7 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
       if (pending) {
         const resolution = await resolveRejectedCapture(pending.operation_id, next);
         if ("saved" in resolution) { saved(); return; }
-        setPending(next); setRejected(false); notify();
+        setPending(next); setRejected(false); notify(origin.current);
         await retryCapture(next.operation_id);
       } else await startCapture(next);
       saved();
@@ -46,12 +61,12 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
         stored = readPendingCapture();
         if (stored && (stored.operation_id === attempted?.operation_id || stored.operation_id === pending?.operation_id)) { setPending(stored); setRejected(false); }
       } catch { /* Keep unreadable recovery data untouched. */ }
-      notify();
+      notify(origin.current);
       setError(`${message(caught)} ${stored && (stored.operation_id === attempted?.operation_id || stored.operation_id === pending?.operation_id) ? "Check the save status before changing the details." : stored ? "Review the other pending task save first." : "Your details are kept in this form."}`);
     } finally { setBusy(false); }
   }
   async function check() {
-    if (!pending || busy) return;
+    if (!pending || busy || resolvedElsewhere) return;
     setBusy(true); setError(null);
     try {
       const result = await checkCapture(pending.operation_id);
@@ -61,13 +76,13 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
     finally { setBusy(false); }
   }
   async function cancel() {
-    if (!pending) { onCancel(); return; }
+    if (!pending || resolvedElsewhere) { onCancel(resolvedElsewhere); return; }
     if (!rejected || busy) return;
     setBusy(true); setError(null);
     try {
       const result = await resolveRejectedCapture(pending.operation_id, null);
       if ("saved" in result) saved();
-      else { setPending(null); notify(); onCancel(); }
+      else { setPending(null); notify(origin.current); onCancel(false); }
     } catch (caught) { setRejected(false); setError(`${message(caught)} Your request is kept; check its status again.`); }
     finally { setBusy(false); }
   }
@@ -80,10 +95,10 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
     <div className="field"><label htmlFor={`capture-day-${uid}`}>Planned day</label><input id={`capture-day-${uid}`} type="date" value={day} disabled={locked} onChange={e => setDay(e.target.value)} /><span className="muted">Deadline and planned day are separate.</span></div>
     <div className="field"><label htmlFor={`capture-notes-${uid}`}>Notes</label><textarea id={`capture-notes-${uid}`} rows={2} value={notes} disabled={locked} onChange={e => setNotes(e.target.value)} /></div>
     {title.trim() && !validTitle ? <p className="error">Keep the title to {TITLE_MAX_LENGTH} characters or fewer.</p> : null}
-    {error ? <p className="error" role="alert">{error}</p> : null}
+    {resolvedElsewhere ? <p className="error" role="alert">This pending save was resolved elsewhere. Close this form and check your task list before creating it again.</p> : error ? <p className="error" role="alert">{error}</p> : null}
     <div className="form-actions">
-      {pending && !rejected ? <button type="button" disabled={busy} onClick={() => void check()}>{busy ? "Checking…" : "Check save status"}</button> : <button type="submit" disabled={busy || !validTitle}>{busy ? "Saving…" : "Add task"}</button>}
-      <button type="button" className="link" disabled={busy || (!!pending && !rejected)} onClick={() => void cancel()}>Cancel</button>
+      {resolvedElsewhere ? null : pending && !rejected ? <button type="button" disabled={busy} onClick={() => void check()}>{busy ? "Checking…" : "Check save status"}</button> : <button type="submit" disabled={busy || !validTitle}>{busy ? "Saving…" : "Add task"}</button>}
+      <button type="button" className="link" disabled={busy || (!!pending && !rejected && !resolvedElsewhere)} onClick={() => void cancel()}>Cancel</button>
     </div>
   </form>;
 }

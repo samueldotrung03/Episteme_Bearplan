@@ -1,0 +1,10 @@
+# Task capture browser check — November 11, 2026
+
+**Result: Pass with follow-ups; integration acceptance remains open.** On macOS Darwin arm64, used the in-app browser and a schema-24 service at 127.0.0.1:18973 with disposable data in `/private/tmp/bearplans-ux-check-20261111` and an empty secrets path. The service was stopped after testing.
+
+- Entered a synthetic title and planned day using the keyboard; Save created the task, Today displayed it on November 11, and Projects showed its planned date after browser reload. Cancel of a separate draft returned to the list without adding it.
+- With two same-origin browser tabs open and a different draft in the second, stopped the service before submitting the first tab's task. The form retained the title and reported an uncertain save. The pending notice appeared in the second tab; after service restart and first-tab reload, the notice remained. Checking the pending save in the second tab created one task and retained its independent draft. This tested a request that could not reach the service, not a lost response after a successful commit, nor two separate browser windows.
+- Keyboard date entry worked. The browser automation's direct date fill changed the DOM value without firing the React change event; a subsequent edit cleared it. The first two synthetic tasks were consequently unscheduled, so they are not evidence of a product date-save failure.
+- Inspected screenshots with requested 640×800 and 1440×900 viewport overrides, but screenshot framing did not provide reliable full-width coverage. No dark-theme, complete keyboard/focus, storage/lock fault, refresh-failure, post-commit lost-response or user-acceptance evidence was obtained. These remain open. No personal data was used.
+
+Checks on this working tree: `npm --prefix frontend run build` passed (includes TypeScript check); `npm --prefix frontend test` passed 205 tests in 19 files; `.venv/bin/python -m pytest tests/test_task_capture.py tests/test_task_capture_api.py -q` passed 15 tests. Existing automated recovery tests cover simulated storage/lock failures and replay, but do not replace the missing browser checks.

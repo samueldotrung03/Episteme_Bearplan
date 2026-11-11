@@ -1,0 +1,11 @@
+# Task capture post-commit recovery — November 11, 2026
+
+**Result: Pass with follow-ups; full task-entry acceptance remains open.** On macOS Darwin arm64, used the in-app browser, a schema-24 disposable service on loopback port 18974, and a temporary loopback proxy on port 18975. The proxy forwarded the capture to the service, read its successful 201 response, and closed the client connection without delivering that response. Both processes were stopped after testing; no personal data was used.
+
+The first capture included a planned day. Its form retained the request and showed an uncertain-save message; a second tab displayed the already-committed task and recovered the same request. The result remained one task with its date, and the first tab locked its stale form. A repeat exposed that closing this form showed a stale task list. The fix clears and refreshes the selected project list and planning view on close; a second post-commit replay showed the recovered task in the original tab after closing the form.
+
+For a third capture, stopped the service after another tab recovered the committed request, then closed the stale form. The old list was cleared and a service error and Try again appeared. Restarting the service and using Try again restored the list including the saved task. That live check used the build before the additional guard below; the guard was verified by the regression test.
+
+The refresh failure also left Add task available before the list could be checked. The final change disables Add task while the project task list is loading or unavailable. Automated tests exercise both a successful refresh and failure, hidden stale content, disabled entry and successful retry. `npm --prefix frontend test` passed 207 tests in 19 files; `npm --prefix frontend run build` passed including typecheck; `git diff --check` passed. The test proxy's connection exceptions during the deliberate service outage are expected test-harness failures, not application test failures.
+
+These are two tabs, not separate browser windows. Real storage/lock failures, complete keyboard and focus checks, reliable responsive/theme coverage, and user acceptance remain open. Browser fault injection establishes this replay path, not every possible interleaving. The original browser review remains historical evidence.

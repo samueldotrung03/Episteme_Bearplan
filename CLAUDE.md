@@ -36,6 +36,17 @@ Keep incomplete work clearly marked; do not claim completion because usage ran o
 Link the detailed review record and separate implementation and milestone decisions.
 Do not rely on Claude's chat/session memory as the only record of a product decision.
 
+## Context budget (Claude tool use)
+
+- Read large docs (`docs/PROGRESS.md`, `docs/COMPLETED.md`, `AGENTS.md`, plans,
+  reviews) in sections: grep for the heading first, then Read with offset/limit.
+  Do not re-read a file already read this session unless it has changed.
+- Cap Bash output: pipe test, build, log and git output through `tail -n 40`,
+  `head` or `grep` (for example, failures only). Use `git diff --stat` before a
+  full diff, then diff specific files.
+- For broad searches across many files, delegate to an Explore agent and keep
+  only its conclusion.
+
 Commit only when asked or otherwise explicitly authorized in the current task;
 preserve unrelated uncommitted changes. Keep this file substantive and available
 for Claude's return. Add future Claude-specific tool/workflow instructions here,

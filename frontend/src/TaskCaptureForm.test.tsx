@@ -59,3 +59,30 @@ test("closed week keeps the draft, permits correction after checking and saves a
   expect(last.planned_date).toBe("2026-11-25");
   expect(last.operation_id).not.toBe(first.operation_id);
 });
+
+test("unavailable recovery storage keeps the draft and sends no task", async () => {
+  const fetcher = vi.spyOn(globalThis, "fetch");
+  const storage = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Storage unavailable", "SecurityError"); });
+  const user = userEvent.setup();
+  render(<TaskCaptureForm projectId={projectId} onCancel={vi.fn()} onSaved={vi.fn()} />);
+  await user.type(screen.getByLabelText("Title"), "Keep this draft");
+  await user.click(screen.getByRole("button", { name: "Add task" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/storage is unavailable.*no task was sent/i);
+  expect(screen.getByLabelText("Title")).toHaveValue("Keep this draft");
+  expect(screen.getByLabelText("Title")).toBeEnabled();
+  expect(fetcher).not.toHaveBeenCalled();
+  storage.mockRestore();
+});
+
+test("unavailable browser locks keep the draft and send no task", async () => {
+  Object.defineProperty(navigator, "locks", { configurable: true, value: undefined });
+  const fetcher = vi.spyOn(globalThis, "fetch");
+  const user = userEvent.setup();
+  render(<TaskCaptureForm projectId={projectId} onCancel={vi.fn()} onSaved={vi.fn()} />);
+  await user.type(screen.getByLabelText("Title"), "Keep this draft");
+  await user.click(screen.getByRole("button", { name: "Add task" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/cannot safely coordinate/i);
+  expect(screen.getByLabelText("Title")).toHaveValue("Keep this draft");
+  expect(screen.getByLabelText("Title")).toBeEnabled();
+  expect(fetcher).not.toHaveBeenCalled();
+});
