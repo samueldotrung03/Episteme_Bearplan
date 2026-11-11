@@ -511,7 +511,7 @@ details > summary:focus-visible {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  min-height: 20rem;
+  min-height: 6rem;
   padding: 0.45rem;
 }
 

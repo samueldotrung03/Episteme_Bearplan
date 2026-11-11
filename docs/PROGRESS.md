@@ -312,6 +312,8 @@ Project task entry now opens on demand, keeps separate in-memory drafts across p
 
 End Week now appears after the weekly board; cancel returns focus and leaves the week open. [Review](reviews/2026-11-11-week-footer.md). The weekly layout and compact completed cards still need further redesign.
 
+Empty Week days now use a smaller minimum height while remaining usable drop targets. [Review](reviews/2026-11-11-week-empty-space.md).
+
 Next: refine the remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 

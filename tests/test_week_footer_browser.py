@@ -18,6 +18,8 @@ def test_week_footer_and_cancel(browser, evidence, tmp_path, width, theme):
         expect(button).to_be_visible()
         assert board.evaluate("(board, button) => Boolean(board.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING)", button.element_handle())
         assert no_horizontal_overflow(page)
+        visible_day = page.locator(".day-column:visible").first
+        assert 80 <= visible_day.bounding_box()["height"] <= 160
         button.scroll_into_view_if_needed()
         page.screenshot(path=str(evidence / f"week-footer-{width}-{theme}.png"))
         button.focus()

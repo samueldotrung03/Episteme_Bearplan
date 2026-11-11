@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Compact empty Week days
+
+- Reduced unused empty-day height and verified drag and planning behavior in disposable Chrome at narrow and wide sizes. [Review](reviews/2026-11-11-week-empty-space.md).
+
 ## 2026-11-11 — Week footer action
 
 - Moved End Week after the weekly board and restored focus on preview cancellation. Verified 189 frontend tests, the build, and disposable browser checks for three widths and close/carryover/planning. [Review](reviews/2026-11-11-week-footer.md).
