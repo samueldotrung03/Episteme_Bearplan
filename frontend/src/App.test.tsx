@@ -709,8 +709,8 @@ test("selected-day controls change the day rendered in the narrow-window layout"
   fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Week" }));
   await screen.findByText("Today is Oct 15, 2026 · America/Los_Angeles");
   const selector = within(board().getByRole("group", { name: "Selected day" }));
-  await user.click(selector.getByRole("button", { name: /FriOct 16/ }));
-  expect(selector.getByRole("button", { name: /FriOct 16/ })).toHaveAttribute("aria-pressed", "true");
+  await user.click(selector.getByRole("button", { name: /Friday, Oct 16/ }));
+  expect(selector.getByRole("button", { name: /Friday, Oct 16/ })).toHaveAttribute("aria-pressed", "true");
   expect(board().getByRole("region", { name: "Friday, Oct 16, 2026" })).toHaveClass("day-selected");
   expect(board().getByRole("region", { name: "Thursday, Oct 15, 2026" })).not.toHaveClass("day-selected");
 });

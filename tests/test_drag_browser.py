@@ -260,7 +260,8 @@ def test_native_move_alt_move_cancel_controls_keyboard_and_narrow_days(browser, 
         page.set_viewport_size({"width": 375, "height": 900})
         selector = page.get_by_role("group", name="Selected day")
         selector.get_by_role("button", name=re.compile("Tue")).click()
-        selected_label = selector.get_by_role("button", pressed=True).inner_text()
+        selected_day = selector.get_by_role("button", pressed=True)
+        expect(selected_day).to_contain_text("Tue")
         narrow_target = selector.get_by_role("button", name=re.compile("Fri"))
         begin_drag(page, handle(page, task["title"], tuesday))
         hover_destination(page, narrow_target)
@@ -268,7 +269,9 @@ def test_native_move_alt_move_cancel_controls_keyboard_and_narrow_days(browser, 
         page.screenshot(path=evidence / "drag-03-move-narrow.png", full_page=True, timeout=5000)
         finish_drop(page)
         expect(page.locator(".week-board .planned-card:visible")).to_have_count(0)
-        assert selector.get_by_role("button", pressed=True).inner_text() == selected_label
+        expect(selected_day).to_have_attribute("aria-pressed", "true")
+        expect(selected_day).to_contain_text("· 0")
+        expect(narrow_target).to_contain_text("· 1")
         assert plan(service)["week_start"] == initial["week_start"]
         final = plan(service)
         assert len(final["placements"]) == 2 and other_placement in final["placements"]

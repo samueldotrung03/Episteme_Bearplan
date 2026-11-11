@@ -117,6 +117,19 @@ test("an empty weekly board reports zero progress", () => {
   expect(screen.getByRole("progressbar", { name: "Weekly completion" })).toHaveValue(0);
 });
 
+test("day choices count visible placements including completed work and frozen history", () => {
+  const open = planning({ tasks: [task(), task("done", { completed: true })], placements: [placement(), placement("p2", "done"), placement("p3", "leaf", "2026-10-16")] });
+  const { rerender } = render(<WeeklyPlanner state={boardState(open)} projects={[]} onRun={run} locked={false} />);
+  const selector = () => within(screen.getByRole("group", { name: "Selected day" }));
+  expect(selector().getByRole("button", { name: /Thursday, Oct 15, 2026, Today, 2 planned tasks/ })).toHaveAttribute("aria-pressed", "true");
+  expect(selector().getByRole("button", { name: /Friday, Oct 16, 2026, 1 planned task/ })).toBeInTheDocument();
+  expect(selector().getByRole("button", { name: /Monday, Oct 12, 2026, 0 planned tasks/ })).toBeInTheDocument();
+  const frozen = snapshot({ placements: [placement(), placement("p4", "leaf", "2026-10-16")] });
+  rerender(<WeeklyPlanner state={boardState(planning({ closed_week: frozen, placements: [], tasks: [] }))} projects={[]} onRun={run} locked={false} />);
+  expect(selector().getByRole("button", { name: /Thursday, Oct 15, 2026, Today, 1 planned task/ })).toBeInTheDocument();
+  expect(selector().getByRole("button", { name: /Friday, Oct 16, 2026, 1 planned task/ })).toBeInTheDocument();
+});
+
 test("closed-week task planning does not offer an assignment into history", () => {
   render(<TaskPlanning task={task()} plan={planning({ closed_week: snapshot(), placements: [] })} selectedDay="2026-10-15" onRun={run} />);
   expect(screen.getByText("Viewing a closed week. Choose an open week to plan this task.")).toBeInTheDocument();

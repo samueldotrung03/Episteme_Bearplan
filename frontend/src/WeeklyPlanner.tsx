@@ -385,11 +385,12 @@ export function WeeklyPlanner({ state, projects, onRun, locked, onTrack }: { sta
       {plan ? (
         <>
           <div className="day-selector" role="group" aria-label="Selected day">
-            {days.map((date) => (
-              <button key={date} type="button" className={`${selectedDay === date ? "day-choice day-choice-on" : "day-choice"}${destinationClass(date)}`} onDragOver={(event) => dragOver(event, date)} onDrop={(event) => void drop(event, date)} aria-pressed={selectedDay === date} onClick={() => setSelectedDay(date)}>
-                <span>{dayName.format(plainDate(date)).slice(0, 3)}</span><span>{shortDate.format(plainDate(date))}</span>{date === plan.today ? <span className="today-mark">Today</span> : null}
-              </button>
-            ))}
+            {days.map((date) => {
+              const count = visiblePlacements.filter((placement) => placement.planned_date === date && (closed ? historicalTasks.has(placement.task_id) : tasksById.has(placement.task_id))).length;
+              return <button key={date} type="button" className={`${selectedDay === date ? "day-choice day-choice-on" : "day-choice"}${destinationClass(date)}`} onDragOver={(event) => dragOver(event, date)} onDrop={(event) => void drop(event, date)} aria-pressed={selectedDay === date} aria-label={`${dayName.format(plainDate(date))}, ${showDate(date)}${date === plan.today ? ", Today" : ""}, ${count} planned ${count === 1 ? "task" : "tasks"}`} onClick={() => setSelectedDay(date)}>
+                <span>{dayName.format(plainDate(date)).slice(0, 3)}</span><span>{shortDate.format(plainDate(date))}</span><span className="day-count">· {count}</span>{date === plan.today ? <span className="today-mark">Today</span> : null}
+              </button>;
+            })}
           </div>
           <div className="week-board">
             {days.map((date) => {

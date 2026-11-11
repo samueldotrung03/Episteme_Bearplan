@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Week day counts
+
+- Added planned-task counts to compact Week day choices, including completed work and frozen history. Verified 191 frontend tests, build and six disposable Chrome drag, closure and responsive checks. [Review](reviews/2026-11-11-week-day-counts.md).
+
 ## 2026-11-11 — Week completion overview
 
 - Added an accessible completion bar for open and closed weeks, preserving unique-leaf and frozen-history totals. Verified 190 frontend tests, build and disposable Chrome checks at three widths. [Review](reviews/2026-11-11-week-progress.md).

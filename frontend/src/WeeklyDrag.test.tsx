@@ -78,7 +78,7 @@ test("Option/Alt dragging still moves the existing placement and never adds one"
 test("narrow-layout day buttons accept drops without changing selected day or week", async () => {
   const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(json(source));
   const { state } = setup();
-  const target = within(screen.getByRole("group", { name: "Selected day" })).getByRole("button", { name: /FriOct 16/ });
+  const target = within(screen.getByRole("group", { name: "Selected day" })).getByRole("button", { name: /Friday, Oct 16/ });
   const dataTransfer = start();
   expect(target).toHaveClass("drop-valid");
   fireEvent.dragOver(target, { dataTransfer });
