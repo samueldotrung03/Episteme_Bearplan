@@ -9,7 +9,7 @@ single current handoff.
 **Goal:** Save a new task and its optional planned day together from the project
 task form. Preserve the entered details and make uncertain saves safely retryable.
 The form is now connected in the working tree, but this slice is **not yet ready
-for acceptance**: cross-window draft/recovery navigation and real browser checks remain open.
+for acceptance**: real browser checks remain open.
 
 The atomic API and schema-24 transaction exist. The frontend recovery layer
 persists the exact request and operation ID, coordinates same-origin windows with
@@ -22,16 +22,35 @@ they did not test the integrated UI or actual browser windows. A stale window no
 must identify the exact pending operation before retrying, checking or resolving it.
 See the [cross-window review](reviews/2026-11-11-capture-stale-window.md).
 
-**Next concrete step:** Fix and test the case where another window has a pending
-save for a project whose task form already has a different open draft: reviewing
-that pending save must not overwrite the draft or leave recovery inaccessible.
-Then verify actual reload, two-window operation, UI and service together using
-[UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md), keyboard, widths and themes
-with disposable data. Test storage/lock errors, cancellation and refresh failure.
-The latest form tests cover one-request capture, lost response across remount and
-closed-week correction; the full suite passed 204 tests before the last narrow
-safeguard change, followed by 13 focused tests and typecheck. No production build
-or user acceptance has been performed. [Working review](reviews/2026-11-11-task-capture-ui.md).
+The pending-save review now opens separately from project drafts. A simulated
+second-window test confirms another open draft remains intact during recovery;
+forms whose pending operation was resolved elsewhere remain locked and explain
+how to close and check the task list. The full frontend suite passed 205 tests
+and typecheck on macOS. [Review](reviews/2026-11-11-capture-draft-recovery.md).
+
+The [browser check](reviews/2026-11-11-task-capture-browser-check.md) verified a
+planned task, reload, cancellation and outage recovery across two tabs with a
+separate draft, using disposable data. Production build, 205 frontend tests and
+15 focused backend tests passed on macOS. This did not simulate a lost response
+after commit or separate windows.
+
+The [post-commit review](reviews/2026-11-11-task-capture-post-commit.md) verifies
+lost-response replay across two tabs and documents fixes for a stale project list
+and its refresh failure. Frontend: 207 tests and production build passed on macOS.
+
+The [keyboard and layout review](reviews/2026-11-11-task-capture-keyboard-layout.md)
+records a focus fix after successful Save and bounded light-mode form checks at
+640, 800 and 1440 pixels. Frontend: 208 tests and build passed on macOS.
+
+The [storage feedback review](reviews/2026-11-11-task-capture-storage-feedback.md)
+records simulated form-level storage/lock failure checks and a clearer storage
+error. Frontend: 210 tests and build passed on macOS. A separate-window browser
+attempt was interrupted; no real storage/lock fault was verified.
+
+**Next concrete step:** Complete real browser verification of separate windows,
+storage/lock failures, broader keyboard/accessibility and dark-theme coverage, and user acceptance using the
+[UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md). The task-entry integration
+remains in progress.
 
 ## Open follow-ups and gates
 
@@ -59,6 +78,14 @@ or user acceptance has been performed. [Working review](reviews/2026-11-11-task-
 - Decisions still open: assistant defaults 2–6 in the [actions review](reviews/2026-11-01-assistant-actions.md);
   UX draft row/breakpoint measurements, cross-month week filing, Earlier selection,
   and Figma font fallback. Do not treat proposed defaults as user decisions.
+
+## Refinement plan (tracking and release readiness)
+
+Separate from the active UX slice. Entry point:
+[docs/plans/refinement](plans/refinement/README.md); board and handoff log in its
+[STATUS.md](plans/refinement/STATUS.md). Active: RF-01 (rebaseline the roadmap),
+roadmap rewritten, waiting on the user's target dates. Next: write the dates in,
+then RF-02. RF-04 (new core-trial candidate) waits for the task-entry slice to close.
 
 ## Handoff notes
 
