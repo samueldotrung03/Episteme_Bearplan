@@ -310,11 +310,13 @@ Completed project leaf rows now show only the checked control and struck-through
 
 Project task entry now opens on demand, keeps separate in-memory drafts across project/view switches, and retains values on failed saves. See the [task-entry review](reviews/2026-11-11-on-demand-task-entry.md). The accepted combined task-and-planned-day save remains unimplemented.
 
-End Week now appears after the weekly board; cancel returns focus and leaves the week open. [Review](reviews/2026-11-11-week-footer.md). The weekly layout and compact completed cards still need further redesign.
+End Week now appears after the weekly board; cancel returns focus and leaves the week open. [Review](reviews/2026-11-11-week-footer.md). Further Week layout refinement remains.
 
 Empty Week days now use a smaller minimum height while remaining usable drop targets. [Review](reviews/2026-11-11-week-empty-space.md).
 
 Completed current Week rows now compact to a checkbox and title, and reopening restores their controls; frozen history is unchanged. [Review](reviews/2026-11-11-compact-week-tasks.md).
+
+Week now has a prototype-inspired completion bar with unique-leaf counts and a distinct frozen-history label. [Review](reviews/2026-11-11-week-progress.md).
 
 Next: refine the remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.

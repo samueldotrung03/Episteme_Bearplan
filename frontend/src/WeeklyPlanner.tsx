@@ -369,7 +369,8 @@ export function WeeklyPlanner({ state, projects, onRun, locked, onTrack }: { sta
       {plan ? <>
         <div className="week-state">
           <strong className={`week-badge${closed ? " week-badge-closed" : ""}`}>{closed ? "Closed week · read-only history" : "Open week"}</strong>
-          <p>{closed ? "At closure: " : "Weekly completion: "}{completed} of {total} work items complete ({total ? Math.round(completed / total * 100) : 0}%).</p>
+          <p className="week-progress-label">{closed ? "At closure: " : "Weekly completion: "}{completed} of {total} work items complete ({total ? Math.round(completed / total * 100) : 0}%).</p>
+          <progress className="week-progress" aria-label={closed ? "Completion at week closure" : "Weekly completion"} value={total ? Math.round(completed / total * 100) : 0} max={100} />
         </div>
         {closed ? <p className="planning-hint muted">Saved {closed.closed_at ? new Date(closed.closed_at).toLocaleString() : "at closure"} · {closed.timezone}. Historical details and completion stay fixed. Current task status is shown separately. The project list edits current tasks.</p> : null}
         {plan.closed_weeks?.length ? <div className="closed-history field"><label htmlFor="closed-week-history">Closed-week history</label><select id="closed-week-history" value={closed ? plan.week_start : ""} disabled={loading || locked} onChange={(event) => { if (event.target.value) void navigate(event.target.value); }}>

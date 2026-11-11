@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Week completion overview
+
+- Added an accessible completion bar for open and closed weeks, preserving unique-leaf and frozen-history totals. Verified 190 frontend tests, build and disposable Chrome checks at three widths. [Review](reviews/2026-11-11-week-progress.md).
+
 ## 2026-11-11 — Compact completed Week tasks
 
 - Compacted completed current-week task rows; reopening restores their details and controls, with failure and keyboard focus recovery. Verified 189 frontend tests, build and disposable Chrome planning, timer, drag and history checks. [Review](reviews/2026-11-11-compact-week-tasks.md).

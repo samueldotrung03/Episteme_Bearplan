@@ -13,6 +13,10 @@ def test_week_footer_and_cancel(browser, evidence, tmp_path, width, theme):
     try:
         page.goto(service.url)
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
+        progress = page.get_by_role("progressbar", name="Weekly completion")
+        expect(progress).to_be_visible()
+        assert progress.get_attribute("value") == "0"
+        page.screenshot(path=str(evidence / f"week-progress-{width}-{theme}.png"))
         board = page.locator(".week-board")
         button = page.get_by_role("button", name="End Week", exact=True)
         expect(button).to_be_visible()

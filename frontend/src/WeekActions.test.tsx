@@ -78,6 +78,7 @@ test("the closed board uses frozen details with separate current status and no s
   const plan = planning({ closed_week: frozen, placements: [], tasks: [task("leaf", { title: "Changed later", notes: "New notes", completed: true, deadline: "2026-11-30" })] });
   render(<WeeklyPlanner state={boardState(plan)} projects={[]} onRun={run} locked={false} onTrack={vi.fn()} />);
   expect(screen.getByText("Closed week · read-only history")).toBeInTheDocument();
+  expect(screen.getByRole("progressbar", { name: "Completion at week closure" })).toHaveValue(0);
   expect(screen.getByText("Read chapter")).toBeInTheDocument();
   expect(screen.getByText("Original notes")).toBeInTheDocument();
   expect(screen.getByText("Original project / Original parent")).toBeInTheDocument();
@@ -105,8 +106,15 @@ test("closed history navigates to the selected snapshot and an open board counts
   const state = boardState(planning({ tasks: [task("leaf", { completed: true }), task("parent", { subtask_count: 2 })], placements: [placement(), placement("p2", "leaf", "2026-10-16"), placement("p3", "parent")], closed_weeks: [{ week_start: "2026-10-05", week_end: "2026-10-11", closed_at: at, completed: 0, total: 0 }] }));
   render(<WeeklyPlanner state={state} projects={[]} onRun={run} locked={false} />);
   expect(screen.getByText("Weekly completion: 1 of 1 work items complete (100%).")).toBeInTheDocument();
+  expect(screen.getByRole("progressbar", { name: "Weekly completion" })).toHaveValue(100);
   await userEvent.setup().selectOptions(screen.getByLabelText("Closed-week history"), "2026-10-05");
   expect(state.navigate).toHaveBeenCalledWith("2026-10-05");
+});
+
+test("an empty weekly board reports zero progress", () => {
+  render(<WeeklyPlanner state={boardState(planning({ tasks: [], placements: [] }))} projects={[]} onRun={run} locked={false} />);
+  expect(screen.getByText("Weekly completion: 0 of 0 work items complete (0%).")).toBeInTheDocument();
+  expect(screen.getByRole("progressbar", { name: "Weekly completion" })).toHaveValue(0);
 });
 
 test("closed-week task planning does not offer an assignment into history", () => {
