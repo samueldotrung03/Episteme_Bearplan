@@ -196,6 +196,19 @@ export function createTask(task: NewTask): Promise<Task> {
   return request<Task>("/api/tasks", json("POST", task));
 }
 
+export interface TaskCapture extends NewTask { operation_id: string; planned_date: string | null }
+export interface TaskCaptureResult { task: Task; placement: Placement | null }
+
+/** An unparseable success is uncertain: the service may already have committed. */
+export async function captureTask(capture: TaskCapture): Promise<TaskCaptureResult> {
+  const result = await request<TaskCaptureResult>("/api/task-captures", json("POST", capture));
+  if (!result || typeof result !== "object" || !result.task || typeof result.task.id !== "string"
+      || !(result.placement === null || (typeof result.placement === "object" && typeof result.placement.id === "string"))) {
+    throw new ApiError("Could not confirm the saved task. Retry the same request.");
+  }
+  return result;
+}
+
 export function updateTask(id: string, edit: TaskEdit): Promise<Task> {
   return request<Task>(`/api/tasks/${encodeURIComponent(id)}`, json("PATCH", edit));
 }

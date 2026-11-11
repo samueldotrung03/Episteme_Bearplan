@@ -1,0 +1,7 @@
+# Task capture recovery foundation — November 11, 2026
+
+**Result: Pass with follow-ups.** The frontend has a typed atomic-capture client and a local-storage recovery helper. It stores the complete request before sending, refuses to overwrite pending or unreadable recovery data, retries the identical operation ID and fields, and retains the request after transport, malformed-success and service errors. It clears only after a validated response. Storage failure prevents preparation. This is a foundation only: the task form still uses the original endpoint and exposes no new behavior.
+
+On macOS Darwin arm64, `npm --prefix frontend test` passed 195 tests in 18 files; `npm --prefix frontend run typecheck` passed. Focused recovery tests cover a lost response across re-reading storage, identical retry, malformed success, rejected request, unreadable data and unavailable storage. Existing backend capture tests provide separate transactional and replay evidence.
+
+Before integration, design and test safe recovery from a definitive validation or closed-week rejection, distinguish it from an uncertain outcome and operation conflict, and handle multiple browser windows or explicitly restrict concurrent capture. Confirm the storage policy and address unavailable or corrupted storage with actionable UI. Test actual reload/restart, refresh failure, keyboard, widths and themes with a disposable service. No user walkthrough, production build, real provider, or personal data was used. No release, user-acceptance or hardware gate is advanced.

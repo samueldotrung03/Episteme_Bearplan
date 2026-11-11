@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Task capture recovery foundation
+
+Added typed atomic-capture client and persistent exact-request recovery foundation; it is not yet wired to the task form. macOS Darwin arm64: 195 frontend tests and typecheck passed. See [review](reviews/2026-11-11-task-capture-recovery.md).
+
 ## 2026-11-11 — Atomic task capture API
 
 - Exposed replay-safe task capture with strict validation and verified failures, retries, closed history and same-origin protection. 268 focused backend tests passed; the UI connection remains pending. [Review](reviews/2026-11-11-task-capture-api.md).
