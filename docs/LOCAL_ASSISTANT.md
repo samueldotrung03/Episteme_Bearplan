@@ -18,6 +18,9 @@ If it offers an unrelated field edit, leave it unapplied and report the result.
 Ask for one change at a time. Day words such as “Tuesday”, “next Friday” or
 “November 12” are converted by BearPlans, not the model; check the weekday on
 the card. Numeric dates like 11/12 are ambiguous and will be asked.
+Completing a task also finishes its matching active timer and saves confirmed
+time. Needs review must be resolved in Track first. Undo reopens the task while
+keeping the finalized session saved.
 Task and plan changes show **Undo** while the record is unchanged since; timer
 changes are controlled in Track afterward. “Move last week's unfinished to next
 week” shows one card listing each task on the same weekday next week (due dates

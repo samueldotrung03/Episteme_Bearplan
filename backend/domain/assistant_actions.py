@@ -190,7 +190,10 @@ def _summary(kind: str, args: dict[str, Any], task: dict[str, Any] | None) -> st
     if kind == "assign_task_date":
         return f"Plan {title} on {_day(args['date'])}"
     if kind == "complete_task":
-        return f"{'Mark' if args['complete'] else 'Reopen'} {title}{' complete' if args['complete'] else ''}"
+        summary = f"{'Mark' if args['complete'] else 'Reopen'} {title}{' complete' if args['complete'] else ''}"
+        if args['complete']:
+            summary += "; finish any active timer for this task and save confirmed time. Undo reopens the task only"
+        return summary
     if kind == "start_timer":
         return f"Start a {args['duration_minutes']}-minute countdown for {title}"
     return f"{'Pause' if kind == 'pause_timer' else 'Finish and save'} the current countdown for {title}"
@@ -321,6 +324,13 @@ def propose_action(db: Database, timer: TimerService | None, kind: str, raw: obj
     if kind in WEEK_KINDS:
         return _propose_week(db, kind, args)
     if kind in TASK_KINDS:
+        completion_session = None
+        if kind == "complete_task" and args["complete"] and timer is not None:
+            active = timer.get().active_session
+            if active is not None and active.task_id == args["task_id"]:
+                if active.state == "needs_review":
+                    raise ActionConflict("session", "Review this task's interrupted countdown in Track before completing it.")
+                completion_session = active
         # Validate with the exact apply path, then roll back. The write lock is held
         # only for this short dry run, never while waiting on the model.
         try:
@@ -331,7 +341,9 @@ def propose_action(db: Database, timer: TimerService | None, kind: str, raw: obj
         except _DryRun as dry:
             expected, result = dry.value
         task = result["task"]
-        return {"kind": kind, "arguments": args, "expected": {"tasks": expected, "session_id": None, "session_revision": None},
+        return {"kind": kind, "arguments": args, "expected": {"tasks": expected,
+                "session_id": completion_session.id if completion_session else None,
+                "session_revision": completion_session.revision if completion_session else None},
                 "summary": _summary(kind, args, _before(result)), "undoable": True, "preview": result}
     if timer is None:
         raise InvalidInput("tool", "Timer actions are unavailable in this service. Use Track.")
@@ -395,7 +407,8 @@ def apply_action(db: Database, timer: TimerService | None, proposal: object, ope
         return _replay(prior, fingerprint)
     if parsed.kind in TIMER_KINDS:
         return _apply_timer(db, timer, key, parsed, args, fingerprint)
-    with db.write() as conn:
+    finishing = parsed.kind == "complete_task" and args["complete"] and timer is not None
+    with (timer.task_completion_write() if finishing else db.write()) as conn:
         prior = conn.execute("SELECT * FROM assistant_actions WHERE operation_id = ?", (key,)).fetchone()
         if prior is not None:
             return _replay(prior, fingerprint)
@@ -404,7 +417,14 @@ def apply_action(db: Database, timer: TimerService | None, proposal: object, ope
             result, undo = _apply_week_kind(conn, key, args, parsed.expected.preview_token)
             items = _carried_items(conn, result["placements"])
             return _receipt(conn, key, parsed, args, fingerprint, _week_summary(args["week_start"], items), result, undo)
+        if finishing:
+            active = conn.execute("SELECT id, revision FROM timer_sessions WHERE task_id = ? AND state <> 'finished'", (args["task_id"],)).fetchone()
+            current = (active["id"], active["revision"]) if active else (None, None)
+            if current != (parsed.expected.session_id, parsed.expected.session_revision):
+                raise ActionConflict("session", "The timer changed after this proposal. Ask again to review the current task and timer.")
         result, undo = _apply_task_kind(conn, parsed.kind, args)
+        if finishing:
+            timer.finish_completed_task(conn, args["task_id"])
         return _receipt(conn, key, parsed, args, fingerprint, _summary(parsed.kind, args, _before(result)), result, undo)
 
 

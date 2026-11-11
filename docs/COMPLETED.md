@@ -1,5 +1,17 @@
 # BearPlans — completed work log
 
+## November 11, 2026 — Local completion saves its matching timer
+
+Local UI and Assistant completion now finish the matching running/paused timer
+and save confirmed time atomically. Needs review blocks completion until reviewed
+in Track; Undo reopens the task while keeping the session saved. User confirmed
+the demo; API state showed saved finished_early time and a reopened task. Full
+guarded suite: 1,102 passed, one Windows-only skip; final focused completion
+checks: 117 passed; frontend: 180 passed, typecheck/build passed; model evaluation:
+30/30. [Review](reviews/2026-11-11-completion-finishes-timer.md) records the
+initial obsolete-summary assertion failure, its correction and evidence limits.
+
+
 ## November 11, 2026 — Assistant completion routing fix
 
 Fixed the reported completion request for Review Notes being interpreted as

@@ -26,4 +26,6 @@ intent validator. Existing Apply, revision, replay, Undo and domain rules remain
   /tmp/bearplans-completion-routing-evaluation.json` — 30/30, routing 100%,
   zero unauthorized changes; gate passed. Temporary evidence may expire.
 - Scoped diff whitespace check passed. Frontend checks were not rerun because
-  no frontend files changed. The user's repaired-flow report remains pending.
+  no frontend files changed. The user confirmed the repaired proposal worked
+  and reported the timer remained paused. That is the intended timer behavior;
+  this report does not establish completion Apply/Undo.

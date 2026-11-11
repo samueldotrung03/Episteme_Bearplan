@@ -90,25 +90,21 @@ def test_stale_tab_cannot_start_completed_leaf(timer_client, db: Database, subta
     assert start(client, work["id"], operation_id=key).status_code == 201
 
 
-def test_api_completion_keeps_session_and_acknowledged_start_replay(timer_client, db: Database):
+def test_api_completion_finishes_session_and_acknowledged_start_replay(timer_client, db: Database):
     client, clock = timer_client
     work = task(client)
     key = str(uuid4())
     original = start(client, work["id"], operation_id=key).json()["active_session"]
     clock.advance(2)
-    running = client.get("/api/timer").json()["active_session"]
-    completed = client.put(f"/api/tasks/{work['id']}/completion", json={"complete": True}).json()
-    before = stored(db)
-    assert start(client, work["id"], operation_id=key).json()["active_session"] == running
-    assert stored(db) == before
-    paused = client.post(f"/api/timer/{original['id']}/pause", json={"expected_revision": 1})
-    assert paused.status_code == 200 and paused.json()["active_session"]["state"] == "paused"
-    saved = client.post(f"/api/timer/{original['id']}/finish", json={}).json()["last_session"]
+    completed = client.put(f"/api/tasks/{work['id']}/completion", json={"complete": True})
+    assert completed.status_code == 200
+    saved = client.get("/api/timer").json()["last_session"]
     assert saved["id"] == original["id"] and saved["task_id"] == work["id"]
     assert saved["active_seconds"] == 2 and saved["outcome"] == "finished_early"
-    assert client.get("/api/tasks").json()["tasks"] == [completed]
+    assert client.get("/api/timer").json()["active_session"] is None
     before = stored(db)
     assert start(client, work["id"], operation_id=key).json()["last_session"] == saved
+    assert client.put(f"/api/tasks/{work['id']}/completion", json={"complete": True}).json() == completed.json()
     assert start(client, work["id"]).status_code == 422
     assert stored(db) == before
 

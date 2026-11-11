@@ -468,3 +468,62 @@ def test_v5_upgrade_preserves_all_existing_rows_and_failed_upgrade_retries(tmp_p
     with reopened.read() as conn:
         assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
         assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
+@pytest.mark.parametrize("paused", [False, True])
+def test_local_completion_finishes_matching_timer_with_confirmed_time(db, timer, paused):
+    service, clock = timer
+    task, session = start(service, db, 10)
+    observed(service, clock, 61)
+    if paused:
+        service.control(session.id, "pause", expected_revision=service.get().active_session.revision)
+        clock.advance(100)
+    service.complete_task(task.id, True)
+    view = service.get()
+    assert view.active_session is None and view.last_session.id == session.id
+    assert view.last_session.active_seconds == 61
+    assert view.last_session.outcome == "finished_early"
+    assert view.last_session.coin_award == 1
+    assert get_task(db, task.id).completed
+    saved = view.last_session.model_dump()
+    service.complete_task(task.id, True)
+    service.complete_task(task.id, False)
+    assert service.get().last_session.model_dump() == saved
+    assert not get_task(db, task.id).completed
+
+
+def test_completion_leaves_another_tasks_timer_untouched(db, timer):
+    service, _ = timer
+    task, session = start(service, db)
+    other = create_task(db, "Other")
+    service.complete_task(other.id, True)
+    assert service.get().active_session.id == session.id
+    assert service.get().active_session.state == "running"
+
+
+def test_completion_needs_review_is_blocked_without_completing_task(db, timer):
+    service, clock = timer
+    task, session = start(service, db)
+    clock.advance(20)
+    with pytest.raises(TimerConflict, match="Review"):
+        service.complete_task(task.id, True)
+    assert not get_task(db, task.id).completed
+    assert service.get().active_session.state == "needs_review"
+
+
+def test_completion_and_timer_finalization_rollback_together(db, timer, monkeypatch):
+    service, clock = timer
+    task, session = start(service, db)
+    observed(service, clock, 2)
+    original = service._finish
+    def fail(*args):
+        original(*args)
+        raise RuntimeError("Injected finalization failure")
+    monkeypatch.setattr(service, "_finish", fail)
+    with pytest.raises(RuntimeError):
+        service.complete_task(task.id, True)
+    assert not get_task(db, task.id).completed
+    assert service.get().active_session.id == session.id
+    monkeypatch.setattr(service, "_finish", original)
+    service.complete_task(task.id, True)
+    assert service.get().active_session is None

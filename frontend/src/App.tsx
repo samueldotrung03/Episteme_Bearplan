@@ -215,6 +215,7 @@ export default function App() {
       await work();
       const current = selectedIdRef.current;
       const refreshed = await Promise.all([current ? refreshTasks(current) : Promise.resolve(true), planning.refresh()]);
+      await timer.refresh();
       setStatus(refreshed.every(Boolean) ? done : "Saved. Some views could not refresh. Use the retry controls to see the saved changes.");
     } finally {
       setMutations((count) => count - 1);

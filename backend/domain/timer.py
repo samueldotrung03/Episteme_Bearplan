@@ -27,7 +27,7 @@ from backend.domain.forest import TreeProgress, enroll_tree, finalize_tree, sess
 from backend.domain.rewards import (
     RewardConfig, award_session, enroll_coins, normalize_species, require_owned_species, session_award,
 )
-from backend.domain.tasks import _require_task
+from backend.domain.tasks import Task, _require_task, _set_completion_tx
 from backend.storage.db import Database, StorageError
 
 CHECKPOINT_SECONDS = 1.0
@@ -409,6 +409,36 @@ class TimerService:
                 self._receipt(conn, key, session_id, "start", fingerprint)
                 self._anchor = sample
                 return self._view(conn, sample)
+
+    @contextmanager
+    def task_completion_write(self) -> Iterator[sqlite3.Connection]:
+        """Serialize local task completion with the live clock and timer writes."""
+        with self._lock:
+            self._refresh_locked()
+            with self._write() as conn:
+                self._reconcile(conn, self.clock.sample())
+                yield conn
+
+    def finish_completed_task(self, conn: sqlite3.Connection, task_id: str) -> None:
+        """Within task_completion_write, finish only this task's active session."""
+        row = _active(conn)
+        if row is None or row["task_id"] != task_id:
+            return
+        if row["state"] == "needs_review":
+            raise TimerConflict("session", "Review this task's interrupted countdown in Track before completing it. Nothing was changed.")
+        if _require_task(conn, task_id)["completed_at"] is None:
+            return
+        at = _utc(self.clock.sample().wall)
+        interrupted = conn.execute("SELECT 1 FROM timer_interruptions WHERE session_id = ? AND resolved_at IS NULL", (row["id"],)).fetchone() is not None
+        self._resolve_interruption(conn, row["id"], at, "finish")
+        self._finish(conn, row["id"], at, "interrupted" if interrupted else "finished_early")
+
+    def complete_task(self, task_id: str, complete: bool) -> Task:
+        with self.task_completion_write() as conn:
+            task = _set_completion_tx(conn, task_id, complete)
+            if complete:
+                self.finish_completed_task(conn, task_id)
+            return task
 
     @staticmethod
     def _open_interval(conn: sqlite3.Connection, session_id: str, at: str) -> None:

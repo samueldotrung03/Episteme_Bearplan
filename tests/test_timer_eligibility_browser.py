@@ -56,36 +56,23 @@ def test_weekly_entry_completed_choices_stale_start_and_active_completion(browse
         _, started = http_json("GET", service.url + "/api/timer")
         session_id = started["active_session"]["id"]
 
-        # Completing the tracked child completes its parent, while the timer
-        # remains linked to that same child and its controls remain available.
+        # Local completion saves the tracked child's session with confirmed time.
         page.get_by_role("link", name="Plan", exact=True).click()
         card.get_by_role("checkbox").click()
         expect(card.get_by_role("checkbox")).to_be_checked()
         expect(page.get_by_label(parent["title"], exact=True)).to_be_checked()
         expect(card.get_by_role("button", name="Start tracking", exact=True)).to_be_disabled()
-        compact = page.get_by_role("complementary", name="Active countdown")
-        expect(compact).to_contain_text(planned["title"])
-        compact.get_by_role("button", name="Open Track", exact=True).click()
-        expect(current.get_by_role("heading", name=planned["title"], exact=True)).to_be_visible()
-        expect(current.get_by_role("button", name="Pause", exact=True)).to_be_enabled()
-        _, completed_running = http_json("GET", service.url + "/api/timer")
-        assert completed_running["active_session"]["id"] == session_id
-        assert completed_running["active_session"]["task_id"] == planned["id"]
-        assert completed_running["active_session"]["state"] == "running"
-        current.get_by_role("button", name="Pause", exact=True).click()
-        expect(current.get_by_role("button", name="Resume", exact=True)).to_be_enabled()
+        page.get_by_role("link", name="Track", exact=True).click()
+        expect(page.get_by_role("region", name="Saved session outcome")).to_contain_text(planned["title"])
+        expect(current).to_have_count(0)
+        expect(selector.locator(f'option[value="{planned["id"]}"]')).to_have_count(0)
         page.set_viewport_size({"width": 375, "height": 850})
         assert no_horizontal_overflow(page)
-        page.screenshot(path=evidence / "eligibility-03-completed-active-narrow.png", full_page=True)
-        current.get_by_role("button", name="Resume", exact=True).focus()
-        page.keyboard.press("Enter")
-        expect(current.get_by_role("button", name="Pause", exact=True)).to_be_enabled()
-        current.get_by_role("button", name="Finish early", exact=True).click()
-        expect(page.get_by_role("region", name="Saved session outcome")).to_contain_text(planned["title"])
-        expect(selector.locator(f'option[value="{planned["id"]}"]')).to_have_count(0)
         _, saved = http_json("GET", service.url + "/api/timer")
         result = saved["last_session"]
+        assert saved["active_session"] is None
         assert result["id"] == session_id and result["task_id"] == planned["id"]
+        assert result["outcome"] == "finished_early"
 
         # The tab has an eligible choice loaded, then another tab completes it.
         # Backend rejects the stale choice, UI refreshes it, and duration is kept.

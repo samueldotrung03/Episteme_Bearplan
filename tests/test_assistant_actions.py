@@ -454,7 +454,7 @@ def test_completion_command_cannot_become_notes_edit(db):
     assert rows(db) == before
 
 
-def test_complete_task_with_notes_in_title_keeps_timer_and_undo(db, timer):
+def test_complete_task_with_notes_in_title_finishes_timer_and_undo_keeps_saved_time(db, timer):
     project = create_project(db, "planner check")
     parent = create_task(db, "Draft seminar notes", project_id=project.id)
     task = create_task(db, "Review Notes", project_id=project.id, parent_id=parent.id)
@@ -472,7 +472,27 @@ def test_complete_task_with_notes_in_title_keeps_timer_and_undo(db, timer):
     apply_action(db, timer, proposal, op)
     assert get_task(db, task.id).completed and get_task(db, parent.id).completed
     assert get_task(db, task.id).notes == ""
-    assert timer.get().active_session.model_dump() == session
+    assert timer.get().active_session is None
+    saved = timer.get().last_session.model_dump()
+    assert saved["id"] == session["id"] and saved["outcome"] == "finished_early"
     undo_action(db, op, key())
     assert not get_task(db, task.id).completed and not get_task(db, parent.id).completed
-    assert timer.get().active_session.model_dump() == session
+    assert timer.get().active_session is None
+    assert timer.get().last_session.model_dump() == saved
+
+
+def test_completion_proposal_rechecks_timer_revision_and_replays_finalization(db, timer):
+    task = create_task(db, "Work")
+    apply_action(db, timer, propose_action(db, timer, "start_timer", {"task_id": task.id, "duration_minutes": 10}), key())
+    stale = propose_action(db, timer, "complete_task", {"task_id": task.id})
+    apply_action(db, timer, propose_action(db, timer, "pause_timer", {}), key())
+    before = rows(db)
+    with pytest.raises(ActionConflict, match="timer changed"):
+        apply_action(db, timer, stale, key())
+    assert rows(db) == before
+    fresh = propose_action(db, timer, "complete_task", {"task_id": task.id})
+    op = key()
+    applied = apply_action(db, timer, fresh, op)
+    before = rows(db)
+    assert apply_action(db, timer, fresh, op) == {**applied, "replayed": True}
+    assert rows(db) == before and timer.get().active_session is None

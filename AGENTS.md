@@ -97,8 +97,11 @@ dates; use their contents and commit history to determine which evidence is curr
   stale completion. M1 supports confirmed subtask removal; general task/project
   deletion and re-parenting remain deferred.
 - New countdown sessions require an incomplete leaf task, scheduled or unscheduled.
-  Completing a task during a running, paused or Needs review session preserves that
-  session and its controls. Starting or finishing a timer never changes task
+  Local UI or Assistant completion of a task also finishes its matching running
+  or paused countdown, saving confirmed time as Finish early (user decision,
+  2026-11-11). A Needs review countdown must be reviewed in Track first. Task and
+  timer finalization save atomically. Reopening or Undo reopens the task only;
+  the finalized session and saved time remain. Other tasks' timers are unchanged. Starting or finishing a timer never changes task
   completion. Measured sleep pauses at the last trusted checkpoint; waking or
   maintenance activity never resumes automatically. Unknown gaps, running-service
   restarts and clock discontinuities require explicit review. Continuing preserves

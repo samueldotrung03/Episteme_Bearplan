@@ -306,10 +306,13 @@ Select incomplete leaf work from any project, including scheduled and unschedule
 tasks, then choose a whole number of minutes from **1–180**. Completed tasks have
 Start tracking disabled without extra text beneath the control. If none are eligible,
 Track explains how to add or reopen work. Start, Pause, Resume
-and Finish early control the same backend session across all tabs. Finish saves a
-session result; marking the task complete remains a separate task action.
-Completing a task during tracking leaves its existing session visible and available
-to pause, resume or finish, even though that task is excluded from new-session choices.
+and Finish early control the same backend session across all tabs. Finishing
+a timer saves its session without automatically marking the task complete.
+Completing a task in the local interface or Assistant also finishes its matching
+running or paused timer, saving confirmed time like Finish early. Paused and
+uncertain time never count. If the timer needs review, resolve it in Track first.
+Reopening the task or using Undo keeps the finalized session saved; it does not
+restart the timer. A timer for another task is unaffected.
 
 The compact timer stays visible while planning. Navigation, a hidden tab, refresh,
 and closing the browser leave the service tracking. Keep the local service running.

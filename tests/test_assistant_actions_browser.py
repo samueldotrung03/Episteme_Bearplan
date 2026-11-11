@@ -51,7 +51,8 @@ def test_choice_proposal_apply_undo_and_dismiss(browser, evidence, tmp_path, mon
                                        choice={"slot": slot, "value": picked["value"]}))
     assert proposal["proposals"] and proposal["proposals"][0]["arguments"]["task_id"] == target.id, proposal
     # The card names the chosen project, so duplicate titles are told apart before Apply.
-    assert proposal["proposals"][0]["summary"] == 'Mark "Reading" (Biology) complete'
+    assert proposal["proposals"][0]["summary"].startswith('Mark "Reading" (Biology) complete')
+    assert "save confirmed time" in proposal["proposals"][0]["summary"]
     dismissable = run(AssistantService(db, FakeProvider(routes=[
         {"intent": "complete_task", "task": "Lab report", "complete": True}])).ask("fixture:local", "Complete Lab report"))
     before = all_rows(db)

@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, StrictStr
 
 from backend.domain.tasks import (
     UNSET, CompletionProgress, Task, completion_progress, create_task, list_tasks,
-    remove_subtask, set_task_completion, update_task,
+    remove_subtask, update_task,
 )
 from backend.storage.db import Database
 from backend.storage.migrations import current_version
@@ -95,7 +95,7 @@ def patch_task(task_id: str, body: TaskUpdateRequest, request: Request) -> Task:
 
 @router.put("/tasks/{task_id}/completion")
 def put_task_completion(task_id: str, body: CompletionRequest, request: Request) -> Task:
-    return set_task_completion(_db(request), task_id, body.complete)
+    return request.app.state.timer.complete_task(task_id, body.complete)
 
 
 @router.delete("/tasks/{task_id}")
