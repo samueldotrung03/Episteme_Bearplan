@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Roadmap rebaselined (refinement RF-01)
+
+`BearPlans_Dated_Roadmap.md` now has a dated November 11 status, a Now/Next/Later plan, a milestone status table and the October schedule kept as history with evidence-based mark corrections. User-set targets: task-entry close Nov 14, core-trial candidate Nov 16, seven-day trial Nov 17–23, alpha decision Nov 24. Link check: all 34 relative link occurrences exist and are tracked. Part 1 committed as `105928b`; dates not yet committed. [Handoff](plans/refinement/STATUS.md).
+
 ## 2026-11-11 — Compact dark-mode task capture check
 
 Inspected the empty form and outage recovery in Chrome dark emulation at 589×1167; keyboard recovery saved the synthetic task and returned visible focus. Broader accessibility, themes and user acceptance remain open. [Review](reviews/2026-11-11-task-capture-dark-mode.md).

@@ -91,9 +91,9 @@ remains in progress.
 
 Separate from the active UX slice. Entry point:
 [docs/plans/refinement](plans/refinement/README.md); board and handoff log in its
-[STATUS.md](plans/refinement/STATUS.md). Active: RF-01 (rebaseline the roadmap),
-roadmap rewritten, waiting on the user's target dates. Next: write the dates in,
-then RF-02. RF-04 (new core-trial candidate) waits for the task-entry slice to close.
+[STATUS.md](plans/refinement/STATUS.md). RF-01 (rebaseline the roadmap) is done;
+target dates are in the roadmap's "Next" table. Next: RF-02 (gate register).
+RF-04 (new core-trial candidate) waits for the task-entry slice to close (target Nov 14).
 
 ## Handoff notes
 

@@ -8,7 +8,7 @@ Read this first in every session; update it last. Ticket details are in
 
 | Ticket | Title | State | Depends on | Waiting on the user for |
 | --- | --- | --- | --- | --- |
-| RF-01 | Rebaseline the roadmap | Waiting on user | — | Target dates (asked 2026-11-11) |
+| RF-01 | Rebaseline the roadmap | Done | — | — (dates set 2026-11-11) |
 | RF-02 | Gate register and limit on waiting work | Ready | RF-01 helps | Which gates to defer; rule wording |
 | RF-03 | Decision sheet for the user | Ready | — | Answers to each decision |
 | RF-04 | New core-trial candidate and trial start | Blocked | UX task-entry slice closed | Trial scope; tag; Day 1 |
@@ -32,6 +32,20 @@ Copy this template for each session. Keep an entry under 20 lines.
 - Watch out: <anything surprising in the tree; other agents' uncommitted work>
 - Commit: <not committed; proposed message given to user | committed by user as <hash>>
 ```
+
+### 2026-11-11 — Claude — RF-01 — Done
+- Did: step 6. User approved the proposed dates ("go ahead"); wrote them into the
+  roadmap "Next" table: Nov 14 / Nov 16 / Nov 17–23 / Nov 24 (weekdays checked).
+- Files: `BearPlans_Dated_Roadmap.md`; this file; `docs/PROGRESS.md` (pointer only);
+  `docs/COMPLETED.md` (new top entry).
+- Checks: link check → 34 relative link occurrences, all exist and are tracked.
+- Not done: nothing in RF-01.
+- Waiting on user: nothing.
+- Next step: RF-02 (gate register and limit on waiting work), step 1 per TICKETS.md.
+- Watch out: user committed RF-01 part 1 (`105928b`) and the plan files (`5687685`);
+  tree was clean except the `(1)` copies at session start. Task-entry close target
+  is Nov 14; RF-04 still waits on it.
+- Commit: not committed; proposed message given to user.
 
 ### 2026-11-11 — Claude — RF-01 — Waiting on user
 - Did: steps 1–5 done in `BearPlans_Dated_Roadmap.md`: dated status paragraph, "Current

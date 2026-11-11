@@ -25,14 +25,14 @@ verification (separate windows, storage/lock failures, keyboard/accessibility,
 dark theme) and user acceptance, per [shared progress](docs/PROGRESS.md#active-work-task-entry-in-the-ux-redesign)
 and the [UX handoff](frontend/BEARPLANS_UX_HANDOFF.md).
 
-**Next** (in this order; target dates are the user's to set):
+**Next** (in this order; target dates set by the user on 2026-11-11; targets, not proof):
 
 | # | Step | Target date |
 | --- | --- | --- |
-| 1 | Close the task-entry slice (exit condition above) | date not set |
-| 2 | Record a new core-trial candidate from the current build (refinement ticket RF-04) | date not set |
-| 3 | Seven-day core-use trial with the [trial guide](docs/CORE_TRIAL_CHECKLIST.md) | date not set |
-| 4 | Personal alpha decision: include only features whose gates passed | date not set |
+| 1 | Close the task-entry slice (exit condition above) | Sat Nov 14, 2026 |
+| 2 | Record a new core-trial candidate from the current build (refinement ticket RF-04) | Mon Nov 16, 2026 |
+| 3 | Seven-day core-use trial with the [trial guide](docs/CORE_TRIAL_CHECKLIST.md) | Tue Nov 17 – Mon Nov 23, 2026 |
+| 4 | Personal alpha decision: include only features whose gates passed | Tue Nov 24, 2026 |
 
 **Later** (waits for the trial result): remaining UX screens (Plan, Week, history
 and secondary screens), broader assistant acceptance and the applied-action
