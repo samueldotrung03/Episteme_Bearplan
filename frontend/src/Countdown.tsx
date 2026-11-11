@@ -138,10 +138,10 @@ export function useCountdown() {
 export type Countdown = ReturnType<typeof useCountdown>;
 
 /** Shared by current-task entry points; historical cards never offer this action. */
-export function StartTrackingButton({ task, onTrack, disabled = false }: { task: Task; onTrack: () => void; disabled?: boolean }) {
+export function StartTrackingButton({ task, onTrack, disabled = false, label = "Start tracking", accessibleLabel }: { task: Task; onTrack: () => void; disabled?: boolean; label?: string; accessibleLabel?: string }) {
   if (task.subtask_count > 0) return null;
   return <div className="tracking-entry">
-    <button type="button" className="link" disabled={disabled || task.completed} onClick={onTrack}>Start tracking</button>
+    <button type="button" className="link" aria-label={accessibleLabel} disabled={disabled || task.completed} onClick={onTrack}>{label}</button>
   </div>;
 }
 

@@ -20,6 +20,7 @@ import {
 import { TaskPlanning, WeeklyPlanner, usePlanning } from "./WeeklyPlanner";
 import { CompactTimer, StartTrackingButton, TrackScreen, useCountdown } from "./Countdown";
 import { Statistics } from "./Statistics";
+import { Today } from "./Today";
 import { Assistant } from "./Assistant";
 import { ConnectionPanels } from "./ConnectionPanels";
 import { ConnectionSetup, type SetupProvider } from "./ConnectionSetup";
@@ -284,6 +285,8 @@ export default function App() {
           </button>
         </p>
       ) : null}
+
+      <Today plan={planning.plan} projects={projects ?? []} loading={planning.loading} error={planning.error} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onRun={run} onTrack={openTrack} />
 
       <div className="workspace">
         <div className="work-list">

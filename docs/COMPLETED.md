@@ -1,5 +1,14 @@
 # BearPlans — completed work log
 
+## November 11, 2026 — Today task-list first implementation slice
+
+Added a compact service-Today task projection with project/parent context, Start,
+completion/reopen and accessible focus recovery. Frontend suite: 182 passed,
+typecheck/build passed; final focused Chrome: 3 passed, with seven-task
+reachability; earlier affected browser checks: 17 passed. [Review](reviews/2026-11-11-today-task-list.md).
+The larger UX redesign and user acceptance remain open.
+
+
 ## November 11, 2026 — Local completion saves its matching timer
 
 Local UI and Assistant completion now finish the matching running/paused timer

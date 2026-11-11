@@ -1251,3 +1251,21 @@ details > summary:focus-visible {
   width: 100%;
   min-width: 0;
 }
+
+/* Today is a compact projection of the existing task and placement records. */
+.today-view { margin: 0 0 1.5rem; }
+.today-heading { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+.today-heading h2 { font-size: 1.75rem; margin: 0; }
+.today-heading time, .today-count, .today-task-context { color: var(--muted); font-size: 0.8125rem; }
+.today-count { margin: 0.5rem 0; }
+.today-tasks { list-style: none; margin: 0; padding: 0; background: var(--surface); border-radius: 0.75rem; overflow: hidden; }
+.today-task { display: flex; align-items: center; gap: 0.75rem; min-height: 60px; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+.today-task:last-child { border-bottom: 0; }
+.today-task input { flex: none; }
+.today-task-content { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 0.25rem; overflow-wrap: anywhere; }
+.today-task-title { font-size: 0.9375rem; }
+.today-task-complete .today-task-title { color: var(--muted); text-decoration: line-through; }
+.today-task .error { margin: 0; }
+.today-completed { margin-top: 0.5rem; }
+.today-empty { color: var(--muted); }
+.today-task .tracking-entry .link { color: var(--text); text-decoration: none; min-height: 36px; padding: 0.5rem; }

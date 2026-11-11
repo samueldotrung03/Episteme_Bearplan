@@ -252,7 +252,7 @@ work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint.
   [actions review](reviews/2026-11-01-assistant-actions.md) and
   [evaluation](reviews/2026-11-01-m5-evaluation.md). Last recorded: pytest 863
   passed, 1 Windows-only skip; Vitest 145.
-- **Frontend redesign:** bounded repaired prototype and handoff delivered; full original checkpoint/runtime acceptance remains open
+- **Frontend redesign:** bounded repaired prototype and handoff delivered; Today task-list implementation begun; full original checkpoint/runtime acceptance remains open
   ([UX register](#ux-delivery-register)).
 - **M4 core trial:** candidate recorded; actual seven-day trial not reported.
 
@@ -285,6 +285,20 @@ early-finish result, no active session and the reopened task. See the
 [completion/timer review](reviews/2026-11-11-completion-finishes-timer.md).
 No ticket is active; broader Assistant operator coverage and existing release
 and hardware gates remain separate.
+
+## UX implementation — Today task-list slice
+
+The first app-side redesign slice is implemented: service-Today tasks show
+project/parent context, completion/reopen, compact completed rows and Start.
+The current Week and Projects controls remain below it while the rest is built.
+Frontend: 182 passed plus typecheck/build; final Chrome Today checks: 3 passed;
+earlier affected browser regression: 17 passed. See the
+[implementation review](reviews/2026-11-11-today-task-list.md).
+
+Next: implement the reviewed shell and Today/Week/Projects navigation with the
+prominent streak, then the remaining task, planning, history and secondary-screen
+units. Today’s Earlier unfinished, cross-week Done and ordering require their
+separate domain/persistence work. Full redesign and user acceptance remain open.
 
 ## Next up
 
