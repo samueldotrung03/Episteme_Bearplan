@@ -1,6 +1,6 @@
 # APP-C08.2 — Settings browser review
 
-**In progress.** On macOS 26.6.2 arm64, installed Chrome and disposable
+**Pass with follow-ups.** On macOS 26.6.2 arm64, installed Chrome and disposable
 data, six Settings combinations at 640 × 800, 800 × 900 and 1440 × 900 in
 Light and Dark passed. Each exposed both provider entry points, had no
 document-level horizontal overflow and opened the labeled bCourses dialog
@@ -115,3 +115,11 @@ transport blocks non-loopback requests. A loopback GET returned HTTP 200.
 The user was asked to describe the spoken dialog and error and focus after
 Escape. No VoiceOver result has been reported or inferred; the process and
 its temporary data may not remain available after this session.
+
+## User VoiceOver report — November 10
+
+The user reported that VoiceOver read the synthetic bCourses rejection aloud
+and announced the bCourses setup button after Escape. The user also confirmed that VoiceOver identified the
+dialog when it opened. This is bounded user-reported evidence; the precise
+opening announcement was not recorded. The fake-provider service was restarted and a
+loopback GET returned HTTP 200 before the walkthrough.

@@ -1,5 +1,14 @@
 # BearPlans — completed work log
 
+## November 10, 2026 — Settings accessibility walkthrough
+
+APP-C08.2 passed with follow-ups: the user reported VoiceOver identified the
+bCourses dialog, read a synthetic rejection and announced the setup button after
+Escape. Earlier browser, keyboard, width and 200% zoom checks are documented in
+the [accessibility review](reviews/2026-11-06-settings-accessibility-review.md).
+This bounded report does not establish broader accessibility or operator acceptance.
+
+
 ## November 6, 2026 — Google uncertain-create sync guard
 
 Connected durable intents to Google list, task, calendar and event creation.
