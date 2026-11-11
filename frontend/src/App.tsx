@@ -21,6 +21,8 @@ import { TaskPlanning, WeeklyPlanner, usePlanning } from "./WeeklyPlanner";
 import { CompactTimer, StartTrackingButton, TrackScreen, useCountdown } from "./Countdown";
 import { Statistics } from "./Statistics";
 import { Today } from "./Today";
+import navigationTree from "./assets/navigation-tree.svg?no-inline";
+import navigationSettings from "./assets/navigation-settings.svg?no-inline";
 import { Assistant } from "./Assistant";
 import { ConnectionPanels } from "./ConnectionPanels";
 import { ConnectionSetup, type SetupProvider } from "./ConnectionSetup";
@@ -229,16 +231,15 @@ export default function App() {
   return (
     <main className="page">
       <header className="page-head">
-        <h1>BearPlans</h1>
-        <p className="muted">Make room for your week.</p>
+        <div className="app-brand"><img src={navigationTree} alt="" /><h1>BearPlans</h1></div>
         <nav className="main-navigation" aria-label="Main navigation">
           <a href="#plan" aria-current={screen === "plan" ? "page" : undefined} onClick={() => setScreen("plan")}>Plan</a>
           <a href="#track" aria-current={screen === "track" ? "page" : undefined} onClick={() => openTrack()}>Track</a>
           <a href="#stats" aria-current={screen === "stats" ? "page" : undefined} onClick={() => setScreen("stats")}>Stats</a>
+          <a href="#assistant" aria-current={screen === "assistant" ? "page" : undefined} onClick={() => setScreen("assistant")}>Assistant</a>
           <a href="#bcourses" aria-current={screen === "bcourses" ? "page" : undefined} onClick={() => setScreen("bcourses")}>bCourses</a>
           <a href="#google" aria-current={screen === "google" ? "page" : undefined} onClick={() => setScreen("google")}>Google</a>
-          <a href="#assistant" aria-current={screen === "assistant" ? "page" : undefined} onClick={() => setScreen("assistant")}>Assistant</a>
-          <a ref={settingsEntry} className="settings-entry" href="#settings" aria-current={screen === "settings" ? "page" : undefined} onClick={openSettings}>Settings</a>
+          <a ref={settingsEntry} className="settings-entry" href="#settings" aria-current={screen === "settings" ? "page" : undefined} onClick={openSettings} aria-label="Settings"><img src={navigationSettings} alt="" /></a>
         </nav>
       </header>
 

@@ -43,14 +43,27 @@ body {
   padding: 1.75rem 1.5rem 3rem;
 }
 
-.page-head h1 {
-  margin: 0;
-  font-size: 1.75rem;
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  min-height: 60px;
+  margin: -1.75rem -1.5rem 1.25rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
 }
 
-.page-head .muted {
-  margin: 0.25rem 0 1.5rem;
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
 }
+
+.app-brand img { display: block; }
+.page-head h1 { margin: 0; font-size: 0.9375rem; line-height: 1.4; }
 
 .projects,
 .tasks-section {
@@ -783,8 +796,9 @@ details > summary:focus-visible {
 .main-navigation {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0 0 1.25rem;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
 }
 
 .assistant {
@@ -847,21 +861,32 @@ details > summary:focus-visible {
 }
 
 .main-navigation a {
-  padding: 0.45rem 1rem;
-  color: var(--accent);
-  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0.5rem 0.75rem;
+  color: var(--text);
   border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
   text-decoration: none;
 }
 
-.main-navigation a[aria-current="page"] {
-  background: var(--accent);
-  color: var(--accent-text);
-  border-color: var(--accent);
+.main-navigation a:hover { background: var(--bg); }
+.main-navigation a[aria-current="page"] { background: var(--bg); }
+.main-navigation .settings-entry { width: 36px; padding: 8px; }
+.main-navigation .settings-entry img { display: block; }
+
+@media (prefers-color-scheme: dark) {
+  .main-navigation .settings-entry img { filter: invert(1); }
 }
 
-.main-navigation .settings-entry {
-  margin-inline-start: auto;
+@media (max-width: 47.5rem) {
+  .page-head { margin: -1.25rem -0.75rem 1.25rem; padding: 0.75rem; }
+  .main-navigation { gap: 0; }
+  .main-navigation a { padding-inline: 0.6rem; }
 }
 
 .settings {

@@ -19,6 +19,12 @@ def test_today_completion_reopen_and_focus(browser, evidence, tmp_path, width, t
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(service.url)
+        nav = page.get_by_role("navigation", name="Main navigation")
+        for name in ("Plan", "Track", "Stats", "Assistant", "bCourses", "Google", "Settings"):
+            expect(nav.get_by_role("link", name=name, exact=True)).to_be_visible()
+        for icon in (page.locator(".app-brand img"), nav.get_by_role("link", name="Settings").locator("img")):
+            assert icon.evaluate("image => image.complete && image.naturalWidth === 20 && image.naturalHeight === 20")
+            assert icon.bounding_box()["width"] == 20 and icon.bounding_box()["height"] == 20
         today = page.get_by_role("region", name="Today")
         checkbox = today.get_by_role("checkbox", name="Read the primary source — Seminar")
         expect(checkbox).to_be_visible()

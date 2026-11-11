@@ -298,7 +298,11 @@ earlier affected browser regression: 17 passed. See the
 184 frontend tests, typecheck/build, four focused Chrome tests and 15 surrounding
 browser regressions. See the [streak review](reviews/2026-11-11-today-streak.md).
 
-Next: implement the reviewed shell and Today/Week/Projects navigation, then the
+The compact shared header is implemented with the Figma brand and Settings icons;
+existing bCourses and Google links remain reachable. Chrome navigation and context
+checks passed. See the [header review](reviews/2026-11-11-compact-navigation.md).
+
+Next: implement the reviewed Today/Week/Projects navigation, then the
 remaining task, planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 

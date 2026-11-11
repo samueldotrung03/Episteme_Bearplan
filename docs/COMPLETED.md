@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Compact shared navigation
+
+- Replaced the oversized app header with compact navigation and the Figma tree and Settings assets, retaining direct provider links and Settings return behavior. Verified the frontend build and 184 frontend tests, 17 Chrome navigation/Today/Stats checks, and four additional icon/Today checks on macOS. [Review](reviews/2026-11-11-compact-navigation.md).
+
 ## November 11, 2026 — Today saved-focus streak
 
 Added the compact streak using existing saved-session data and the reviewed Figma
