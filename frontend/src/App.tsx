@@ -506,7 +506,9 @@ function TaskRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const checkboxRef = useRef<HTMLInputElement>(null);
   const derived = task.subtask_count > 0;
+  const compact = task.completed && !derived;
   const hint = derived
     ? `Complete when all ${task.subtask_count} subtasks are. ${task.completed_subtask_count} of ${task.subtask_count} done.`
     : undefined;
@@ -515,12 +517,14 @@ function TaskRow({
     <div className={task.completed ? "task-row task-done" : "task-row"}>
       <input
         type="checkbox"
+        ref={checkboxRef}
         id={`done-${task.id}`}
         checked={task.completed}
         disabled={derived || busy || locked}
         title={hint}
         aria-describedby={derived ? `derived-${task.id}` : undefined}
         onChange={async (event) => {
+          const restoreFocus = document.activeElement === event.currentTarget;
           setBusy(true);
           setError(null);
           try {
@@ -529,12 +533,15 @@ function TaskRow({
             setError(errorMessage(caught));
           } finally {
             setBusy(false);
+            if (restoreFocus) requestAnimationFrame(() => {
+              if (document.activeElement === document.body) checkboxRef.current?.focus();
+            });
           }
         }}
       />
       <div className="task-main">
         <label htmlFor={`done-${task.id}`} className="task-title">{task.title}</label>
-        <p className="task-meta muted">
+        {!compact ? <><p className="task-meta muted">
           {derived ? (
             <span id={`derived-${task.id}`}>{task.completed_subtask_count} of {task.subtask_count} subtasks done</span>
           ) : null}
@@ -542,14 +549,14 @@ function TaskRow({
           {task.estimate_minutes ? <span>{formatEstimate(task.estimate_minutes)}</span> : null}
         </p>
         {task.notes ? <p className="task-notes">{task.notes}</p> : null}
-        {planning}
+        {planning}</> : null}
         {error ? <p className="error" role="alert">{error}</p> : null}
       </div>
-      <div className="task-actions">
+      {!compact ? <div className="task-actions">
         <StartTrackingButton task={task} onTrack={onTrack} disabled={busy || locked} />
         <button type="button" className="link" onClick={onEdit}>{editing ? "Cancel" : "Edit"}</button>
         {extra}
-      </div>
+      </div> : null}
     </div>
   );
 }

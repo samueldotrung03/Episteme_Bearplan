@@ -306,6 +306,8 @@ The view switch is implemented and verified; see the [plan views review](reviews
 
 The project header now places Rename above an on-demand Add project form; saves retain errors and focus correctly. See the [project controls review](reviews/2026-11-11-project-controls.md).
 
+Completed project leaf rows now show only the checked control and struck-through title; reopening restores details and controls. Parent progress and existing task records remain intact. See the [compact project tasks review](reviews/2026-11-11-compact-project-tasks.md).
+
 Next: refine the remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 

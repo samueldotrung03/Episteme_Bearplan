@@ -162,15 +162,12 @@ test("new-session choices include scheduled and unscheduled incomplete leaves ac
   expect(within(choices).queryByRole("option", { name: "Seminar / Container" })).not.toBeInTheDocument();
 });
 
-test("completed Plan leaves disable new-session entry without extra explanation", async () => {
+test("completed project leaves hide new-session entry", async () => {
   const { calls } = service(empty(), { ...plan, tasks: [{ ...task, completed: true }] });
-  const user = userEvent.setup();
   render(<App />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
-  const start = await screen.findByRole("button", { name: "Start tracking" });
-  expect(start).toBeDisabled();
-  expect(screen.queryByText("Reopen this task to start a new session. An existing session continues.")).not.toBeInTheDocument();
-  await user.click(start);
+  expect(await screen.findByLabelText(task.title)).toBeChecked();
+  expect(screen.queryByRole("button", { name: "Start tracking" })).not.toBeInTheDocument();
   expect(calls.some((call) => call.url === "/api/timer/start")).toBe(false);
 });
 
@@ -239,7 +236,8 @@ test.each(["running", "paused", "needs_review"] as const)("completing a task pre
   const compact = await screen.findByRole("complementary", { name: "Active countdown" });
   fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await user.click(await screen.findByLabelText(task.title));
-  await waitFor(() => expect(screen.getByRole("button", { name: "Start tracking" })).toBeDisabled());
+  await waitFor(() => expect(screen.getByLabelText(task.title)).toBeChecked());
+  expect(screen.queryByRole("button", { name: "Start tracking" })).not.toBeInTheDocument();
   expect(holder.state).toEqual(active);
   expect(compact).toHaveTextContent(task.title);
   await user.click(within(compact).getByRole("button", { name: "Open Track" }));

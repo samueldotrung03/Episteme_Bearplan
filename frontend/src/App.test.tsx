@@ -472,6 +472,8 @@ test("removal needs an explicit action and restores parent completion control", 
   render(<App />);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText("Done");
+  await user.click(screen.getByLabelText("Done"));
+  await waitFor(() => expect(screen.getByLabelText("Done")).not.toBeChecked());
   await user.click(screen.getAllByRole("button", { name: /^Edit$/ })[1]);
   await user.click(screen.getByRole("button", { name: "Remove subtask" }));
   expect(calls.some((c) => c.method === "DELETE")).toBe(false);
@@ -867,10 +869,43 @@ test("project creation cannot be dismissed while its save is pending", async () 
   const trigger = await screen.findByRole("button", { name: "+ Add project" });
   await user.click(trigger);
   await user.type(screen.getByLabelText("New project"), "Research");
-  await user.click(screen.getByRole("button", { name: "Add project", exact: true }));
+  await user.click(screen.getByRole("button", { name: /^Add project$/ }));
   expect(trigger).toBeDisabled();
   expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
   expect(screen.getByLabelText("New project")).toHaveValue("Research");
   await act(async () => { release(); });
   await waitFor(() => expect(trigger).toBeEnabled());
+});
+
+
+test("completed project leaf rows compact and restore details on reopening", async () => {
+  const done = task("00000000-0000-4000-8000-000000000001", "Read notes", { completed: true, notes: "Important detail", deadline: "2026-10-30", estimate_minutes: 30 });
+  fakeService([project(MATH, "Math 55", true)], [done]);
+  const user = userEvent.setup();
+  render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  const checkbox = await screen.findByLabelText("Read notes");
+  const row = checkbox.closest(".task-row") as HTMLElement;
+  expect(checkbox).toBeChecked();
+  expect(checkbox).toBeEnabled();
+  expect(within(row).queryByText("Important detail")).not.toBeInTheDocument();
+  expect(within(row).queryByText(/Due/)).not.toBeInTheDocument();
+  expect(within(row).queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+  await user.click(checkbox);
+  await waitFor(() => expect(checkbox).not.toBeChecked());
+  expect(within(row).getByText("Important detail")).toBeInTheDocument();
+  expect(within(row).getByRole("button", { name: "Edit" })).toBeInTheDocument();
+});
+
+test("failed reopening leaves the completed row and an actionable error", async () => {
+  const done = task("00000000-0000-4000-8000-000000000001", "Read notes", { completed: true });
+  fakeService([project(MATH, "Math 55", true)], [done], { url: `/api/tasks/${done.id}/completion`, status: 503, error: { code: "unavailable", message: "Please retry saving." } });
+  const user = userEvent.setup();
+  render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  const checkbox = await screen.findByLabelText("Read notes");
+  await user.click(checkbox);
+  expect(await screen.findByText("Please retry saving.")).toBeInTheDocument();
+  expect(checkbox).toBeChecked();
+  await waitFor(() => expect(checkbox).toBeEnabled());
 });

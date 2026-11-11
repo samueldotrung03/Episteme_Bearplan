@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Compact completed project tasks
+
+- Completed leaf rows compact to a checked box and struck-through title; reopening restores details. Verified 188 frontend tests, build, and four disposable Chrome checks on macOS. [Review](reviews/2026-11-11-compact-project-tasks.md).
+
 ## 2026-11-11 — Compact project controls
 
 - Moved Rename above Add project and made creation an on-demand form with retry, cancel and focus restoration. Verified 186 frontend tests, production build and disposable Chrome project journeys; [review](reviews/2026-11-11-project-controls.md). The project drawer and task surfaces remain future work.

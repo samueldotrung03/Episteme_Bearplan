@@ -37,7 +37,7 @@ def test_weekly_entry_completed_choices_stale_start_and_active_completion(browse
         page.get_by_role("link", name="Plan", exact=True).click()
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         completed_row = page.locator(".tasks > .task").filter(has=page.get_by_label(done["title"], exact=True))
-        expect(completed_row.get_by_role("button", name="Start tracking", exact=True)).to_be_disabled()
+        expect(completed_row.get_by_role("button", name="Start tracking", exact=True)).to_have_count(0)
         expect(completed_row).not_to_contain_text("Reopen this task")
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         card = page.locator(".week-board .planned-card").filter(has_text=planned["title"])
