@@ -1,5 +1,13 @@
 # BearPlans — completed work log
 
+## November 11, 2026 — Assistant create / Apply / Undo walkthrough
+
+The user confirmed the repaired Review Notes proposal targeted planner check,
+Apply created it once and Undo removed it while preserving earlier work and the
+paused timer. [Review](reviews/2026-11-11-assistant-project-creation.md).
+This is bounded user-reported acceptance; other Assistant scenarios remain open.
+
+
 ## November 11, 2026 — Assistant project destination fix
 
 Fixed “under this planner check project” being treated as a parent task.

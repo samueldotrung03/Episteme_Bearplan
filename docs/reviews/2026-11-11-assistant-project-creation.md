@@ -27,5 +27,11 @@ replay and Undo rules are unchanged. No schema, prompt or model change.
   The exact request returned a proposal titled Review Notes, with project set
   and parent unset. The proposal was not applied.
 - Scoped diff whitespace check passed. No frontend code changed or frontend
-  checks rerun. The user's confirmation of this repaired flow is pending; the
-  broader Assistant operator review remains incomplete.
+  checks rerun. The user confirmed the repaired proposal worked.
+
+## User Apply and Undo walkthrough
+
+The user confirmed that Apply created Review Notes exactly once in planner check,
+then Undo removed it while the earlier sample task and paused timer remained.
+This completes the bounded project-creation walkthrough as user-reported
+evidence; it does not certify other Assistant actions or broader acceptance.

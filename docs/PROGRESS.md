@@ -261,8 +261,10 @@ work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint.
 The reported project/parent confusion is fixed in creation fallback parsing.
 The exact local-model request now proposes Review Notes in planner check with
 no parent. 83 affected tests and the 30/30 qwen3:8b evaluation passed. See the
-[fix review](reviews/2026-11-11-assistant-project-creation.md). The disposable
-demo has the fix; next is user confirmation and continued Assistant walkthrough.
+[fix review](reviews/2026-11-11-assistant-project-creation.md). The user confirmed
+the repaired proposal, one task after Apply, and removal after Undo while
+preserving the earlier task and paused timer. This bounded walkthrough is
+complete; other Assistant operator scenarios and broader acceptance remain open.
 
 ## Next up
 
