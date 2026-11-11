@@ -21,6 +21,7 @@ def test_m1_create_plan_move_close_revisit_and_carry_same_work(browser, evidence
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(service.url)
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
+        page.get_by_role("button", name="+ Add project", exact=True).click()
         page.get_by_label("New project").fill("M1 review seminar")
         page.get_by_role("button", name="Add project", exact=True).click()
         expect(page.get_by_role("heading", name="M1 review seminar", exact=True)).to_be_visible()

@@ -84,6 +84,10 @@ export default function App() {
   const [editing, setEditing] = useState<string | null>(null);
   const [addingSubtaskTo, setAddingSubtaskTo] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const [addingProject, setAddingProject] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
+  const addProjectTrigger = useRef<HTMLButtonElement>(null);
+  const renameProjectTrigger = useRef<HTMLButtonElement>(null);
   const [mutations, setMutations] = useState(0);
   const taskRequest = useRef<AbortController | null>(null);
   // Handlers capture the project that was selected when they were created. A mutation
@@ -304,6 +308,55 @@ export default function App() {
             {projects === null && !loadError ? <p className="muted">Loading…</p> : null}
             {projects !== null ? (
               <>
+                <div className="project-actions">
+                  {selected ? (
+                    renaming ? (
+                      <TextForm
+                        key={`rename-${selected.id}-${selected.revision}`}
+                        label={`Rename “${selected.name}”`}
+                        placeholder="New name"
+                        submitLabel="Save name"
+                        initial={selected.name}
+                        maxLength={NAME_MAX_LENGTH}
+                        onCancel={() => { setRenaming(false); requestAnimationFrame(() => renameProjectTrigger.current?.focus()); }}
+                        onSubmit={async (name) => {
+                          const updated = await renameProject(selected.id, name);
+                          setProjects((current) => (current ?? []).map((p) => (p.id === updated.id ? updated : p)));
+                          setRenaming(false);
+                          setStatus(`Renamed to “${updated.name}”.`);
+                          requestAnimationFrame(() => renameProjectTrigger.current?.focus());
+                        }}
+                      />
+                    ) : (
+                      <button ref={renameProjectTrigger} type="button" className="link" onClick={() => setRenaming(true)}>
+                        Rename “{selected.name}”
+                      </button>
+                    )
+                  ) : null}
+                  <button ref={addProjectTrigger} type="button" className="link" aria-expanded={addingProject} disabled={savingProject} onClick={() => setAddingProject((open) => !open)}>
+                    + Add project
+                  </button>
+                  {addingProject ? <TextForm
+                    label="New project"
+                    placeholder="Add a project"
+                    submitLabel="Add project"
+                    maxLength={NAME_MAX_LENGTH}
+                    onCancel={() => { setAddingProject(false); addProjectTrigger.current?.focus(); }}
+                    onSubmit={async (name) => {
+                      setSavingProject(true);
+                      try {
+                        const project = await createProject(name);
+                        setProjects((current) => [...(current ?? []), project]);
+                        setSelectedId(project.id);
+                        setAddingProject(false);
+                        setStatus(`Added project “${project.name}”.`);
+                        requestAnimationFrame(() => addProjectTrigger.current?.focus());
+                      } finally {
+                        setSavingProject(false);
+                      }
+                    }}
+                  /> : null}
+                </div>
                 <ul className="project-list">
                   {projects.map((project) => (
                     <li key={project.id}>
@@ -318,44 +371,6 @@ export default function App() {
                     </li>
                   ))}
                 </ul>
-
-                <div className="project-actions">
-                  <TextForm
-                    label="New project"
-                    placeholder="Add a project"
-                    submitLabel="Add project"
-                    maxLength={NAME_MAX_LENGTH}
-                    onSubmit={async (name) => {
-                      const project = await createProject(name);
-                      setProjects((current) => [...(current ?? []), project]);
-                      setSelectedId(project.id);
-                      setStatus(`Added project “${project.name}”.`);
-                    }}
-                  />
-                  {selected ? (
-                    renaming ? (
-                      <TextForm
-                        key={`rename-${selected.id}-${selected.revision}`}
-                        label={`Rename “${selected.name}”`}
-                        placeholder="New name"
-                        submitLabel="Save name"
-                        initial={selected.name}
-                        maxLength={NAME_MAX_LENGTH}
-                        onCancel={() => setRenaming(false)}
-                        onSubmit={async (name) => {
-                          const updated = await renameProject(selected.id, name);
-                          setProjects((current) => (current ?? []).map((p) => (p.id === updated.id ? updated : p)));
-                          setRenaming(false);
-                          setStatus(`Renamed to “${updated.name}”.`);
-                        }}
-                      />
-                    ) : (
-                      <button type="button" className="link" onClick={() => setRenaming(true)}>
-                        Rename “{selected.name}”
-                      </button>
-                    )
-                  ) : null}
-                </div>
               </>
             ) : null}
           </section>
@@ -722,9 +737,9 @@ function TextForm({
     >
       <label htmlFor={id}>{label}</label>
       <div className="field-row">
-        <input id={id} value={value} placeholder={placeholder} maxLength={maxLength * 2} onChange={(event) => setValue(event.target.value)} />
+        <input autoFocus id={id} value={value} placeholder={placeholder} maxLength={maxLength * 2} onChange={(event) => setValue(event.target.value)} />
         <button type="submit" disabled={!trimmed || tooLong || busy}>{submitLabel}</button>
-        {onCancel ? <button type="button" className="link" onClick={onCancel}>Cancel</button> : null}
+        {onCancel ? <button type="button" className="link" disabled={busy} onClick={onCancel}>Cancel</button> : null}
       </div>
       {tooLong ? <p className="error">Keep this to {maxLength} characters or fewer.</p> : null}
       {error ? <p className="error" role="alert">{error}</p> : null}

@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Compact project controls
+
+- Moved Rename above Add project and made creation an on-demand form with retry, cancel and focus restoration. Verified 186 frontend tests, production build and disposable Chrome project journeys; [review](reviews/2026-11-11-project-controls.md). The project drawer and task surfaces remain future work.
+
 ## 2026-11-11 — Today, Week and Projects view switch
 
 - Added Today-first view controls, preserving mounted project drafts and week state and providing a Today retry for planning failures. Frontend suite, build and Chrome journey checks are recorded in the [review](reviews/2026-11-11-plan-views.md). The full project and week redesign remains open.

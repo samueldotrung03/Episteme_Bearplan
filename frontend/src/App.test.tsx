@@ -315,6 +315,7 @@ test("adding a project selects it", async () => {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByRole("button", { name: "Math 55", current: true });
 
+  await user.click(screen.getByRole("button", { name: "+ Add project" }));
   await user.type(screen.getByLabelText("New project"), "CS 61A");
   await user.click(screen.getByRole("button", { name: "Add project" }));
 
@@ -375,6 +376,7 @@ test("adding a project closes an open rename form instead of retargeting it", as
   await user.click(screen.getByRole("button", { name: /rename/i }));
   expect(screen.getByLabelText(/rename/i)).toHaveValue("Math 55");
 
+  await user.click(screen.getByRole("button", { name: "+ Add project" }));
   await user.type(screen.getByLabelText("New project"), "CS 61A");
   await user.click(screen.getByRole("button", { name: "Add project" }));
   await screen.findByRole("button", { name: "CS 61A", current: true });
@@ -848,4 +850,27 @@ test("existing multiple dates remain editable without Add controls and synchroni
   await waitFor(() => expect(board().getByLabelText("Read, planned Oct 17, 2026")).toBeChecked());
   expect(board().getByLabelText("Read, planned Oct 16, 2026")).toBeChecked();
   expect(board().getByText("Weekly completion: 1 of 1 work items complete (100%).")).toBeInTheDocument();
+});
+
+test("project creation cannot be dismissed while its save is pending", async () => {
+  fakeService([project(MATH, "Math 55", true)], []);
+  const original = vi.mocked(fetch).getMockImplementation()!;
+  let release: () => void = () => {};
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
+    if (String(input) === "/api/projects" && init?.method === "POST") await pending;
+    return original(input, init);
+  });
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  const trigger = await screen.findByRole("button", { name: "+ Add project" });
+  await user.click(trigger);
+  await user.type(screen.getByLabelText("New project"), "Research");
+  await user.click(screen.getByRole("button", { name: "Add project", exact: true }));
+  expect(trigger).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  expect(screen.getByLabelText("New project")).toHaveValue("Research");
+  await act(async () => { release(); });
+  await waitFor(() => expect(trigger).toBeEnabled());
 });

@@ -72,8 +72,9 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         expect(page.get_by_text("No tasks in this project yet.")).to_be_visible()
         page.screenshot(path=evidence / "01-empty-wide.png")
 
+        page.get_by_role("button", name="+ Add project", exact=True).click()
         page.get_by_label("New project").fill("Math 55")
-        page.get_by_role("button", name="Add project").click()
+        page.get_by_role("button", name="Add project", exact=True).click()
         expect(page.get_by_role("heading", name="Math 55")).to_be_visible()
         page.get_by_role("button", name="Rename “Math 55”").click()
         page.get_by_label("Rename “Math 55”").fill("Math 55 — Honors")
@@ -217,6 +218,7 @@ def test_long_text_layout_and_keyboard_creation(browser, evidence: Path, tmp_pat
         page = browser.new_page(viewport={"width": 1280, "height": 900})
         page.goto(service.url)
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
+        page.get_by_role("button", name="+ Add project", exact=True).click()
         page.get_by_label("New project").fill("P" * 100)
         page.get_by_label("New project").press("Enter")
         expect(page.get_by_role("heading", name="P" * 100)).to_be_visible()

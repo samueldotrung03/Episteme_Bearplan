@@ -304,7 +304,9 @@ checks passed. See the [header review](reviews/2026-11-11-compact-navigation.md)
 
 The view switch is implemented and verified; see the [plan views review](reviews/2026-11-11-plan-views.md). The existing project editor and weekly board still need their visual redesign.
 
-Next: refine the project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
+The project header now places Rename above an on-demand Add project form; saves retain errors and focus correctly. See the [project controls review](reviews/2026-11-11-project-controls.md).
+
+Next: refine the remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 
 ## Next up

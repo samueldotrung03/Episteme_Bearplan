@@ -1315,3 +1315,7 @@ details > summary:focus-visible {
 .plan-navigation button:last-child { margin-inline-start: auto; border-color: var(--border); }
 .plan-workspace { display: block; }
 .plan-workspace[hidden], .plan-workspace > [hidden] { display: none; }
+
+.project-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; margin: 0 0 0.75rem; }
+.project-actions > button.link { min-height: 36px; text-align: left; }
+.project-actions .text-form { max-width: 28rem; margin: 0.25rem 0; }
