@@ -16,13 +16,19 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
   const [pending, setPending] = useState<TaskCapture | null>(initial);
   const [rejected, setRejected] = useState(false);
   const [resolvedElsewhere, setResolvedElsewhere] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  const focusCancel = useRef(false);
   useEffect(() => {
     if (!pending) return;
     const checkOtherWindow = (event: Event) => {
       if (event instanceof CustomEvent && event.detail === origin.current) return;
       try {
         const current = readPendingCapture();
-        if (!current || current.operation_id !== pending.operation_id) setResolvedElsewhere(true);
+        if (!current || current.operation_id !== pending.operation_id) {
+          focusCancel.current = !!form.current?.contains(document.activeElement);
+          setResolvedElsewhere(true);
+        }
       } catch { /* Keep the form locked if recovery storage cannot be read. */ }
     };
     window.addEventListener("storage", checkOtherWindow);
@@ -31,9 +37,22 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
   }, [pending]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(initial ? "The previous save needs confirmation. Check its status before changing it." : null);
+  const titleInput = useRef<HTMLInputElement>(null);
+  const checkButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (resolvedElsewhere && !busy && focusCancel.current) {
+      focusCancel.current = false;
+      cancelButton.current?.focus();
+      return;
+    }
+    if (!pending || busy || resolvedElsewhere) return;
+    if (rejected) titleInput.current?.focus();
+    else checkButton.current?.focus();
+  }, [pending, busy, rejected, resolvedElsewhere]);
   const uid = useId();
   const locked = busy || resolvedElsewhere || (!!pending && !rejected);
   const validTitle = !!title.trim() && [...title.trim()].length <= TITLE_MAX_LENGTH;
+  const titleTooLong = !!title.trim() && !validTitle;
 
   function saved() { setPending(null); setRejected(false); notify(origin.current); onSaved(); }
   function capture(): TaskCapture {
@@ -86,19 +105,19 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
     } catch (caught) { setRejected(false); setError(`${message(caught)} Your request is kept; check its status again.`); }
     finally { setBusy(false); }
   }
-  return <form className="task-form" onSubmit={submit}>
-    <div className="field"><label htmlFor={`capture-title-${uid}`}>Title</label><input autoFocus id={`capture-title-${uid}`} value={title} disabled={locked} onChange={e => setTitle(e.target.value)} required /></div>
+  return <form ref={form} className="task-form" onSubmit={submit}>
+    <div className="field"><label htmlFor={`capture-title-${uid}`}>Title</label><input ref={titleInput} autoFocus id={`capture-title-${uid}`} value={title} disabled={locked} onChange={e => setTitle(e.target.value)} required aria-invalid={titleTooLong || undefined} aria-describedby={titleTooLong ? `capture-title-error-${uid}` : undefined} /></div>
     <div className="field-row">
       <div className="field"><label htmlFor={`capture-deadline-${uid}`}>Deadline</label><input id={`capture-deadline-${uid}`} type="date" value={deadline} disabled={locked} onChange={e => setDeadline(e.target.value)} /></div>
       <div className="field"><label htmlFor={`capture-estimate-${uid}`}>Estimate (minutes)</label><input id={`capture-estimate-${uid}`} type="number" min={ESTIMATE_MIN_MINUTES} max={ESTIMATE_MAX_MINUTES} value={estimate} disabled={locked} onChange={e => setEstimate(e.target.value)} /></div>
     </div>
     <div className="field"><label htmlFor={`capture-day-${uid}`}>Planned day</label><input id={`capture-day-${uid}`} type="date" value={day} disabled={locked} onChange={e => setDay(e.target.value)} /><span className="muted">Deadline and planned day are separate.</span></div>
     <div className="field"><label htmlFor={`capture-notes-${uid}`}>Notes</label><textarea id={`capture-notes-${uid}`} rows={2} value={notes} disabled={locked} onChange={e => setNotes(e.target.value)} /></div>
-    {title.trim() && !validTitle ? <p className="error">Keep the title to {TITLE_MAX_LENGTH} characters or fewer.</p> : null}
+    {titleTooLong ? <p id={`capture-title-error-${uid}`} className="error">Keep the title to {TITLE_MAX_LENGTH} characters or fewer.</p> : null}
     {resolvedElsewhere ? <p className="error" role="alert">This pending save was resolved elsewhere. Close this form and check your task list before creating it again.</p> : error ? <p className="error" role="alert">{error}</p> : null}
     <div className="form-actions">
-      {resolvedElsewhere ? null : pending && !rejected ? <button type="button" disabled={busy} onClick={() => void check()}>{busy ? "Checking…" : "Check save status"}</button> : <button type="submit" disabled={busy || !validTitle}>{busy ? "Saving…" : "Add task"}</button>}
-      <button type="button" className="link" disabled={busy || (!!pending && !rejected && !resolvedElsewhere)} onClick={() => void cancel()}>Cancel</button>
+      {resolvedElsewhere ? null : pending && !rejected ? <button ref={checkButton} type="button" disabled={busy} onClick={() => void check()}>{busy ? "Checking…" : "Check save status"}</button> : <button type="submit" disabled={busy || !validTitle}>{busy ? "Saving…" : "Add task"}</button>}
+      <button ref={cancelButton} type="button" className="link" disabled={busy || (!!pending && !rejected && !resolvedElsewhere)} onClick={() => void cancel()}>Cancel</button>
     </div>
   </form>;
 }

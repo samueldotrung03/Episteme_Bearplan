@@ -1,5 +1,13 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Cross-tab task capture focus check
+
+Verified Cancel focus after another tab resolves a pending task; fixed focus after closing the stale form by returning it to the project heading during refresh. A live two-tab recheck confirmed heading focus and Tab to Add task. Frontend: 213 tests and build passed on macOS. [Review](reviews/2026-11-11-task-capture-cross-tab-focus.md).
+
+## 2026-11-11 — Resolved-elsewhere task capture focus
+
+Preserved focus on Cancel when an active recovery form is resolved elsewhere, without moving focus from unrelated work. Simulated checks passed; 213 frontend tests and build passed on macOS. Live two-window focus verification remains open. [Review](reviews/2026-11-11-task-capture-resolved-focus.md).
+
 ## 2026-11-11 — Open user decisions answered (refinement RF-03)
 
 Wrote [DECISIONS_FOR_USER.md](plans/refinement/DECISIONS_FOR_USER.md): ten
@@ -10,6 +18,18 @@ on the [actions review](reviews/2026-11-01-assistant-actions.md) and
 [R24 UX review](reviews/2026-11-03-ux-r24-handoff.md). Rows are 60 px; the
 wide-layout width waits for a browser layout test. No code change; no tests run
 (documentation only). Not committed.
+
+## 2026-11-11 — Closed-week task capture recovery check
+
+Verified in the in-app browser that a closed-day rejection retains the draft, guides focus through recheck and correction, and saves the task on an open date. [Review](reviews/2026-11-11-task-capture-closed-week-focus.md).
+
+## 2026-11-11 — Task capture recovery focus
+
+Moved focus to Check save status after an uncertain save and to Title after a definitive rejection. Verified outage recovery in the in-app browser and both transitions in form tests; 212 frontend tests and build passed on macOS. [Review](reviews/2026-11-11-task-capture-recovery-focus.md).
+
+## 2026-11-11 — Task capture title error accessibility
+
+Associated the title-length error and invalid state with the input, clearing them on correction. Verified the visible correction in the in-app browser; 212 frontend tests and the production build passed on macOS. Screen-reader testing remains open. [Review](reviews/2026-11-11-task-capture-title-accessibility.md).
 
 ## 2026-11-11 — Gate register and limit on waiting work (refinement RF-02)
 

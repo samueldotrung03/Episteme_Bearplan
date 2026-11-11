@@ -47,8 +47,14 @@ async function attempt(storage: Storage): Promise<TaskCaptureResult> {
 }
 
 /** Persist and send as one serialized operation, shared by all same-origin windows. */
-export function startCapture(capture: TaskCapture, storage: Storage = localStorage): Promise<TaskCaptureResult> {
-  return locked(async () => { prepareCapture(capture, storage); return attempt(storage); });
+export function startCapture(capture: TaskCapture, storage?: Storage): Promise<TaskCaptureResult> {
+  return locked(async () => {
+    let recoveryStorage: Storage;
+    try { recoveryStorage = storage ?? localStorage; }
+    catch { throw new CaptureRecoveryError("Task save recovery storage is unavailable. No task was sent. Check your browser storage settings and try again."); }
+    prepareCapture(capture, recoveryStorage);
+    return attempt(recoveryStorage);
+  });
 }
 
 export function retryCapture(expectedOperationId: string, storage: Storage = localStorage): Promise<TaskCaptureResult> {

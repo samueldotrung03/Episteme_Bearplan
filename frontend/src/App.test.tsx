@@ -988,8 +988,10 @@ test("closing a task save resolved elsewhere refreshes the stale project list", 
   localStorage.removeItem("bearplans.task-capture.pending.v1");
   fireEvent(window, new Event("storage"));
   expect(await screen.findByText(/resolved elsewhere/)).toBeVisible();
+  await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus());
   await user.click(screen.getByRole("button", { name: "Cancel" }));
   expect(await screen.findByRole("checkbox", { name: "Saved elsewhere" })).toBeVisible();
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Math 55" })).toHaveFocus());
 });
 
 test("failed refresh after a save resolved elsewhere hides stale tasks and allows retry", async () => {

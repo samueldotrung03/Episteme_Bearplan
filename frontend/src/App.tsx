@@ -86,6 +86,7 @@ export default function App() {
   const [editing, setEditing] = useState<string | null>(null);
   const [taskDraftProjects, setTaskDraftProjects] = useState<string[]>([]);
   const addTaskTrigger = useRef<HTMLButtonElement>(null);
+  const tasksHeading = useRef<HTMLHeadingElement>(null);
   const [pendingCapture, setPendingCapture] = useState(() => { try { return readPendingCapture(); } catch { return null; } });
   const [reviewPendingCapture, setReviewPendingCapture] = useState(false);
   useEffect(() => {
@@ -398,7 +399,7 @@ export default function App() {
 
           {selected ? (
             <section className="tasks-section" aria-labelledby="tasks-heading">
-              <h2 id="tasks-heading">{selected.name}</h2>
+              <h2 ref={tasksHeading} tabIndex={-1} id="tasks-heading">{selected.name}</h2>
               {progress ? <p className="muted">{progress.completed} of {progress.total} work items complete</p> : null}
 
               {!taskDraftProjects.includes(selected.id) ? (
@@ -416,7 +417,11 @@ export default function App() {
                         void refreshTasks(projectId);
                         void planning.refresh();
                       }
-                      requestAnimationFrame(() => addTaskTrigger.current?.focus());
+                      requestAnimationFrame(() => {
+                        if (selectedIdRef.current !== projectId) return;
+                        if (resolvedElsewhere) tasksHeading.current?.focus();
+                        else addTaskTrigger.current?.focus();
+                      });
                     }}
                     onSaved={() => {
                       setTaskDraftProjects((ids) => ids.filter((id) => id !== projectId));

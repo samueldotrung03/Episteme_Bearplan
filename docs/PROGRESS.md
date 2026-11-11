@@ -64,6 +64,29 @@ The [keyboard order review](reviews/2026-11-11-task-capture-keyboard-order.md)
 checks Tab through the task form and Enter to save in the in-app browser, with
 focus returning to Add task. Screen-reader operation and broader coverage remain open.
 
+The [title accessibility review](reviews/2026-11-11-task-capture-title-accessibility.md)
+records the associated title-length error and its correction, checked in the
+in-app browser and a form test. The frontend suite passed 212 tests and build.
+
+The [recovery focus review](reviews/2026-11-11-task-capture-recovery-focus.md)
+records focus on Check save status after an outage and on the editable title
+after a simulated definitive rejection. The browser outage recovery and 212
+frontend tests passed; screen-reader and real storage/lock checks remain open.
+
+The [closed-week focus review](reviews/2026-11-11-task-capture-closed-week-focus.md)
+also verifies the rejection, recheck, focus return and corrected planned date in
+the in-app browser using disposable data.
+
+The [resolved-elsewhere focus review](reviews/2026-11-11-task-capture-resolved-focus.md)
+records simulated checks that preserve focus in the affected form without stealing
+it from another control. The 213-test frontend suite and build passed; a live
+two-window check of this focus change remains open.
+
+The [cross-tab focus review](reviews/2026-11-11-task-capture-cross-tab-focus.md)
+confirms the Cancel focus in two live tabs. Closing the stale form exposed a
+second focus gap; the fix returning focus to the project heading passed a live
+two-tab browser recheck, the 213-test frontend suite and build.
+
 **Next concrete step:** Complete real browser verification of storage/lock failures,
 broader keyboard/accessibility and theme coverage, and user acceptance using the
 [UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md). The task-entry integration
