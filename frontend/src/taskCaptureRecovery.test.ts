@@ -17,7 +17,7 @@ test("a lost response survives reload and retries the exact request", async () =
   const fetcher = vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new TypeError("response lost")).mockResolvedValueOnce(response());
   await expect(startCapture(capture)).rejects.toThrow();
   expect(readPendingCapture()).toEqual(capture);
-  await expect(retryCapture()).resolves.toMatchObject({ task: { id: "task" } });
+  await expect(retryCapture(capture.operation_id)).resolves.toMatchObject({ task: { id: "task" } });
   expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual(capture);
   expect(fetcher.mock.calls[1][1]?.body).toBe(fetcher.mock.calls[0][1]?.body);
   expect(readPendingCapture()).toBeNull();
@@ -37,7 +37,7 @@ test("a malformed success and a rejected request retain the original recovery da
   vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response("{}", { status: 201 }))
     .mockResolvedValueOnce(new Response(JSON.stringify({ error: { message: "Closed week" } }), { status: 409 }));
   await expect(startCapture(capture)).rejects.toThrow(/confirm/);
-  await expect(retryCapture()).rejects.toThrow(/Closed week/);
+  await expect(retryCapture(capture.operation_id)).rejects.toThrow(/Closed week/);
   expect(readPendingCapture()).toEqual(capture);
 });
 
@@ -61,10 +61,10 @@ test("closed-week rejection keeps the draft and permits a rechecked replacement"
   const closed = () => new Response(JSON.stringify({ error: { code: "week_conflict", field: "planned_date", message: "Closed week" } }), { status: 409 });
   vi.spyOn(globalThis, "fetch").mockImplementation(async () => closed());
   await expect(startCapture(capture)).rejects.toThrow(/Closed week/);
-  expect(await checkCapture()).toMatchObject({ rejected: capture });
+  expect(await checkCapture(capture.operation_id)).toMatchObject({ rejected: capture });
   expect(readPendingCapture()).toEqual(capture);
   const revised = { ...capture, operation_id: "two", planned_date: "2026-11-19" };
-  expect(await resolveRejectedCapture(revised)).toMatchObject({ rejected: capture });
+  expect(await resolveRejectedCapture(capture.operation_id, revised)).toMatchObject({ rejected: capture });
   expect(readPendingCapture()).toEqual(revised);
 });
 
@@ -73,15 +73,15 @@ test("an operation conflict or uncertain outcome never permits discard", async (
     .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: "week_conflict", field: "operation_id", message: "Conflict" } }), { status: 409 }))
     .mockRejectedValueOnce(new TypeError("lost again"));
   await expect(startCapture(capture)).rejects.toThrow();
-  await expect(resolveRejectedCapture(null)).rejects.toThrow(/Conflict/);
-  await expect(resolveRejectedCapture(null)).rejects.toThrow();
+  await expect(resolveRejectedCapture(capture.operation_id, null)).rejects.toThrow(/Conflict/);
+  await expect(resolveRejectedCapture(capture.operation_id, null)).rejects.toThrow();
   expect(readPendingCapture()).toEqual(capture);
 });
 
 test("a saved replay wins over a proposed cancellation", async () => {
   vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new TypeError("lost")).mockResolvedValueOnce(response());
   await expect(startCapture(capture)).rejects.toThrow();
-  expect(await resolveRejectedCapture(null)).toMatchObject({ saved: { task: { id: "task" } } });
+  expect(await resolveRejectedCapture(capture.operation_id, null)).toMatchObject({ saved: { task: { id: "task" } } });
   expect(readPendingCapture()).toBeNull();
 });
 
@@ -91,4 +91,17 @@ test("missing cross-window locks prevents any request", async () => {
   await expect(startCapture(capture)).rejects.toThrow(/coordinate/);
   expect(fetcher).not.toHaveBeenCalled();
   expect(readPendingCapture()).toBeNull();
+});
+
+
+test("a stale window cannot check, replace or discard a different pending capture", async () => {
+  const fetcher = vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("offline"));
+  await expect(startCapture(capture)).rejects.toThrow();
+  fetcher.mockClear();
+  await expect(retryCapture("stale")).rejects.toThrow(/another window/);
+  await expect(checkCapture("stale")).rejects.toThrow(/another window/);
+  await expect(resolveRejectedCapture("stale", null)).rejects.toThrow(/another window/);
+  await expect(resolveRejectedCapture("stale", { ...capture, operation_id: "replacement" })).rejects.toThrow(/another window/);
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(readPendingCapture()).toEqual(capture);
 });

@@ -1,0 +1,5 @@
+# Task capture stale-window safeguard — November 11, 2026
+
+**Result: Pass with follow-ups.** Before wiring the UX-13 task editor, review found that serialized operations did not verify the caller's selected operation ID. A stale window could therefore retry, check, replace or discard a different request after another window changed the pending record. The recovery API now requires and checks the expected operation ID inside the same-origin lock before those actions. It refuses a mismatch without fetching or modifying storage. Existing preparation and replay rules remain unchanged.
+
+On macOS Darwin arm64, `npm --prefix frontend test` passed 201 tests in 18 files, including a simulated stale-window test, and `npm --prefix frontend run typecheck` passed. Figma task-details node 5:5491 was inspected; it distinguishes deadline and planned day and shows one Save. This is a recovery-layer slice only: the form has not been connected, and real browser-window, UI, process-restart, accessibility and user acceptance checks remain open. No production build, provider, or personal data was used.

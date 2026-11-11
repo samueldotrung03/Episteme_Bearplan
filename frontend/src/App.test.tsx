@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
+
+beforeEach(() => { localStorage.clear(); Object.defineProperty(navigator, "locks", { configurable: true, value: { request: (_name: string, work: () => Promise<unknown>) => work() } }); });
 import App from "./App";
 import type { Placement, Project, Task } from "./api";
 import { addDays } from "./WeeklyPlanner";
@@ -115,6 +117,13 @@ function fakeService(projects: Project[], tasks: Task[], fail?: { url: string; s
       const id = new URL(url, "http://x").searchParams.get("project_id");
       return json(taskList(tasks.filter((t) => t.project_id === id)));
     }
+    if (url === "/api/task-captures" && method === "POST") {
+      const created = task("00000000-0000-4000-8000-000000000009", String(body!.title), { project_id: String(body!.project_id) });
+      tasks.push(created);
+      const planned = body!.planned_date ? placement("capture-placement", created.id, String(body!.planned_date)) : null;
+      if (planned) placements.push(planned);
+      return json({ task: created, placement: planned }, 201);
+    }
     if (url === "/api/tasks" && method === "POST") {
       const created = task("00000000-0000-4000-8000-000000000009", String(body!.title), {
         parent_id: (body!.parent_id as string) ?? null,
@@ -175,8 +184,8 @@ test("adds a task to the selected project, sending a trimmed title", async () =>
   await user.type(screen.getByLabelText("Title"), "  Essay outline  ");
   await user.click(screen.getByRole("button", { name: "Add task" }));
 
-  await waitFor(() => expect(calls.some((c) => c.url === "/api/tasks" && c.method === "POST")).toBe(true));
-  const post = calls.find((c) => c.url === "/api/tasks" && c.method === "POST")!;
+  await waitFor(() => expect(calls.some((c) => c.url === "/api/task-captures" && c.method === "POST")).toBe(true));
+  const post = calls.find((c) => c.url === "/api/task-captures" && c.method === "POST")!;
   expect(post.body).toMatchObject({ title: "Essay outline", project_id: MATH });
 });
 
@@ -276,7 +285,7 @@ test("a rejected save shows the service's message and keeps what was typed", asy
   // them: a title of only invisible characters passes HTML's required check and is
   // still rejected once trimmed. The typed text must survive so it can be corrected.
   fakeService([project(MATH, "Math 55", true)], [], {
-    url: "/api/tasks",
+    url: "/api/task-captures",
     status: 422,
     error: { code: "invalid_input", field: "title", message: "Enter a task title." },
   });

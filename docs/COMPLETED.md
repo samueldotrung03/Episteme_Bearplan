@@ -1,5 +1,13 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Task capture stale-window safeguard
+
+Retry and resolution now require the reviewed operation ID, preventing a stale window from acting on a different pending capture. Frontend suite: 201 passed; typecheck passed on macOS. The form integration remains open. [Review](reviews/2026-11-11-capture-stale-window.md).
+
+## 2026-11-11 — Progress record reconciled
+
+The completed work formerly summarized in Progress is recorded in the dated entries below and their linked reviews, including the UX repair/handoff, Settings and connections, Assistant fixes, timer completion, and the recent Plan and task-capture slices. The previous detailed status and delivery-register snapshot remains available in Git at `605826e:docs/PROGRESS.md`; it is historical evidence, and its open items are not marked complete. Current implementation, pending gates, and the next action remain in [Progress](PROGRESS.md).
+
 ## 2026-11-11 — Task capture rejection and window coordination
 
 Serialized same-origin capture operations and added rechecked rejection recovery. The form is not yet wired. macOS Darwin arm64: 200 frontend tests and typecheck passed. See [review](reviews/2026-11-11-task-capture-recovery-followup.md).

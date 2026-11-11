@@ -28,6 +28,8 @@ import { ConnectionPanels } from "./ConnectionPanels";
 import { ConnectionSetup, type SetupProvider } from "./ConnectionSetup";
 import { BCourses } from "./BCourses";
 import { Google, useGoogleChanges } from "./Google";
+import { TaskCaptureForm } from "./TaskCaptureForm";
+import { readPendingCapture } from "./taskCaptureRecovery";
 
 const dueOn = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" });
 
@@ -84,6 +86,12 @@ export default function App() {
   const [editing, setEditing] = useState<string | null>(null);
   const [taskDraftProjects, setTaskDraftProjects] = useState<string[]>([]);
   const addTaskTrigger = useRef<HTMLButtonElement>(null);
+  const [pendingCapture, setPendingCapture] = useState(() => { try { return readPendingCapture(); } catch { return null; } });
+  useEffect(() => {
+    const update = () => { try { setPendingCapture(readPendingCapture()); } catch { /* Form reports unavailable recovery storage. */ } };
+    window.addEventListener("storage", update); window.addEventListener("bearplans-capture-change", update);
+    return () => { window.removeEventListener("storage", update); window.removeEventListener("bearplans-capture-change", update); };
+  }, []);
   const [addingSubtaskTo, setAddingSubtaskTo] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [addingProject, setAddingProject] = useState(false);
@@ -299,6 +307,10 @@ export default function App() {
         <button type="button" aria-pressed={planView === "week"} onClick={() => setPlanView("week")}>Week</button>
         <button type="button" aria-pressed={planView === "projects"} onClick={() => setPlanView("projects")}>Projects</button>
       </nav>
+      {pendingCapture ? <div role="status"><span>A task save needs confirmation: {pendingCapture.title}. </span><button type="button" onClick={() => {
+        setScreen("plan"); setPlanView("projects"); setSelectedId(pendingCapture.project_id ?? null);
+        setTaskDraftProjects(ids => ids.includes(pendingCapture.project_id!) ? ids : [...ids, pendingCapture.project_id!]);
+      }}>Review pending task save</button></div> : null}
       <div hidden={planView !== "today"}>
       <Today visible={screen === "plan" && planView === "today"} lastSessionId={timer.state?.last_session?.id ?? null} plan={planning.plan} projects={projects ?? []} loading={planning.loading} error={planning.error} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onRun={run} onTrack={openTrack} onRetry={() => void planning.refresh()} />
       </div>
@@ -387,14 +399,16 @@ export default function App() {
               ) : null}
               {taskDraftProjects.map((projectId) => (
                 <div key={projectId} hidden={selected.id !== projectId}>
-                  <TaskForm
-                    autoFocusTitle
-                    submitLabel="Add task"
+                  <TaskCaptureForm
+                    projectId={projectId}
                     onCancel={() => {
                       setTaskDraftProjects((ids) => ids.filter((id) => id !== projectId));
                       requestAnimationFrame(() => addTaskTrigger.current?.focus());
                     }}
-                    onSubmit={(edit) => run(() => createTask({ ...edit, title: edit.title ?? "", project_id: projectId }), "Task added.")}
+                    onSaved={() => {
+                      setTaskDraftProjects((ids) => ids.filter((id) => id !== projectId));
+                      void run(async () => {}, "Task added.").catch(() => setStatus("Task saved. Refresh your views to see it."));
+                    }}
                   />
                 </div>
               ))}

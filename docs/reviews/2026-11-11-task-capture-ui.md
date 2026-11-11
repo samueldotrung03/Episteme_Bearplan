@@ -1,0 +1,7 @@
+# Task capture form — November 11, 2026
+
+**Result: In progress; not accepted.** The project task-entry form now sends task details and an optional planned date through the atomic endpoint, retaining an uncertain request and offering a status check. The form keeps deadline and planned date distinct; a rejected closed date can be checked and corrected. A pending request is announced with an entry to review it after reload. Subtask and task-edit forms continue on their existing paths.
+
+On macOS Darwin arm64, `npm --prefix frontend test` passed 204 tests in 19 files before the final narrow cross-window safeguard. Thereafter `npm --prefix frontend test -- src/TaskCaptureForm.test.tsx src/taskCaptureRecovery.test.ts` passed 13 tests and `npm --prefix frontend run typecheck` passed. The new form tests cover atomic request fields, loss/replay across component remount, and closed-week correction. Figma task details node 5:5491 was inspected in the prior slice. No real browser, production build, provider or personal data was used.
+
+**Open before delivery:** The pending-save review control must handle a different unsaved draft already open for the same project without losing that draft or hiding the pending request. Verify actual browser reload and multiple windows, storage and lock failure messaging, canceled/rejected saves, view refresh failure, keyboard, responsive widths and themes against a disposable service. The app-level operator walkthrough and full UX-13 acceptance are not complete.

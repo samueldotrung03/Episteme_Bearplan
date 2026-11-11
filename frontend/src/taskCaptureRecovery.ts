@@ -47,8 +47,12 @@ export function startCapture(capture: TaskCapture, storage: Storage = localStora
   return locked(async () => { prepareCapture(capture, storage); return attempt(storage); });
 }
 
-export function retryCapture(storage: Storage = localStorage): Promise<TaskCaptureResult> {
-  return locked(() => attempt(storage));
+export function retryCapture(expectedOperationId: string, storage: Storage = localStorage): Promise<TaskCaptureResult> {
+  return locked(() => {
+    const pending = readPendingCapture(storage);
+    if (!pending || pending.operation_id !== expectedOperationId) throw new CaptureRecoveryError("The pending task save changed in another window. Review it before continuing.");
+    return attempt(storage);
+  });
 }
 
 /** Only these structured responses prove this exact request was rejected without a write.
@@ -62,10 +66,11 @@ function definitiveRejection(error: unknown): error is ApiError {
 export type CaptureResolution = { saved: TaskCaptureResult } | { rejected: TaskCapture; error: ApiError };
 
 /** Recheck before allowing editing/cancellation. A rejected draft stays durable. */
-export function checkCapture(storage: Storage = localStorage): Promise<CaptureResolution> {
+export function checkCapture(expectedOperationId: string, storage: Storage = localStorage): Promise<CaptureResolution> {
   return locked(async () => {
     const pending = readPendingCapture(storage);
     if (!pending) throw new CaptureRecoveryError("There is no pending task save to check.");
+    if (pending.operation_id !== expectedOperationId) throw new CaptureRecoveryError("The pending task save changed in another window. Review it before continuing.");
     try { return { saved: await attempt(storage) }; }
     catch (error) {
       if (definitiveRejection(error)) return { rejected: pending, error };
@@ -75,10 +80,11 @@ export function checkCapture(storage: Storage = localStorage): Promise<CaptureRe
 }
 
 /** Revalidate rejection under the same lock before replacing or discarding it. */
-export function resolveRejectedCapture(replacement: TaskCapture | null, storage: Storage = localStorage): Promise<CaptureResolution> {
+export function resolveRejectedCapture(expectedOperationId: string, replacement: TaskCapture | null, storage: Storage = localStorage): Promise<CaptureResolution> {
   return locked(async () => {
     const pending = readPendingCapture(storage);
     if (!pending) throw new CaptureRecoveryError("There is no pending task save to resolve.");
+    if (pending.operation_id !== expectedOperationId) throw new CaptureRecoveryError("The pending task save changed in another window. Review it before continuing.");
     try { return { saved: await attempt(storage) }; }
     catch (error) {
       if (!definitiveRejection(error)) throw error;

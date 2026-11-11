@@ -1,650 +1,73 @@
-# BearPlans — progress (in progress)
-
-Read [AGENTS.md](../AGENTS.md) first; Claude also reads [CLAUDE.md](../CLAUDE.md).
-This file holds **only current state**: what is active, what is next, open
-follow-ups, pending manual gates and decisions waiting on the user. Finished work
-is recorded in [COMPLETED.md](COMPLETED.md), newest first; detailed evidence stays
-in the linked reviews.
-
-**How to update.** When an item here finishes, add a dated entry at the top of
-`COMPLETED.md` (checks, files/commits, review link), then remove or shorten the
-item here and update [Build status](#build-status). Keep this file short; do not
-paste long check logs here.
-
-## Current state — November 6, 2026
-
-**UX repair/handoff delivered: 24/24 repair subtickets Done.** R23 passed with
-follow-ups for the bounded user-reported walkthrough; R24 passed with follow-ups
-for the reconciled implementation handoff. Settings overview UX-C02 and bCourses flow UX-C03 are delivered with follow-ups
-under the user’s November 3 requests. UX-C04 Google setup/browser flow is delivered
-with follow-ups under the November 4 “continue” request. UX-C05 Pause/offline/removal
-flow is delivered with follow-ups; the user reported its main flow clear. UX-C06 context/theme and scoped handoff
-are delivered with follow-ups under “go ahead”. APP-C01 baseline reconciliation
-is complete. Original UX-01–36 checkpoint
-acceptance remains distinct from this repair subset.
-
-**Start here:** [refined UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md),
-[exact inventory](../frontend/design/handoff-inventory.json),
-[free editing canvas](https://www.figma.com/design/jobFe4sXDot7BKsej0arNB?node-id=2-5),
-[reset launcher](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&starting-point-node-id=141%3A7346),
-[canvas handoff notes](https://www.figma.com/design/jobFe4sXDot7BKsej0arNB?node-id=22-85).
-Live reconciliation resolved all 89 product/state frames and 46 reference frames;
-launcher is separate, with 11 starts total. Original IDs/free canvas preserved.
-
-**Review evidence:** [R23 reports/repairs](reviews/2026-11-03-ux-r23-continuation.md),
-[R24 handoff review](reviews/2026-11-03-ux-r24-handoff.md),
-[independent R22 assessment](reviews/2026-11-02-ux-r22-static-review.md).
-Latest installed-reaction model: 111/111 pass, Reset covers 206 variables. Earlier
-44 time and 601 navigation models remain historical. Static score 87.98/100 is
-heuristic, not measured task success; no new score was inferred from user reports.
-The preview-cancel finding was repaired/rechecked; user reports then accepted
-carryover, frozen Missed, active-session completion, interruption review, Stats,
-Assistant cancel/error retention and static validation. Exact cause of the initial
-early-closure report was not reproduced independently and remains in its evidence.
-
-**Remaining boundaries:** keyboard/focus, assistive technology, arbitrary drag,
-actual text reflow/breakpoint behavior, general task editing, real storage/timing,
-optional full reward/correction tours and original checkpoint/hardware/core-trial
-acceptance are not certified. User reports were not timed or agent-observed; actual
-window/zoom was not reported. Reference controls and fixed simulations remain
-bounded as detailed in the handoff. The agent had no working browser/computer
-control. Application/core-trial copies, service and database were not changed.
-
-**Settings design handoff:** UX-C02–C06 are delivered with follow-ups. Read the
-[connection handoff](../frontend/plans/settings-connections/HANDOFF.md) and
-[UX-C06 review](reviews/2026-11-04-settings-context-handoff.md). The user reported
-compact navigation/scroll/cancel/session return, Dark readability and selected
-provider recovery/scope examples clear. Second technical review and real browser
-accessibility/resizing/zoom/provider/restart gates remain open.
-
-**Settings application baseline:** APP-C01 reconciled the existing routes,
-saved Google Pause and concurrent account patch. A disposable fixture blocks
-unexpected provider HTTP. Fresh results: 97 guarded backend checks and 166
-frontend tests passed. Typecheck and the build passed. The sync-lock timeout
-bug was reproduced and the mounted calendar-refresh gap remains open.
-[APP-C01 review and test map](reviews/2026-11-05-settings-application-baseline.md).
-
-**Settings application credential recovery:** APP-C02.1 is complete for
-[bCourses](reviews/2026-11-05-bcourses-credential-recovery.md) and
-[Google](reviews/2026-11-05-google-credential-recovery.md). Google preserves an
-existing sign-in for the same OAuth client. A different client signs out
-locally at file publication, and an incomplete cleanup can be retried after
-restart. Verified with disposable fault, callback, sync-lock and process checks.
-
-**Settings application authorization:** APP-C02.2 is complete. The local API
-cancels a specific attempt and preserves the saved connection on denial, timeout,
-missing permissions and write failure. Discarded exchanges leave remote consent
-alone because Google revocation is project-wide. This supersedes the earlier
-late-exchange revocation wording. Cancel UI and provider verification are pending.
-[Authorization implementation review](reviews/2026-11-05-google-authorization-attempts.md).
-
-**Settings application Disconnect:** APP-C02.3 is complete. Disconnect,
-setup removal and replacement share a barrier with task sync and calendar reads.
-Queued requests for the old connection are invalidated, and the API separates
-local sign-out from acknowledged revocation. Browser and live verification remain
-open. [Disconnect review](reviews/2026-11-05-google-disconnect-coordination.md).
-
-**Settings application account isolation:** APP-C02.4 is complete. Unverified
-or mismatched accounts cannot reuse saved links or expose the prior account's
-cache through Calendar or Plan. Starting fresh requires a current reviewed
-account. Migration 22 scopes event imports by account and retains older import
-records unbound. Google account recovery UI and live verification remain open.
-[Account isolation review](reviews/2026-11-05-google-account-isolation.md).
-
-**Settings backend status:** APP-C03.1 is complete. Google setup, saved
-authorization, account review, provider activity, Pause and full-sync evidence
-are distinguishable. bCourses keeps credential-check and refresh evidence
-separate. [Status contract and review](reviews/2026-11-06-settings-backend-status.md).
-
-**Settings frontend status:** APP-C03.2 is complete. The typed API preserves
-setup, authorization, provider history and structured errors. Existing Google
-and bCourses views handle cancelled reads, retained evidence and retry input.
-[Frontend state and review](reviews/2026-11-06-settings-frontend-state.md).
-
-**Settings Pause durability:** APP-C04.1 is complete. Existing storage preserves
-Pause through upgrades and a fresh app instance. Failed Pause/Resume writes
-retain the prior preference and can be retried. 141 guarded regression tests
-passed. [Durability review](reviews/2026-11-06-google-pause-durability.md).
-
-**Settings automatic Pause coverage:** APP-C04.2 is complete. Mounted Calendar
-refreshes recheck saved Pause inside the provider lock. The worker's periodic
-and local-edit gates were verified after reopening a paused database. Explicit
-calendar refresh still works while paused.
-[Automatic Pause review](reviews/2026-11-06-google-automatic-pause.md).
-
-**Settings Pause acknowledgement:** APP-C04.3 is complete. Pause drains
-in-flight work before saving, reports Pausing during the wait, and blocks
-overlapping preference changes. A timeout leaves the previous preference
-available for retry.
-[Pause acknowledgement review](reviews/2026-11-06-google-pause-acknowledgement.md).
-
-**Settings one-shot and Resume:** APP-C04.4 is complete. Sync once retains
-Pause and rejects overlapping requests. Resume schedules reconciliation on
-the paused-to-enabled transition. Tests confirmed the latest task and calendar
-state is applied with stable mappings.
-[One-shot and Resume review](reviews/2026-11-06-google-sync-once-resume.md).
-
-**Settings route and work context:** APP-C05.1 is complete. The shared entry
-opens Connections from every work screen. Back to work restores the originating
-view, Plan selection and scroll, and the same timer. The shell links to existing
-provider views. [Navigation review](reviews/2026-11-06-settings-route.md).
-
-**Settings credential dialogs:** APP-C05.2 is complete. Settings can save a
-masked bCourses token or Google Desktop app JSON file. Failed saves retain
-the draft, and Google has a fallback link and attempt-specific Cancel.
-[Dialog verification](reviews/2026-11-06-settings-credential-dialogs.md).
-
-**Settings provider panels:** APP-C05.3 is complete. Settings reads setup,
-authorization, activity and last success separately. Google Pause, Sync once
-and Resume are backed by the service. Chrome verified that Sync once preserves
-the saved pause and Resume clears it.
-[Provider panel review](reviews/2026-11-06-settings-provider-panels.md).
-
-**bCourses credentials:** APP-C06.1 is complete. Settings distinguishes provider
-rejection from an unconfirmed check, requires review before local removal, and
-offers Check saved token after a save with unrecorded check evidence.
-[Credential controls review](reviews/2026-11-06-settings-bcourses-token.md).
-
-**bCourses course management:** APP-C06.2 is complete. Settings holds the
-course checklist and links to assignment review. Both surfaces use the same
-cached state and require explicit Refresh or Save courses for provider reads.
-[Course management review](reviews/2026-11-06-settings-bcourses-courses.md).
-
-**Google sharing review:** APP-C07.1 is complete. Connect and Reconnect show
-calendar reads, BearPlans calendar publishing and all-task sync before starting
-authorization. The existing fallback link and attempt cancellation remain in place.
-[Sharing review verification](reviews/2026-11-06-settings-google-sharing.md).
-
-**Combined Google sync:** APP-C07.2 is complete. Settings and Google surface
-completed stages when a later stage fails, preserve last full success and
-refresh Plan and Projects after a manual attempt. Background change detection
-reads a local baseline on app entry.
-[Sync feedback review](reviews/2026-11-06-settings-google-combined-sync.md).
-
-**Google Plan and task integration:** APP-C07.3 is complete. Remote parent
-ticks previously cascaded to local subtasks. Only leaf completion now flows
-inbound. Verified calendar deselection preserves an added task, and explicit
-bCourses Add exports once with reviewed deadline changes.
-[Integration review](reviews/2026-11-06-settings-google-plan-integration.md).
-
-**Google recovery:** APP-C07.4 is complete. Google detail reviews local
-disconnect and starting fresh with a verified account. Confirmed and
-unconfirmed revocation receipts stay distinct. Settings explains blocked
-sync and links to the recovery controls.
-[Google recovery review](reviews/2026-11-06-settings-google-recovery.md).
-
-**Integrated process and fault review:** APP-C08.1 is complete. The full
-guarded suite passed with only the Windows API test skipped. A real service
-restart preserved Pause and Plan, and a recurring-event read failure kept
-the cache and imported task safe through retry.
-[Integrated review](reviews/2026-11-06-settings-integrated-regression.md).
-
-**Accessibility gate:** APP-C08.2 passed with follow-ups. Automated browser,
-keyboard, layout and zoom checks are recorded. The user confirmed VoiceOver
-identified the bCourses dialog, read the rejection and announced the setup
-button after Escape. This is a bounded user-reported walkthrough.
-[Accessibility review](reviews/2026-11-06-settings-accessibility-review.md).
-
-**Credential location confirmed:** On November 6 the user confirmed the
-app data folder's `secrets/` directory. The checked-in guidance and current
-implementation already use that location. This resolves the difference from
-the older instructions supplied in the chat. The disposable location and
-connection tests passed 40 cases.
-[Credential decision review](reviews/2026-11-06-credential-location-decision.md).
-
-**Settings delivery review:** APP-C08.3 passed with follow-ups for the
-reviewed implementation and fake-provider evidence. The Google create guard
-now records an account-bound intent before each provider create and blocks
-uncertain retries until reviewed. The full guarded backend suite passed 1,083
-cases with one Windows-only skip; the complete create-guard module passed 20,
-frontend tests passed 180, and two Chrome recovery walkthroughs passed. The
-independent reviewer found no remaining confirmed blocker in this scoped fix.
-[Create guard review](reviews/2026-11-06-google-create-guard.md).
-
-**Settings operator walkthrough:** APP-C09.1 passed with follow-ups for the
-bounded user-reported disposable walkthrough. The user confirmed bCourses
-credential recovery, local task and paused-timer continuity, Google Pause / Sync
-once / Resume, and Pause persistence after restarting the fake-provider service.
-See the [operator review](reviews/2026-11-10-settings-operator-walkthrough.md).
-
-**Settings handoff:** The [implementation handoff](../frontend/plans/settings-connections/IMPLEMENTATION_HANDOFF.md)
-records the delivered scope and evidence boundaries. APP-C09 is delivered with
-follow-ups; optional live checks and broader acceptance are not certified.
-
-**Next step:** Resolve remaining gates when separately scoped. Focused fake-provider
-account and service-restart checks passed 15 cases on November 11; earlier
-offline Plan regressions and the user’s blocked-provider walkthrough supply
-bounded offline evidence. Real same-account reauthorization and a system-wide
-offline operator test remain unverified. Real-provider tests
-require their own bounded authorization; core trial, hardware and release gates
-remain separate. A reviewed Google-create continuation can create a duplicate if
-a remote copy already exists; the guard cannot identify older duplicates.
-
-**Latest publication (November 4):** user requested “push the project”. Ordinary
-`git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
-`96c0910`, UX-C05 `01bb39c` and the 49-file UX-C06 checkpoint `2eddbe7`.
-Fresh checks: 165 context, 58 recovery and 19 Google routing models passed;
-360 local Markdown links, nine JSON artifacts, 30 PNG hashes/dimensions,
-4,106-node ledger consistency and scoped diff checks passed on macOS.
-Uncommitted backend/account/CLAUDE work and duplicate files were excluded and
-preserved. This publication changes no app/runtime acceptance or next-work scope.
-The documentation publication receipt is recorded by the following Git commit.
-
-**Session checkpoint:** `e4e7804` and the 11 earlier commits were pushed to
-`origin/main` on November 4 after the user explicitly approved all 12 commits.
-The ordinary push advanced the remote from `c4a5d14` to `e4e7804`; earlier approval
-rejections are resolved. Uncommitted backend/CLAUDE edits and duplicate files remain
-excluded and untouched. Original checkpoint checks passed: 63-file staged scope,
-59 inspected evidence/guidance files, 134 local links, JSON/PNG consistency,
-ten archived-script syntax checks and scoped diff whitespace. No application
-changes or new acceptance evidence were added by publishing the checkpoint.
-
-Earlier design baseline commit: `23faa2d`. November 3 refinements, handoff, frontend
-connection plans/skills and UX-C02/C03 evidence form the user-authorized design
-checkpoint. Commit/push results are recorded in Git. Concurrent unfinished backend
-work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint. Detailed finished items are in
-[COMPLETED](COMPLETED.md), rather than parallel mutable design trackers.
-
-- **M5 assistant:** actions through router → grounding → library → gate → Apply,
-  replay and Undo; orchestrator with direct answers and plan/tasks/time
-  specialists; 30-case evaluation **Pass** with qwen3:8b (runs 4–5: 30/30,
-  routing 100%, 0 unauthorized changes; reruns 6–8 after later fixes also pass). See the
-  [actions review](reviews/2026-11-01-assistant-actions.md) and
-  [evaluation](reviews/2026-11-01-m5-evaluation.md). Last recorded: pytest 863
-  passed, 1 Windows-only skip; Vitest 145.
-- **Frontend redesign:** bounded repaired prototype and handoff delivered; Today task-list implementation begun; full original checkpoint/runtime acceptance remains open
-  ([UX register](#ux-delivery-register)).
-- **M4 core trial:** candidate recorded; actual seven-day trial not reported.
-
-## Assistant walkthrough finding — November 11
-
-The reported project/parent confusion is fixed in creation fallback parsing.
-The exact local-model request now proposes Review Notes in planner check with
-no parent. 83 affected tests and the 30/30 qwen3:8b evaluation passed. See the
-[fix review](reviews/2026-11-11-assistant-project-creation.md). The user confirmed
-the repaired proposal, one task after Apply, and removal after Undo while
-preserving the earlier task and paused timer. This bounded walkthrough is
-complete. The next walkthrough exposed a completion request becoming a notes
-edit. Router v7 and a grounding guard address that explicit-command case; 85
-affected tests and the exact local-model request passed. The
-[completion-routing review](reviews/2026-11-11-assistant-completion-routing.md)
-records scope and checks. The local-model evaluation passed 30/30 with no
-unauthorized changes. The user confirmed the repaired completion proposal. The later local timer
-policy change and its accepted walkthrough are recorded below. Broader Assistant
-acceptance remains open.
-
-## Completion finishes the matching timer — November 11
-
-Delivered the user's new local completion rule: finishing work in the UI or
-Assistant also saves its matching timer as Finish early. Needs review requires
-Track review first. Undo reopens the task only; finalized time remains saved.
-Full guarded suite: 1,102 passed, one Windows-only skip; final focused completion
-checks: 117 passed; frontend: 180 passed plus typecheck/build; model evaluation:
-30/30. The user reported the demo worked, and a follow-up read confirmed a saved
-early-finish result, no active session and the reopened task. See the
-[completion/timer review](reviews/2026-11-11-completion-finishes-timer.md).
-No ticket is active; broader Assistant operator coverage and existing release
-and hardware gates remain separate.
-
-## UX implementation — Today task list and streak
-
-The first two app-side redesign slices are implemented: service-Today tasks show
-project/parent context, completion/reopen, compact completed rows and Start; a
-prominent streak shows only finalized saved time.
-Today, Week and Projects now have separate view controls; their components stay mounted to preserve in-progress work.
-Frontend: 182 passed plus typecheck/build; final Chrome Today checks: 3 passed;
-earlier affected browser regression: 17 passed. See the
-[task-list review](reviews/2026-11-11-today-task-list.md). The streak slice passed
-184 frontend tests, typecheck/build, four focused Chrome tests and 15 surrounding
-browser regressions. See the [streak review](reviews/2026-11-11-today-streak.md).
-
-The compact shared header is implemented with the Figma brand and Settings icons;
-existing bCourses and Google links remain reachable. Chrome navigation and context
-checks passed. See the [header review](reviews/2026-11-11-compact-navigation.md).
-
-The view switch is implemented and verified; see the [plan views review](reviews/2026-11-11-plan-views.md). The existing project editor and weekly board still need their visual redesign.
-
-The project header now places Rename above an on-demand Add project form; saves retain errors and focus correctly. See the [project controls review](reviews/2026-11-11-project-controls.md).
-
-Completed project leaf rows now show only the checked control and struck-through title; reopening restores details and controls. Parent progress and existing task records remain intact. See the [compact project tasks review](reviews/2026-11-11-compact-project-tasks.md).
-
-Project task entry now opens on demand, keeps separate in-memory drafts across project/view switches, and retains values on failed saves. See the [task-entry review](reviews/2026-11-11-on-demand-task-entry.md). The accepted combined task-and-planned-day save remains unimplemented.
-
-End Week now appears after the weekly board; cancel returns focus and leaves the week open. [Review](reviews/2026-11-11-week-footer.md). Further Week layout refinement remains.
-
-Empty Week days now use a smaller minimum height while remaining usable drop targets. [Review](reviews/2026-11-11-week-empty-space.md).
-
-Completed current Week rows now compact to a checkbox and title, and reopening restores their controls; frozen history is unchanged. [Review](reviews/2026-11-11-compact-week-tasks.md).
-
-Week now has a prototype-inspired completion bar with unique-leaf counts and a distinct frozen-history label. [Review](reviews/2026-11-11-week-progress.md).
-
-Compact Week day buttons now show planned-task counts, with accessible labels and frozen-history counts. [Review](reviews/2026-11-11-week-day-counts.md).
-
-Active Week cards now group time, deadline and estimate in a wrapping detail row. [Review](reviews/2026-11-11-week-task-details.md).
-
-Crowded project task lists now scroll within a bounded area, retaining in-progress edits across view switches. [Review](reviews/2026-11-11-project-task-scroll.md).
-
-Atomic task capture is implemented and exposed by the local API, but the task form does not use it yet. Optional placement, task, and replay receipt commit together; retry against a new app instance returns the original result. Schema 24 upgrade is tested on disposable data. [Foundation review](reviews/2026-11-11-task-capture-foundation.md), [API review](reviews/2026-11-11-task-capture-api.md).
-
-The frontend recovery layer persists the exact request, serializes same-origin windows with Web Locks, and rechecks definitive rejections before replacement or cancellation. It is not yet connected to the form; browsers without Web Locks fail closed. [Recovery review](reviews/2026-11-11-task-capture-recovery-followup.md).
-
-Next: connect the task form to atomic capture with retained drafts, optional planned day, safe retry and actionable unsupported-storage/lock errors. Verify actual reload, two-window operation, UI and service together before presenting it as available. Continue remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
-separate domain/persistence work. Full redesign and user acceptance remain open.
-
-## Next up
-
-1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review are complete. APP-C07.1 Google sharing review is complete. APP-C07.2 combined sync feedback is complete. APP-C07.3 Plan/calendar/task integration is complete. APP-C07.4 Google recovery is complete. APP-C08.1 integrated process/fault verification is complete. APP-C08.2 passed with bounded user-reported VoiceOver evidence. APP-C08.3 delivery review passed with follow-ups. Existing core/hardware/runtime gates remain open.
-2. **User hands-on review of the Assistant in the app preview** (partial: creation, completion, Apply/Undo accepted in the disposable walkthrough; broader scenarios pending).
-   **Connection setup baseline:** credential relocation is committed in f375f24
-   and write-only setup routes in 674db93. Current source continues to advance;
-   these are source observations, not a fresh runtime certification by design.
-   **Settings plan/agent package delivered:** [frontend plan index](../frontend/plans/README.md),
-   [connection entrypoint](../frontend/plans/settings-connections/README.md),
-   [spec](../frontend/plans/settings-connections/SPEC.md),
-   [steps](../frontend/plans/settings-connections/EXECUTION_PLAN.md),
-   [54-case test plan](../frontend/plans/settings-connections/TEST_PLAN.md) and
-   [frontend AGENTS](../frontend/AGENTS.md) with linked design/build skills.
-   [Package review](reviews/2026-11-03-frontend-connections-agent-package.md).
-   User confirmed Pause / Resume automatic Google sync, restart persistence and
-   one-shot sync keeping automation paused; remaining trigger/acknowledgement/Resume
-   details remain proposed. bCourses review placement remains unanswered; the dedicated-view
-   recommendation did not block the overview. The original documentation request started
-   no execution; the later “go for the first work” request delivered UX-C02. UX-C06 scoped handoff is delivered; application slices remain separately scoped.
-3. Then, each only when the user authorizes it, in this order
-   ([build plan §8–9](../BearPlans_Build_Plan.md#assistant-architecture-orchestrator-and-specialists-user-approved-direction-2026-11-01)):
-   (4) M6 Google Calendar → (5) bCourses access spike → (6) Canvas (bCourses) →
-   (7) Gmail. CalCentral only after an access investigation; MCP only behind a
-   vetted adapter boundary. Roadmap steps 1–3 are done (see COMPLETED.md).
-   **bCourses connection committed (`422081e`, 2026-11-01; user moved it before
-   Google Calendar):** direct read-only API (MCP vetted and not used), token now
-   in data-folder `secrets/bearplans.secrets.env` (f375f24), course picker, review list, Add
-   to a course project, due-date change review. Migration 15 → 16. Waiting on
-   the user's hands-on check.
-   [Review](reviews/2026-11-01-bcourses-connection.md).
-
-## Open follow-ups
-
-- End Week carryover defaults + Stats "Missed" committed (`1656600`). Assistant
-  carryover command with Undo committed (`81f5922`)
-  ([review](reviews/2026-11-01-end-week-carryover.md#assistant-carryover-command)).
-  **Migrations 14 → 16** ran on the real data at the user's launch on 2026-11-01 23:26
-  (backup `backups/pre-upgrade-v13-20261101T232614-….sqlite3`). Needs the user's hands-on check.
-  R13–R15/R21 reflect these rules; the bounded R23 prototype walkthrough was reported successful. App hands-on verification remains separate.
-- M5: no applied-action history view (receipts persist; in-page only).
-- M5: daily assistant writes not certified until the user's UI review.
-- Organization: agree a compact frontend/backend/shared-tests ownership and
-  documentation map, then add focused subsystem entrypoints (requested, not started).
-- Codex's project registration still names the old nested folder; the user must
-  reopen/select `/Users/hiberkeley/Desktop/Projects/Episteme_Bearplan`.
-
-## Pending manual gates
-
-- **M4 local-core trial:** run the [trial guide](CORE_TRIAL_CHECKLIST.md) against
-  `/Users/hiberkeley/Desktop/BearPlans-core-trial-2026-11-01`; report actual Day 1
-  (date, data path, baseline backup result, real work used), then seven days of
-  notes and a closing review. Full M4 release is pending this.
-- **Standby type 5:** unexercised/unverified; no supported trigger established
-  under the reviewed ARM64 policy
-  ([assessment](reviews/2026-11-01-standby5-capability.md)). Do not certify the
-  historical combined M2/M3 matrix silently.
-
-## Waiting on user decisions
-
-- Proposed assistant defaults 2–6 in the
-  [actions review](reviews/2026-11-01-assistant-actions.md) (unused-only Undo of
-  created tasks, exact `completed_at` restore, no timer Undo, one change per
-  request with ≤4 clarification rounds, stateless proposals). "Every action
-  requires Apply" is confirmed.
-- UX draft defaults still unconfirmed: measurements (59px draft rows versus proposed 64px, and the 1280px threshold versus fallback references), filing cross-month weeks
-  under their Monday's month, detailed Earlier selection, and Inter as the Figma-only
-  fallback for unavailable SF Pro/Helvetica Neue.
-
-## Settings and Connections delivery register
-
-Stable definitions/tests: [frontend package](../frontend/plans/settings-connections/README.md).
-Only the active small unit/subslice belongs here; completed documentation is not
-visual construction or application delivery. No unit is active. UX-C06
-scoped construction/handoff and bounded user design review are delivered with
-follow-ups; see below.
-UX-C06 delivered under “go ahead”: [review](reviews/2026-11-04-settings-context-handoff.md),
-[connection handoff](../frontend/plans/settings-connections/HANDOFF.md),
-[context guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom).
-54 windows / six combinations of size and theme; 30 native PNGs inspected; 4,106 editable nodes
-reconciled; zero font/raster/overflow/overlap findings. 285 installed sources,
-165/165 new finite models; twelve isolated variables retain token sample and
-Today/Track origin. No original task/session/history bindings/writes remain in
-new lanes. Fresh fingerprints match all 145 C05 sources; retained 58 recovery and
-19 Google routing checks pass. User reports: “Clear; all those steps worked”,
-“Readable; layout looks right”, “Clear in all examples”. These are unobserved,
-untimed bounded reports, not actual app/provider/restart verification. Codex sole
-Figma writer/technical reviewer; independent review was the user’s design
-walkthrough. Second technical audit, arbitrary browser resize/zoom, keyboard/focus,
-assistive technology and full state/theme matrix remain follow-ups. No new app,
-credential, service, DB/provider work or release gate change. Committed as
-`2eddbe7` and pushed under the later publication request recorded above.
-APP-C01 baseline verification is recorded above.
-
-UX-C05 delivered: [review](reviews/2026-11-04-connection-recovery.md),
-[36-state inventory](../frontend/design/settings-connections/recovery/inventory.json),
-[recovery guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=270-6806&starting-point-node-id=270%3A6806&scaling=min-zoom).
-Codex sole writer/self-reviewer; 145 installed sources plus eight reset summaries,
-58/58 finite models. Five final Light renders inspected; 467 scoped editable nodes,
-nine existing layouts also checked; zero font/raster/overflow/overlap findings.
-User answer to Pause → Sync once → Resume: “Clear; this behaviour works for me”.
-The report confirms intended one-shot retention and saved Pause across restart,
-not actual restart/provider/keyboard verification. Four new demo variables join
-all eight full resets; old Google/bCourses/task/session resets retained. No app,
-credential, service, DB or provider work. The user requested a local UX-C05
-checkpoint; Git records the commit. No push requested. UX-C06 bounded follow-up evidence is recorded above; app accessibility/provider
-checks remain separate. APP-C02.1 corrected the lock-acquisition timeout and
-APP-C02.3 added the Disconnect barrier for direct calendar reads. APP-C04.2 added the server-side Pause gate for mounted automatic refresh.
-
-UX-C04 delivered: [review](reviews/2026-11-04-google-settings-flow.md),
-[47-state inventory](../frontend/design/settings-connections/google/inventory.json),
-[review guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=255-6835&starting-point-node-id=255%3A6835&scaling=min-zoom).
-Codex was the single Figma writer/self-reviewer. 47 540px Light states plus an
-800×778 guide, 126 installed sources and 59/59 aggregate action models. Repaired
-calendar re-entry routing; nineteen affected/new models reran successfully. No
-font/raster/overflow/overlap findings in the final 606-node audit. Five isolated
-Google variables are added to all eight resets; all six bCourses resets remain.
-99/99 Settings gears retained. Actual preview/keyboard/focus, responsive/Dark,
-user acceptance and provider/runtime checks remain pending. Account-isolation
-source was inspected, not certified. No app/data/provider changes. The user requested
-a local UX-C04 commit; Git records the checkpoint. No push was requested for this
-unit. UX-C04 was committed locally as `96c0910` and is now published under the later request recorded above. UX-C05 is recorded above.
-
-UX-C03 delivered under “continue”: [review](reviews/2026-11-03-bcourses-settings-flow.md),
-[25-state inventory](../frontend/design/settings-connections/bcourses-inventory.json)
-and [31/31 installed-action models](../frontend/design/settings-connections/bcourses-models.json).
-Codex was the single writer/self-reviewer. 21 compact dialogs and four 800×900 Light
-work views; 80 installed sources; zero structural font/raster/overlap/width findings.
-All 99 Navigation headers retain one Settings gear. Six isolated demo variables
-are included in all eight reset starts; original task/timer/history variables are
-not touched by connection actions. Actual preview, keyboard/focus, responsive/Dark
-and user acceptance remain pending; secondary work controls are references.
-UX-C03 actual preview and wider acceptance remain open alongside UX-C04.
-
-Earlier UX-C02 navigation correction covered 95 headers after the user found
-missing gears on Track/Stats/Assistant (89 workspace entries and six close controls).
-UX-C03 adds four review headers; current 99-header coverage is recorded above.
-Actual preview/keyboard/focus checks remain pending.
-Earlier overview unit: UX-C02, Codex single writer with source/structural/visual self-review;
-[review and limitations](reviews/2026-11-03-settings-overview.md). Build skill used
-to reconcile source, not to duplicate backend work. Source includes a43a456
-Pause/status/disconnect work; concurrent account-isolation work remains unverified by design.
-
-| Unit | Current state | Evidence / next step |
-| --- | --- | --- |
-| UX-C01 | Done — Pass with follow-ups | [Coherence review](reviews/2026-11-03-settings-connection-coherence.md); detailed package/guidance validation delivered. |
-| UX-C02 | Done — Pass with follow-ups | [Overview review](reviews/2026-11-03-settings-overview.md): six editable 800×900 Light states, two components; navigation correction covers all 95 headers (89 workspace entries), with zero missing/duplicate/clipped gears. Initial 56/56 assertions and latest 89 return models are metadata/model evidence. Static commands, actual preview and broader acceptance remain explicit. |
-| UX-C03 | Done — Pass with follow-ups | [Review](reviews/2026-11-03-bcourses-settings-flow.md): 25 editable states, 31 models, explicit cancel/save/refresh recovery; actual preview and wider acceptance pending. Dedicated review placement remains proposed. |
-| UX-C04 | Done — Pass with follow-ups | [Review](reviews/2026-11-04-google-settings-flow.md): 47 states, 59 aggregate installed-action models, file/auth/sync separation; actual preview and broader acceptance pending. |
-| UX-C05 | Done — Pass with follow-ups | [Review](reviews/2026-11-04-connection-recovery.md): 36 states, 58 models, main user report accepted; other walkthroughs/responsive/accessibility/runtime evidence pending. |
-| UX-C06 | Delivered — Pass with follow-ups | Three sizes/Light–Dark, bounded user walkthrough and scoped handoff; [review](reviews/2026-11-04-settings-context-handoff.md). |
-| APP-C01 | Done — Pass with follow-ups | [Baseline and fixture review](reviews/2026-11-05-settings-application-baseline.md). DOC-01/02 and disposable DATA-01 baseline verified. |
-| APP-C02.1 | Done — Pass with follow-ups | [bCourses fault/retry](reviews/2026-11-05-bcourses-credential-recovery.md), [Google fault/retry and OAuth handoff](reviews/2026-11-05-google-credential-recovery.md). |
-| APP-C02.2 | Done — Pass with follow-ups | [Authorization attempts](reviews/2026-11-05-google-authorization-attempts.md). Cancel UI and live provider verification remain pending. |
-| APP-C02.3 | Done — Pass with follow-ups | [Disconnect coordination](reviews/2026-11-05-google-disconnect-coordination.md). Settings recovery and live provider checks remain pending. |
-| APP-C02.4 | Done — Pass with follow-ups | [Account isolation and migration 22](reviews/2026-11-05-google-account-isolation.md). Account recovery UI and live evidence remain pending. |
-| APP-C03.1 | Done — Pass with follow-ups | [Backend status contract](reviews/2026-11-06-settings-backend-status.md). Verified on macOS with disposable data and fake providers. |
-| APP-C03.2 | Done — Pass with follow-ups | [Frontend state and recovery](reviews/2026-11-06-settings-frontend-state.md). Existing provider views verified. Settings shell and live checks remain pending. |
-| APP-C04.1 | Done — Pass with follow-ups | [Pause durability review](reviews/2026-11-06-google-pause-durability.md). |
-| APP-C04.2 | Done — Pass with follow-ups | [Automatic Pause review](reviews/2026-11-06-google-automatic-pause.md). |
-| APP-C04.3 | Done — Pass with follow-ups | [Pause acknowledgement review](reviews/2026-11-06-google-pause-acknowledgement.md). |
-| APP-C04.4 | Done — Pass with follow-ups | [One-shot and Resume review](reviews/2026-11-06-google-sync-once-resume.md). |
-| APP-C05.1 | Done — Pass with follow-ups | [Settings route and context review](reviews/2026-11-06-settings-route.md). |
-| APP-C05.2 | Done — Pass with follow-ups | [Credential dialogs and sign-in recovery](reviews/2026-11-06-settings-credential-dialogs.md). |
-| APP-C05.3 | Done — Pass with follow-ups | [Provider panels and sync controls](reviews/2026-11-06-settings-provider-panels.md). |
-| APP-C06.1 | Done — Pass with follow-ups | [Token controls and recovery](reviews/2026-11-06-settings-bcourses-token.md). |
-| APP-C06.2 | Done — Pass with follow-ups | [Courses and assignment review](reviews/2026-11-06-settings-bcourses-courses.md). |
-| APP-C07.1 | Done — Pass with follow-ups | [Google sharing before sign-in](reviews/2026-11-06-settings-google-sharing.md). |
-| APP-C07.2 | Done — Pass with follow-ups | [Combined sync feedback](reviews/2026-11-06-settings-google-combined-sync.md). |
-| APP-C07.3 | Done — Pass with follow-ups | [Plan/calendar/task integration](reviews/2026-11-06-settings-google-plan-integration.md). |
-| APP-C07.4 | Done — Pass with follow-ups | [Google recovery](reviews/2026-11-06-settings-google-recovery.md). |
-| APP-C08.1 | Done — Pass with follow-ups | [Integrated process, fault and regression review](reviews/2026-11-06-settings-integrated-regression.md). |
-| APP-C08.2 | Done — Pass with follow-ups | [Accessibility review](reviews/2026-11-06-settings-accessibility-review.md): bounded user-reported VoiceOver and earlier browser checks. |
-| APP-C08.3 | Done — Pass with follow-ups | [Independent create-guard review and final checks](reviews/2026-11-06-google-create-guard.md). VoiceOver and operator/live evidence remain separate. |
-| APP-C09 | Delivered — Pass with follow-ups | [Implementation handoff](../frontend/plans/settings-connections/IMPLEMENTATION_HANDOFF.md); fake-provider reconnect and bounded offline evidence recorded, real-provider evidence open. |
-
-## UX delivery register
-This is the sole mutable UX status table; stable ticket details/acceptance live in
-the frontend plan. Owner for completed setup: Codex; reviewers: independent content
-and semantic-dry-run agents. Draft owner: Codex; reviewers: independent visual and semantic agents. Formal
-acceptance remains pending for draft subsets. A new active-ticket entry must record owner/reviewer, acceptance
-link, evidence and next action. Original dependencies below remain the full design acceptance path; UX-32.1 is
-the user-requested prototype-first draft, with formal checkpoint acceptance pending.
-
-| ID | Ticket | Status | Depends on | Evidence |
-| --- | --- | --- | --- | --- |
-| UX-01 | Persist brief and ticket register | Done | — | [UX docs review](reviews/2026-11-01-ux-plan-and-skill.md) |
-| UX-02 | Update shared AGENTS.md | Done | UX-01 | [UX docs review](reviews/2026-11-01-ux-plan-and-skill.md) |
-| UX-03 | Create repository-local design skill | Done | UX-02 | [UX docs review](reviews/2026-11-01-ux-plan-and-skill.md) |
-| UX-04 | Validate guidance and skill | Done | UX-03 | [UX docs review](reviews/2026-11-01-ux-plan-and-skill.md) |
-| UX-05 | Establish Figma file and asset inventory | Done | UX-04 | [File/asset inventory](reviews/2026-11-01-figma-prototype.md) |
-| UX-06 | Create visual foundations | In review | UX-05 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-07 | Build basic controls | In review | UX-06 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-08 | Build task-row families | In review | UX-07 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-09 | Build supporting patterns | In review | UX-08 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-10 | Build responsive shell | In review | UX-09 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-11 | Review foundation in Today | In review | UX-10 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-12 | Design project management | In review | UX-11 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-13 | Design task editor | In review | UX-12 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-14 | Design Active hierarchy | In review | UX-13 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-15 | Design Done browsing | In review | UX-14 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-16 | Complete Today states | In review | UX-15 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-17 | Review capture-to-focus flow | In review | UX-16 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-18 | Design weekly board | In review | UX-17 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-19 | Design within-day ordering | In review | UX-18 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-20 | Design between-day moves | In review | UX-19 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-21 | Design End Week | In review | UX-20 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-22 | Design closed-week history | In review | UX-21 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-23 | Design carryover and planner review | In review | UX-22 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-24 | Design Track setup | In review | UX-23 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-25 | Design running and paused sessions | In review | UX-24 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-26 | Design recovery | In review | UX-25 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-27 | Design outcomes and Forest | In review | UX-26 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-28 | Design shop | In review | UX-27 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-29 | Design Stats | In review | UX-28 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-30 | Design corrections | In review | UX-29 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-31 | Design Assistant and review | In review | UX-30 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-32 | Connect prototype | In review | UX-31 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-32.1 | First connected review prototype (user reprioritization) | In review | UX-04; prototype-first request | [Draft delivered; runtime/user gates open](reviews/2026-11-01-figma-prototype.md) |
-| UX-33 | Complete responsive/theme coverage | In review | UX-32 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-34 | Run independent design QA | In review | UX-33 | [Draft subset; acceptance open](reviews/2026-11-01-figma-prototype.md) |
-| UX-35 | Run user walkthrough and fixes | In review | UX-34 | R23 bounded repair walkthrough Done; original full checkpoint acceptance remains open |
-| UX-36 | Deliver handoff | In review | UX-35 | R24 scoped repair handoff delivered; original full checkpoint acceptance remains open |
-
-**Next concrete step:** no repair ticket is active. Use the handoff to scope a separately authorized implementation; original UX-06–36 checkpoint acceptance remains distinct.
-
-### UX repair register
-
-Stable definitions/acceptance: [repair plan](../frontend/BEARPLANS_UX_REPAIR_PLAN.md).
-Owner for the repair sequence: Codex; independent visual/product/verification
-reviewers inspect the active ticket. Evidence is saved in the dated refinement
-review and execution record. All 24 repair subtickets are complete for their scoped acceptance; R23/R24 evidence is linked above. Original roadmap and runtime follow-ups remain explicit.
-Only one ticket may be Active; future dependencies follow the plan. These subtickets do not complete original UX
-acceptance by themselves.
-
-| ID | Repair | Status | Depends on |
-| --- | --- | --- | --- |
-| UX-R01 | Baseline and latest decisions | Done | — |
-| UX-R02 | Synthetic task/session fixture | Done | R01 |
-| UX-R03 | Cross-view fact consistency | Done | R02 |
-| UX-R04 | Compact bounds and scroll ownership | Done | R03 |
-| UX-R05 | Today density | Done | R04 |
-| UX-R06 | Week navigation | Done | R04 |
-| UX-R07 | Contextual Move/Reorder | Done | R03, R06 |
-| UX-R08 | Compact Week overview/progress | Done | R05–R07 |
-| UX-R09 | Readable wide Week | Done | R06–R08 |
-| UX-R10 | Selection versus manual order | Done | R05, R07–R08 |
-| UX-R11 | Crowded Projects/task entry | Done | R04, R10 |
-| UX-R12 | Done and frozen history | Done | R02–R03, R11 |
-| UX-R13 | End Week/carryover defaults | Done | R01–R03, R06, R12 |
-| UX-R14 | Reviewed carryover/re-entry | Done | R07, R13 |
-| UX-R15 | Stats scopes/Missed | Done | R12–R14 |
-| UX-R16 | Track/task selection | Done | R03–R04, R10 |
-| UX-R17 | Recovery consequences | Done | R16 |
-| UX-R18 | Assistant affordances | Done | R03–R04 |
-| UX-R19 | Contrast/control states (early) | Done | R03–R04 |
-| UX-R20 | Responsive/theme propagation | Done | R05–R19 |
-| UX-R21 | Prototype wiring | Done | R13–R20 |
-| UX-R22 | Independent QA/rescore | Done | R20–R21 |
-| UX-R23 | User walkthrough/corrections | Done | R22 static readiness |
-| UX-R24 | Revised handoff | Done | R22–R23 |
-
-## Build status
-| Build | State | Evidence / relevant commits |
-| --- | --- | --- |
-| M0 / foundation | Implementation and Mac/operator gate passed | [M0 review](reviews/2026-10-14-local-foundation.md); `36f6e48`, `f4c59dd` |
-| Projects/tasks/subtasks | Implementation and all six operator checks passed | [Takeover review](reviews/2026-10-13-m1-takeover.md); `a9ba50b`, `d2174a6` |
-| Weekly planning + one-day refinement | Implementation Pass; original individual checklist not newly attested | [Refinement](reviews/2026-10-15-single-planned-day.md), `a21cb49`; [weekly evidence](reviews/2026-10-15-weekly-planning.md), `801cbc3` |
-| Weeks/history/carryover | Implementation Pass; overall user acceptance Pass | [History review](reviews/2026-10-15-weeks-history.md), `7155bc2`; acceptance `69c6630` |
-| Joined M1 technical review | Pass; broader operator gate not newly certified | [October 16 review](reviews/2026-10-16-m1-review.md) |
-| M2 normal countdown | Implementation Pass; overall M2 gate not passed | [Countdown review](reviews/2026-10-16-countdown.md), `c4b7dd3` |
-| Countdown eligibility/weekly-card refinement | Implementation Pass; overall M2 pending recovery acceptance | [Eligibility review](reviews/2026-10-16-countdown-eligibility.md), `bbe6059`; cosmetic follow-up in `a7de8bf` |
-| Weekly drag Move / Option–Alt Add | Implementation Pass; Add interface superseded by later follow-up | [Drag review](reviews/2026-10-16-drag-scheduling.md), `a7de8bf` |
-| Move-only drag interface refinement | Implementation Pass | [Current review](reviews/2026-10-16-drag-simplification.md), `861d851` against `a7de8bf` |
-| Card context/due-only refinement | Implementation Pass | [Follow-up](reviews/2026-10-16-drag-simplification.md#card-context-and-due-date-follow-up), `861d851` |
-| M2 recovery | Implementation Pass on Linux; Mac/operator gate pending | [Recovery review](reviews/2026-10-18-m2-recovery.md), `580b017` against `a10c788` |
-| M3 growing trees / forest — first session only | Implementation Pass on Linux; Mac acceptance deferred | [M3 review](reviews/2026-10-20-m3-growing-forest.md); `e0ccf1b` |
-| M3 coins/shop | Implementation review Pass on Mac; normal-app rollout and combined hardware/operator gate pending | [Coins/shop review](reviews/2026-10-20-coins-shop.md), `05a976e` against `138cd3a` |
-| M3 daily streaks | Implementation review Pass on Mac; normal-app rollout and combined hardware/operator gate pending | [Daily-streak review](reviews/2026-10-21-daily-streaks.md), user-requested local commit against `05a976e` |
-| M3 statistics | Implementation review Pass on Windows | [Statistics review](reviews/2026-10-23-statistics.md), `9cade8c` |
-| M3 saved-session corrections / reward adjustments (schema 13) | Implementation review Pass on Windows | [Correction review](reviews/2026-10-23-session-corrections.md), `635e1e7` |
-| Combined M2/M3 target-Mac hardware acceptance | Scoped passes; distinct Standby type 5 **unverified** | [Acceptance summary](reviews/2026-10-31-mac-acceptance-summary.md); later Nov 1 entries in [COMPLETED.md](COMPLETED.md) |
-| M4 backup/inspection/restore | Implementation review Pass on Mac; committed `7e38d7c` | [Backup review](reviews/2026-10-31-backup-restore.md); offline restore operator Pass |
-| M4 local-core trial | Candidate recorded; seven-day real-use trial **not started/reported** | [Candidate manifest](reviews/2026-11-01-core-trial-candidate.json) |
-| M5 read-only assistant preview | Adapter/UI Pass; model preview Pass with follow-ups; superseded by actions/orchestrator below; committed `7e38d7c` | [Assistant review](reviews/2026-11-01-local-assistant-readonly.md) |
-| M5 actions/Apply/Undo + orchestrator | Implementation Pass; 30-case evaluation **Pass** (runs 4–5, qwen3:8b); user UI review pending; committed `cf3178b`–`57aaa8e` | [Actions review](reviews/2026-11-01-assistant-actions.md), [Evaluation](reviews/2026-11-01-m5-evaluation.md) |
-| M5 larger replans, integrations, plan-only transfer | **Not started** | Separate authorized scope and acceptance required |
-
-## Guidance discrepancies retained
-- Earlier Settings/package reviews describe the 674db93 baseline. Newer a43a456
-  source adds durable worker Pause, sign-in/disconnect coordination, best-effort
-  revocation and save-before-disconnect replacement. UX-C02 reconciled these as
-  source observations, not fresh runtime passes. Automatic empty-cache UI refresh
-  and explicit calendar-fetch behavior still need Pause reconciliation; concurrent
-  account-isolation changes also need their own review. Credential relocation in
-  f375f24 and data-folder secrets supersede prior code-folder instructions.
-- The explicit October 16 Option/Alt Add request supersedes October 15's one-active
-  date refinement. Multiple dates now reference the same leaf, unique per task/date,
-  with shared completion, unique-leaf totals and immutable historical placements.
-  The later October 16 simplification removes modifier Add and Add-another-day UI,
-  without reinstating a storage constraint or deleting existing dates. Earlier
-  reviews retain historical evidence and link to the new decision.
-- User-edited roadmap says planned/not tested while checkmark rows say otherwise;
-  its unstaged checkmarks now include weeks/history and countdown. The review-plan
-  edit removes an older M1 status paragraph. Preserve these edits;
-  use this record and linked evidence for actual decisions.
-- Historical Claude projects/tasks draft and earlier next-build text are evidence,
-  not current instructions. Review filenames may use target dates. Follow contents,
-  explicit user decisions and commits.
-- Original build plan suggested native sleep events. M0 measured two Mac clocks and
-  selected monotonic credit plus a scoped Needs review fallback. That policy does
-  not replace the new timer's hardware/recovery acceptance.
-- Deadlines are date-only; the old due-date/time sketch does not add time-of-day.
-  Proposed reward/price/streak defaults are separate from confirmed requirements.
-
-Before either agent stops or transfers work, update this file with the current
-state and next concrete action, and record finished work at the top of
-[COMPLETED.md](COMPLETED.md) with actual checks, files/commits and review links.
+# BearPlans — current progress
+
+Updated November 11, 2026. Read [AGENTS.md](../AGENTS.md) before resuming.
+Finished work and evidence are in [COMPLETED.md](COMPLETED.md); this file is the
+single current handoff.
+
+## Active work: task entry in the UX redesign
+
+**Goal:** Save a new task and its optional planned day together from the project
+task form. Preserve the entered details and make uncertain saves safely retryable.
+The form is now connected in the working tree, but this slice is **not yet ready
+for acceptance**: cross-window draft/recovery navigation and real browser checks remain open.
+
+The atomic API and schema-24 transaction exist. The frontend recovery layer
+persists the exact request and operation ID, coordinates same-origin windows with
+Web Locks, and rechecks a definitive rejection before allowing replacement or
+cancellation. Browsers without Web Locks fail closed. See the
+[API review](reviews/2026-11-11-task-capture-api.md) and
+[recovery review](reviews/2026-11-11-task-capture-recovery-followup.md).
+The latest recovery checks passed 201 frontend tests and typecheck on macOS;
+they did not test the integrated UI or actual browser windows. A stale window now
+must identify the exact pending operation before retrying, checking or resolving it.
+See the [cross-window review](reviews/2026-11-11-capture-stale-window.md).
+
+**Next concrete step:** Fix and test the case where another window has a pending
+save for a project whose task form already has a different open draft: reviewing
+that pending save must not overwrite the draft or leave recovery inaccessible.
+Then verify actual reload, two-window operation, UI and service together using
+[UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md), keyboard, widths and themes
+with disposable data. Test storage/lock errors, cancellation and refresh failure.
+The latest form tests cover one-request capture, lost response across remount and
+closed-week correction; the full suite passed 204 tests before the last narrow
+safeguard change, followed by 13 focused tests and typecheck. No production build
+or user acceptance has been performed. [Working review](reviews/2026-11-11-task-capture-ui.md).
+
+## Open follow-ups and gates
+
+- The broader UX transformation and original UX-06–36 design/runtime acceptance
+  remain open. Earlier unfinished, planned-week Done and within-day ordering
+  require separate domain/persistence work. Continue the remaining Plan, Week,
+  history and secondary screens after the active slice.
+- Assistant creation, Apply/Undo and completion received bounded user walkthroughs;
+  broader Assistant operator acceptance and the applied-action history view remain
+  open. The user confirmed matching running/paused timers finish when their task
+  is completed; Needs review must be resolved in Track first.
+- Settings and connections were delivered with follow-ups. Real same-account
+  reauthorization, real-provider verification and a system-wide offline operator
+  test remain unverified and require separately bounded authorization. A reviewed
+  Google-create continuation can still duplicate a remote item if one already exists.
+  See the [implementation handoff](../frontend/plans/settings-connections/IMPLEMENTATION_HANDOFF.md).
+- App hands-on checks of carryover/Missed and the Assistant carryover command remain
+  open despite the successful bounded prototype walkthrough.
+- The [seven-day local-core trial](CORE_TRIAL_CHECKLIST.md) has not been reported.
+  Distinct Standby type 5 remains unverified; do not certify combined M2/M3 hardware
+  or release readiness without its applicable evidence.
+- The requested frontend/backend/shared-test ownership and documentation map is
+  not started. Codex project registration still points at the old nested folder;
+  reopen/select `/Users/hiberkeley/Desktop/Projects/Episteme_Bearplan` if needed.
+- Decisions still open: assistant defaults 2–6 in the [actions review](reviews/2026-11-01-assistant-actions.md);
+  UX draft row/breakpoint measurements, cross-month week filing, Earlier selection,
+  and Figma font fallback. Do not treat proposed defaults as user decisions.
+
+## Handoff notes
+
+- User data and credentials stay in the app data directory; do not use personal
+  data for testing. The running disposable demo may use an older service; identify
+  and restart it deliberately before testing a changed API.
+- Preserve existing unrelated working-tree edits and `(1)` duplicate files.
+  Do not push without a separate request. Review older planning statements against
+  current product decisions and the linked evidence; preserve outstanding gates.
+- A detailed historical status and delivery-register snapshot is available in Git
+  as `605826e:docs/PROGRESS.md`. Completed entries and their original evidence
+  remain in [COMPLETED.md](COMPLETED.md).
