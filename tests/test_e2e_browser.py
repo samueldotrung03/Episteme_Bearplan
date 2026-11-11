@@ -81,6 +81,7 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         page.get_by_role("button", name="Save name").click()
         expect(page.get_by_role("heading", name="Math 55 — Honors")).to_be_visible()
 
+        page.get_by_role("button", name="+ Add task", exact=True).click()
         page.get_by_label("Title").first.fill("Write PS7")
         page.get_by_label("Deadline").first.fill("2026-10-20")
         page.get_by_label("Estimate (minutes)").first.fill("90")
@@ -112,6 +113,8 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         expect(page.get_by_text("2 of 2 work items complete")).to_be_visible()
         # Editing a subtask exercises the same fields as a task, without changing identity.
         child_row = page.locator(".subtasks > .task").filter(has_text="read ch.4")
+        child_row.get_by_label("read ch.4", exact=True).click()
+        expect(child_row.get_by_label("read ch.4", exact=True)).not_to_be_checked()
         child_row.get_by_role("button", name="Edit", exact=True).click()
         child_row.get_by_label("Title").fill("read ch.4 carefully")
         child_row.get_by_label("Notes").fill("Check definitions.")
@@ -124,6 +127,8 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         page.locator(".tasks > .task > .task-form").get_by_label("Notes").fill("Ch.4 and Ch.5 exercises, final pass.")
         page.get_by_role("button", name="Save changes").click()
         expect(page.get_by_text("Ch.4 and Ch.5 exercises, final pass.")).to_be_visible()
+        page.get_by_label("read ch.4 carefully", exact=True).click()
+        expect(parent_box).to_be_checked()
         page.screenshot(path=evidence / "02-derived-completion-wide.png", full_page=True)
 
         # This journey checks persisted records across a full app restart. Close
@@ -142,9 +147,12 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         expect(page.get_by_text("Write PS7", exact=True)).to_be_visible()
         expect(page.get_by_text("Due Oct 20, 2026")).to_be_visible()
         expect(page.get_by_text("Ch.4 and Ch.5 exercises, final pass.")).to_be_visible()
+        expect(page.get_by_label("read ch.4 carefully", exact=True)).to_be_checked()
+        page.get_by_label("read ch.4 carefully", exact=True).click()
         expect(page.get_by_text("Check definitions.")).to_be_visible()
         expect(page.get_by_text("Due Oct 19, 2026")).to_be_visible()
         expect(page.get_by_text("25 min")).to_be_visible()
+        page.get_by_label("read ch.4 carefully", exact=True).click()
         expect(page.get_by_text("2 of 2 subtasks done")).to_be_visible()
         expect(page.get_by_label("Write PS7", exact=True)).to_be_checked()
         expect(page.get_by_label("read ch.4 carefully", exact=True)).to_be_checked()
@@ -183,6 +191,10 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         expect(page.get_by_label("Write PS7", exact=True)).not_to_be_checked()
         for title in ("Additional parent work", "draft the proof", "read ch.4 carefully"):
             row = page.locator(".subtasks > .task").filter(has_text=title)
+            checkbox = row.get_by_label(title, exact=True)
+            if checkbox.is_checked():
+                checkbox.click()
+                expect(checkbox).not_to_be_checked()
             row.get_by_role("button", name="Edit", exact=True).click()
             row.get_by_role("button", name="Remove subtask", exact=True).click()
             row.get_by_role("button", name="Confirm removal", exact=True).click()
@@ -202,6 +214,7 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         page.screenshot(path=evidence / "07-after-last-child-removal.png")
 
         service.kill()
+        page.get_by_role("button", name="+ Add task", exact=True).click()
         page.get_by_label("Title").first.fill("Saved while offline?")
         page.get_by_role("button", name="Add task").click()
         expect(page.get_by_role("alert").first).to_contain_text("Cannot reach the BearPlans service")
@@ -222,6 +235,7 @@ def test_long_text_layout_and_keyboard_creation(browser, evidence: Path, tmp_pat
         page.get_by_label("New project").fill("P" * 100)
         page.get_by_label("New project").press("Enter")
         expect(page.get_by_role("heading", name="P" * 100)).to_be_visible()
+        page.get_by_role("button", name="+ Add task", exact=True).click()
         page.get_by_label("Title").fill("T" * 200)
         page.get_by_label("Notes").fill("N" * 2000)
         page.get_by_label("Title").press("Enter")

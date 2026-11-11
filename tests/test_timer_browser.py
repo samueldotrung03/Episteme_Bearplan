@@ -54,6 +54,7 @@ def test_countdown_navigation_tabs_pause_retry_and_history(browser, evidence, tm
         expect(compact).to_contain_text(child["title"])
         # A normal task mutation remains responsive while the monitor is tracking.
         before = time.monotonic()
+        page.get_by_role("button", name="+ Add task", exact=True).click()
         page.get_by_label("Title", exact=True).fill("A normal task during tracking")
         page.get_by_role("button", name="Add task", exact=True).click()
         expect(page.get_by_label("A normal task during tracking", exact=True)).to_be_visible()

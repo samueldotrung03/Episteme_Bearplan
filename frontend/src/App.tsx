@@ -82,6 +82,8 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
+  const [taskDraftProjects, setTaskDraftProjects] = useState<string[]>([]);
+  const addTaskTrigger = useRef<HTMLButtonElement>(null);
   const [addingSubtaskTo, setAddingSubtaskTo] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [addingProject, setAddingProject] = useState(false);
@@ -380,11 +382,22 @@ export default function App() {
               <h2 id="tasks-heading">{selected.name}</h2>
               {progress ? <p className="muted">{progress.completed} of {progress.total} work items complete</p> : null}
 
-              <TaskForm
-                key={`new-task-${selected.id}`}
-                submitLabel="Add task"
-                onSubmit={(edit) => run(() => createTask({ ...edit, title: edit.title ?? "", project_id: selected.id }), "Task added.")}
-              />
+              {!taskDraftProjects.includes(selected.id) ? (
+                <button ref={addTaskTrigger} type="button" aria-expanded="false" onClick={() => setTaskDraftProjects((ids) => [...ids, selected.id])}>+ Add task</button>
+              ) : null}
+              {taskDraftProjects.map((projectId) => (
+                <div key={projectId} hidden={selected.id !== projectId}>
+                  <TaskForm
+                    autoFocusTitle
+                    submitLabel="Add task"
+                    onCancel={() => {
+                      setTaskDraftProjects((ids) => ids.filter((id) => id !== projectId));
+                      requestAnimationFrame(() => addTaskTrigger.current?.focus());
+                    }}
+                    onSubmit={(edit) => run(() => createTask({ ...edit, title: edit.title ?? "", project_id: projectId }), "Task added.")}
+                  />
+                </div>
+              ))}
 
               {tasks === null && !loadError ? <p className="muted">Loading…</p> : null}
               {tasks !== null && parents.length === 0 ? <p className="muted">No tasks in this project yet.</p> : null}
@@ -568,12 +581,14 @@ function TaskForm({
   onSubmit,
   onCancel,
   onRemove,
+  autoFocusTitle = false,
 }: {
   task?: Task;
   submitLabel: string;
   onSubmit: (edit: TaskEdit & { title?: string }) => Promise<void>;
   onCancel?: () => void;
   onRemove?: () => Promise<void>;
+  autoFocusTitle?: boolean;
 }) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [notes, setNotes] = useState(task?.notes ?? "");
@@ -632,6 +647,7 @@ function TaskForm({
         <label htmlFor={`title-${uid}`}>Title</label>
         <input
           id={`title-${uid}`}
+          autoFocus={autoFocusTitle}
           ref={titleRef}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
@@ -675,7 +691,7 @@ function TaskForm({
       {error ? <p className="error" role="alert">{error}</p> : null}
       <div className="form-actions">
         <button type="submit" disabled={!trimmed || tooLong || busy}>{busy ? "Saving…" : submitLabel}</button>
-        {onCancel ? <button type="button" className="link" onClick={onCancel}>Cancel</button> : null}
+        {onCancel ? <button type="button" className="link" disabled={busy} onClick={onCancel}>Cancel</button> : null}
         {onRemove ? (
           <button type="button" className="link" disabled={busy} onClick={() => setConfirmRemoval(true)}>
             Remove subtask

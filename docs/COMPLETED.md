@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — On-demand project task entry
+
+- Made task creation on demand, retained per-project drafts in the running app, and verified error retry and keyboard focus. Frontend: 189 passed and build passed; disposable Chrome checks cover three widths and surrounding journeys. [Review](reviews/2026-11-11-on-demand-task-entry.md).
+
 ## 2026-11-11 — Compact completed project tasks
 
 - Completed leaf rows compact to a checked box and struck-through title; reopening restores details. Verified 188 frontend tests, build, and four disposable Chrome checks on macOS. [Review](reviews/2026-11-11-compact-project-tasks.md).

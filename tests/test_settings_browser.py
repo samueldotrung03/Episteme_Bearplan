@@ -61,6 +61,7 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         selected_project = page.get_by_role("button", name="Seminar", exact=True)
         selected_project.click()
         expect(page.get_by_label(task["title"], exact=True)).to_be_visible()
+        page.get_by_role("button", name="+ Add task", exact=True).click()
         page.get_by_label("Title", exact=True).fill("Keep this task draft")
         views.get_by_role("button", name="Week").click()
         page.get_by_role("button", name="Next week").click()

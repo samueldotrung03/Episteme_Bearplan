@@ -25,6 +25,7 @@ def test_m1_create_plan_move_close_revisit_and_carry_same_work(browser, evidence
         page.get_by_label("New project").fill("M1 review seminar")
         page.get_by_role("button", name="Add project", exact=True).click()
         expect(page.get_by_role("heading", name="M1 review seminar", exact=True)).to_be_visible()
+        page.get_by_role("button", name="+ Add task", exact=True).click()
         page.get_by_label("Title", exact=True).fill("Prove the theorem")
         page.get_by_label("Deadline", exact=True).fill("2026-11-20")
         page.get_by_label("Notes", exact=True).fill("Parent context")

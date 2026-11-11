@@ -314,6 +314,7 @@ test("the compact timer remains available while Plan operations are usable", asy
   fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   const compact = await screen.findByRole("complementary", { name: "Active countdown" });
   expect(compact).toHaveTextContent(task.title);
+  await user.click(await screen.findByRole("button", { name: "+ Add task" }));
   await user.type(await screen.findByLabelText("Title"), "Another task");
   expect(await screen.findByRole("button", { name: "Add task" })).toBeEnabled();
   await user.click(within(compact).getByRole("button", { name: "Pause" }));

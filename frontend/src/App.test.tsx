@@ -171,6 +171,7 @@ test("adds a task to the selected project, sending a trimmed title", async () =>
   fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText(/no tasks in this project yet/i);
 
+  await user.click(screen.getByRole("button", { name: "+ Add task" }));
   await user.type(screen.getByLabelText("Title"), "  Essay outline  ");
   await user.click(screen.getByRole("button", { name: "Add task" }));
 
@@ -284,6 +285,7 @@ test("a rejected save shows the service's message and keeps what was typed", asy
   fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText(/no tasks in this project yet/i);
 
+  await user.click(screen.getByRole("button", { name: "+ Add task" }));
   await user.type(screen.getByLabelText("Title"), "Essay outline");
   await user.click(screen.getByRole("button", { name: "Add task" }));
 
@@ -298,6 +300,7 @@ test("the estimate field refuses an out-of-range value before it reaches the ser
   fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText(/no tasks in this project yet/i);
 
+  await user.click(screen.getByRole("button", { name: "+ Add task" }));
   await user.type(screen.getByLabelText("Title"), "Essay outline");
   await user.type(screen.getByLabelText("Estimate (minutes)"), "0");
   await user.click(screen.getByRole("button", { name: "Add task" }));
@@ -908,4 +911,26 @@ test("failed reopening leaves the completed row and an actionable error", async 
   expect(await screen.findByText("Please retry saving.")).toBeInTheDocument();
   expect(checkbox).toBeChecked();
   await waitFor(() => expect(checkbox).toBeEnabled());
+});
+
+
+test("task creation opens on demand and retains separate drafts across projects", async () => {
+  fakeService([project(MATH, "Math 55", true), project(CS, "Computer science")], []);
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  const add = await screen.findByRole("button", { name: "+ Add task" });
+  expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
+  await user.click(add);
+  expect(screen.getByRole("textbox", { name: "Title" })).toHaveFocus();
+  await user.type(screen.getByRole("textbox", { name: "Title" }), "Math draft");
+  await user.click(screen.getByRole("button", { name: "Computer science" }));
+  await user.click(screen.getByRole("button", { name: "+ Add task" }));
+  await user.type(screen.getByRole("textbox", { name: "Title" }), "CS draft");
+  await user.click(screen.getByRole("button", { name: "Math 55" }));
+  expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("Math draft");
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "+ Add task" })).toHaveFocus());
+  await user.click(screen.getByRole("button", { name: "Computer science" }));
+  expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("CS draft");
 });

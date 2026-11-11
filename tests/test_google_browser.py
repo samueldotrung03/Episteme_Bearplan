@@ -138,6 +138,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         google_task["status"] = "needsAction"
         calendar.fail_event_read = True
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
+        page.get_by_role("button", name="+ Add task", exact=True).click()
         draft = page.get_by_label("Title", exact=True)
         draft.fill("Draft kept during Google sync")
         page.get_by_role("link", name="Settings").click()

@@ -308,6 +308,8 @@ The project header now places Rename above an on-demand Add project form; saves 
 
 Completed project leaf rows now show only the checked control and struck-through title; reopening restores details and controls. Parent progress and existing task records remain intact. See the [compact project tasks review](reviews/2026-11-11-compact-project-tasks.md).
 
+Project task entry now opens on demand, keeps separate in-memory drafts across project/view switches, and retains values on failed saves. See the [task-entry review](reviews/2026-11-11-on-demand-task-entry.md). The accepted combined task-and-planned-day save remains unimplemented.
+
 Next: refine the remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 

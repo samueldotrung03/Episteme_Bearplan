@@ -94,6 +94,7 @@ def test_plan_views_preserve_draft_and_week(browser, evidence, tmp_path, width, 
         expect(page.locator(".weekly-planner")).to_be_hidden()
         projects.focus()
         page.keyboard.press("Enter")
+        page.get_by_role("button", name="+ Add task", exact=True).click()
         title = page.get_by_label("Title", exact=True)
         title.fill("Keep this draft")
         week.click()
