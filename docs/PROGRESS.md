@@ -326,9 +326,9 @@ Crowded project task lists now scroll within a bounded area, retaining in-progre
 
 Atomic task capture is implemented and exposed by the local API, but the task form does not use it yet. Optional placement, task, and replay receipt commit together; retry against a new app instance returns the original result. Schema 24 upgrade is tested on disposable data. [Foundation review](reviews/2026-11-11-task-capture-foundation.md), [API review](reviews/2026-11-11-task-capture-api.md).
 
-A frontend recovery foundation now persists an exact task-capture request before sending and retains it on uncertain or rejected responses; it is not yet connected to the form. [Recovery review](reviews/2026-11-11-task-capture-recovery.md).
+The frontend recovery layer persists the exact request, serializes same-origin windows with Web Locks, and rechecks definitive rejections before replacement or cancellation. It is not yet connected to the form; browsers without Web Locks fail closed. [Recovery review](reviews/2026-11-11-task-capture-recovery-followup.md).
 
-Next: complete recovery for definitive validation/closed-week rejections and concurrent windows, then connect the task form to atomic capture with retained drafts, optional planned day and safe retry. Verify the actual UI and service together before presenting it as available. Continue remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
+Next: connect the task form to atomic capture with retained drafts, optional planned day, safe retry and actionable unsupported-storage/lock errors. Verify actual reload, two-window operation, UI and service together before presenting it as available. Continue remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 
 ## Next up

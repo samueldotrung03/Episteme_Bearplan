@@ -1,0 +1,7 @@
+# Task capture rejection and coordination — November 11, 2026
+
+**Result: Pass with follow-ups.** Same-origin windows serialize capture operations with Web Locks; absent lock support prevents sending. An uncertain request remains in local storage. A structured invalid-input response or planned-date closed-week conflict can be rechecked and then replaced with a new operation ID or discarded; the draft remains durable until that decision. An operation-ID conflict, network failure or unexpected response does not authorize replacement. If a replay instead returns a saved receipt, it wins over the proposed cancellation or replacement.
+
+On macOS Darwin arm64, `npm --prefix frontend test` passed 200 tests in 18 files and `npm --prefix frontend run typecheck` passed. Tests exercise serialized simulated windows, lost responses, closed-week rechecks, conflicts, missing locks, malformed responses and storage failure. The initial focused test run failed because the test reused a consumed Response body; the mock was fixed and the full suite passed. No provider, personal data or production build was used.
+
+The task form remains on its existing API. Browser lock behavior across actual windows, reload/restart, user-facing error recovery, widths, themes, keyboard and end-to-end interaction with the local service remain to be verified on integration. The lock coordinates only the same browser origin, not separate origins or browser profiles. No user acceptance or release gate is advanced.

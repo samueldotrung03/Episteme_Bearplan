@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Task capture rejection and window coordination
+
+Serialized same-origin capture operations and added rechecked rejection recovery. The form is not yet wired. macOS Darwin arm64: 200 frontend tests and typecheck passed. See [review](reviews/2026-11-11-task-capture-recovery-followup.md).
+
 ## 2026-11-11 — Task capture recovery foundation
 
 Added typed atomic-capture client and persistent exact-request recovery foundation; it is not yet wired to the task form. macOS Darwin arm64: 195 frontend tests and typecheck passed. See [review](reviews/2026-11-11-task-capture-recovery.md).
