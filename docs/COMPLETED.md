@@ -1,5 +1,26 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Gate register and limit on waiting work (refinement RF-02)
+
+Added [GATES.md](GATES.md): 12 open gates collected from current and historical
+(`605826e`) progress and linked reviews, each with owner, plain action, rough
+time, what it blocks and evidence (3 block the trial, 3 block the alpha, 6 can
+wait). User decision: all six "can wait" gates (G-07 to G-12) accepted as
+unverified ("yes accept them as unverified"); they block nothing and have not
+passed. User asked for a precise, detailed rule; added "Open gates and the
+limit on waiting work" to `AGENTS.md` (limit of three user-owned blocking gates;
+count is four today). Linked from `docs/PROGRESS.md`. Checks: evidence links are
+existing files (two reviews from the active slice are still uncommitted); no
+application tests run (documentation only). Not committed.
+
+## 2026-11-11 — Task capture keyboard order check
+
+Verified form Tab order and Enter-to-save with a synthetic task in the in-app browser on macOS; focus returned to Add task. Broader accessibility and real browser fault checks remain open. [Review](reviews/2026-11-11-task-capture-keyboard-order.md).
+
+## 2026-11-11 — Task capture storage access feedback
+
+Handled denied access to the browser storage property with an actionable error; a simulated form check retains the draft and sends no request. Frontend: 211 tests and build passed on macOS. Real browser fault verification remains open. [Review](reviews/2026-11-11-task-capture-storage-access.md).
+
 ## 2026-11-11 — Roadmap rebaselined (refinement RF-01)
 
 `BearPlans_Dated_Roadmap.md` now has a dated November 11 status, a Now/Next/Later plan, a milestone status table and the October schedule kept as history with evidence-based mark corrections. User-set targets: task-entry close Nov 14, core-trial candidate Nov 16, seven-day trial Nov 17–23, alpha decision Nov 24. Link check: all 34 relative link occurrences exist and are tracked. Part 1 committed as `105928b`; dates not yet committed. [Handoff](plans/refinement/STATUS.md).

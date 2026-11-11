@@ -9,7 +9,7 @@ Read this first in every session; update it last. Ticket details are in
 | Ticket | Title | State | Depends on | Waiting on the user for |
 | --- | --- | --- | --- | --- |
 | RF-01 | Rebaseline the roadmap | Done | — | — (dates set 2026-11-11) |
-| RF-02 | Gate register and limit on waiting work | Ready | RF-01 helps | Which gates to defer; rule wording |
+| RF-02 | Gate register and limit on waiting work | Done | RF-01 helps | — (answered 2026-11-11) |
 | RF-03 | Decision sheet for the user | Ready | — | Answers to each decision |
 | RF-04 | New core-trial candidate and trial start | Blocked | UX task-entry slice closed | Trial scope; tag; Day 1 |
 | RF-05 | Repository cleanup | Ready | — | Approval to move duplicates; push |
@@ -32,6 +32,40 @@ Copy this template for each session. Keep an entry under 20 lines.
 - Watch out: <anything surprising in the tree; other agents' uncommitted work>
 - Commit: <not committed; proposed message given to user | committed by user as <hash>>
 ```
+
+### 2026-11-11 — Claude — RF-02 — Done
+- Did: steps 3–5. User: "We can wait for these all", then "yes accept them as
+  unverified" → G-07–G-12 accepted as unverified (not passed, block nothing). User asked for a precise, detailed rule and
+  delegated the refinement; added "Open gates and the limit on waiting work" to
+  `AGENTS.md` (limit three; count, exceptions, override, add/close/defer). Added a
+  GATES link in PROGRESS "Open follow-ups"; bullets kept (Codex edits that file).
+- Files: `AGENTS.md`; `docs/GATES.md`; `docs/PROGRESS.md` (two hunks: link and
+  pointer); `docs/COMPLETED.md` (top RF-02 entry); this file.
+- Checks: relative links in GATES.md and the new AGENTS.md section resolve (see chat).
+- Not done: nothing in RF-02.
+- Waiting on user: nothing.
+- Next step: RF-03 (decision sheet), step 1 per TICKETS.md.
+- Watch out: limit is already exceeded (4 user-owned blocking gates); new builds
+  wait until G-03 passes or the user overrides. Codex's uncommitted work: two
+  reviews, `taskCaptureRecovery.ts` + test, hunks in PROGRESS.md and COMPLETED.md.
+- Commit: not committed; proposed message given to user.
+
+### 2026-11-11 — Claude — RF-02 — Waiting on user
+- Did: steps 1–3. Wrote `docs/GATES.md`: 12 gates (3 block the trial, 3 block the
+  alpha, 6 can wait) plus a "not gates" list; evidence links checked as tracked files.
+- Files: `docs/GATES.md` (new); this file; `docs/PROGRESS.md` (pointer only).
+- Checks: all 15 evidence paths → tracked in Git. No tests run (docs only).
+- Not done: step 3 answers (defer G-07/G-11?), step 4 rule text in `AGENTS.md`,
+  step 5 PROGRESS link.
+- Waiting on user: which "can wait" gates to accept as unverified; the rule number
+  and wording. Note 4 user-owned gates (G-03–G-06) block trial/alpha, so a limit of
+  three would stop new builds today.
+- Next step: record the user's answers in GATES.md, then steps 4–5.
+- Watch out: previous entry said "not committed"; user committed it as `123e5f4`.
+  `main` is 1 ahead of origin (was 54). `(1)` copies are git-ignored. Codex edited
+  during this session (uncommitted): `frontend/src/taskCaptureRecovery.ts`, its test,
+  `docs/COMPLETED.md`, a new storage-access review and a paragraph in `docs/PROGRESS.md`.
+- Commit: not committed.
 
 ### 2026-11-11 — Claude — RF-01 — Done
 - Did: step 6. User approved the proposed dates ("go ahead"); wrote them into the

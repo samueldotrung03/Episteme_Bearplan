@@ -55,12 +55,25 @@ The [dark-mode review](reviews/2026-11-11-task-capture-dark-mode.md) checks the
 empty form and outage recovery at one compact Chrome viewport, including a visible
 focus return. It is not a full theme or accessibility audit.
 
+The [storage access review](reviews/2026-11-11-task-capture-storage-access.md)
+records a fix for denied access to the browser storage property itself. A simulated
+form check retains the draft and sends no request; 211 frontend tests and the
+production build passed. A real browser storage fault remains unverified.
+
+The [keyboard order review](reviews/2026-11-11-task-capture-keyboard-order.md)
+checks Tab through the task form and Enter to save in the in-app browser, with
+focus returning to Add task. Screen-reader operation and broader coverage remain open.
+
 **Next concrete step:** Complete real browser verification of storage/lock failures,
 broader keyboard/accessibility and theme coverage, and user acceptance using the
 [UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md). The task-entry integration
 remains in progress.
 
 ## Open follow-ups and gates
+
+The register of open gates, with owners and actions, is [GATES.md](GATES.md); the
+limit on waiting work is in [AGENTS.md](../AGENTS.md#open-gates-and-the-limit-on-waiting-work).
+The bullets below are kept as context while the task-entry slice edits this file.
 
 - The broader UX transformation and original UX-06–36 design/runtime acceptance
   remain open. Earlier unfinished, planned-week Done and within-day ordering
@@ -92,7 +105,8 @@ remains in progress.
 Separate from the active UX slice. Entry point:
 [docs/plans/refinement](plans/refinement/README.md); board and handoff log in its
 [STATUS.md](plans/refinement/STATUS.md). RF-01 (rebaseline the roadmap) is done;
-target dates are in the roadmap's "Next" table. Next: RF-02 (gate register).
+target dates are in the roadmap's "Next" table. RF-02 is done: [GATES.md](GATES.md)
+and the AGENTS.md limit. Next: RF-03 (decision sheet for the user).
 RF-04 (new core-trial candidate) waits for the task-entry slice to close (target Nov 14).
 
 ## Handoff notes

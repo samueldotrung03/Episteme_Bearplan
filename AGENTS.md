@@ -327,3 +327,46 @@ package manager or rebuild the project from scratch on resumption.
 - Commit only when explicitly asked/authorized; scope the commit to relevant changes.
   Do not push unless separately authorized. A documentation/handoff request alone
   does not request a commit or authorize the next application build.
+
+### Open gates and the limit on waiting work
+
+User-approved rule, November 11, 2026 (refinement ticket RF-02).
+[`docs/GATES.md`](docs/GATES.md) is the single register of open gates. A **gate**
+is a check that must pass, or that the user explicitly defers, before work counts
+as done: a hands-on check, an operator or provider test, a trial, or a
+known-risk acceptance.
+
+- **The limit.** No new build starts while more than three user-owned gates sit
+  in the "block the trial" and "block the alpha" tables of `docs/GATES.md`.
+  Count every row whose owner is "User" in those two tables; rows owned by an
+  agent, rows in "can wait" and items under "not gates" do not count.
+- **What counts as a new build.** Starting any application slice, feature,
+  milestone step or provider integration that is not already recorded as active
+  work in `docs/PROGRESS.md`. The limit does not stop: finishing the active slice;
+  fixing a defect found by a gate; work whose purpose is to let a gate pass;
+  documentation, planning and the refinement plan's tooling.
+- **Check before starting.** Before beginning a new build, count the rows and
+  state the count to the user. If the count is above three, do not start. Tell
+  the user which gates are waiting, what each needs from them and roughly how
+  long, and ask them to close or explicitly defer one first. Example: on
+  November 11 the count is four (G-03 to G-06), so no new build may start; the
+  active task-entry slice may continue, and the user accepting the task-entry
+  form (G-03) brings the count to three.
+- **User override.** The user may tell an agent to start a build despite the
+  limit. That must be the user's own words in the current chat, after being told
+  the count; record the date, the words and the build in the handoff and in
+  `docs/PROGRESS.md`. An override covers that one build, not later ones.
+- **Adding gates.** Every delivery that leaves a check open adds a row to
+  `docs/GATES.md` in the same change: next free `G-NN` ID, the check in plain
+  words, owner, a concrete action a non-engineer can follow with a rough time,
+  what it blocks, an evidence link and the date opened. Put it in the table
+  matching what it blocks. Do not describe an open gate only in a review or in
+  `docs/PROGRESS.md`.
+- **Closing gates.** A gate passes only with evidence for the build in question:
+  a review, a recorded command result or the user's own report. Remove the row and
+  record the pass at the top of `docs/COMPLETED.md` with that evidence. Missing
+  evidence keeps the gate open.
+- **Deferring or moving gates.** Only the user defers a gate, accepts it as
+  unverified or moves it between tables, in the current chat. Record the date and
+  the user's words in the row. A proposed default or an agent's judgment is never
+  a deferral.
