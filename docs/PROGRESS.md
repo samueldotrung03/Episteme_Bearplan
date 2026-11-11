@@ -201,10 +201,17 @@ frontend tests passed 180, and two Chrome recovery walkthroughs passed. The
 independent reviewer found no remaining confirmed blocker in this scoped fix.
 [Create guard review](reviews/2026-11-06-google-create-guard.md).
 
-**Next step:** Prepare APP-C09 operator walkthrough and handoff. Real-provider
-tests require their own bounded authorization; core trial, hardware and release
-gates remain separate. A reviewed Google-create continuation can create a duplicate
-if a remote copy already exists, and the guard cannot identify older duplicates.
+**Settings operator walkthrough:** APP-C09.1 passed with follow-ups for the
+bounded user-reported disposable walkthrough. The user confirmed bCourses
+credential recovery, local task and paused-timer continuity, Google Pause / Sync
+once / Resume, and Pause persistence after restarting the fake-provider service.
+See the [operator review](reviews/2026-11-10-settings-operator-walkthrough.md).
+
+**Next step:** Complete the remaining APP-C09 handoff review, including the
+same-account reconnect and offline scope where eligible. Real-provider tests
+require their own bounded authorization; core trial, hardware and release gates
+remain separate. A reviewed Google-create continuation can create a duplicate if
+a remote copy already exists; the guard cannot identify older duplicates.
 
 **Latest publication (November 4):** user requested “push the project”. Ordinary
 `git push origin main` advanced `4544f74` → `2eddbe7`, publishing UX-C04
@@ -415,7 +422,7 @@ Pause/status/disconnect work; concurrent account-isolation work remains unverifi
 | APP-C08.1 | Done — Pass with follow-ups | [Integrated process, fault and regression review](reviews/2026-11-06-settings-integrated-regression.md). |
 | APP-C08.2 | Done — Pass with follow-ups | [Accessibility review](reviews/2026-11-06-settings-accessibility-review.md): bounded user-reported VoiceOver and earlier browser checks. |
 | APP-C08.3 | Done — Pass with follow-ups | [Independent create-guard review and final checks](reviews/2026-11-06-google-create-guard.md). VoiceOver and operator/live evidence remain separate. |
-| APP-C09 | Not started as this execution sequence | Operator walkthrough and handoff follow review. |
+| APP-C09 | In progress — handoff | Bounded [operator walkthrough](reviews/2026-11-10-settings-operator-walkthrough.md) passed with follow-ups; remaining handoff and same-account reconnect evidence pending. |
 
 ## UX delivery register
 This is the sole mutable UX status table; stable ticket details/acceptance live in

@@ -1,5 +1,14 @@
 # BearPlans — completed work log
 
+## November 11, 2026 — Settings disposable operator walkthrough
+
+The user reported successful bCourses simulated setup and rejection recovery,
+local task and paused timer continuity across tab and service restarts, and
+fake Google Pause / Sync once / Resume including persisted Pause after restart.
+VS Code was reported closed. The [operator review](reviews/2026-11-10-settings-operator-walkthrough.md)
+records boundaries and remaining evidence; APP-C09 handoff remains in progress.
+
+
 ## November 10, 2026 — Settings accessibility walkthrough
 
 APP-C08.2 passed with follow-ups: the user reported VoiceOver identified the

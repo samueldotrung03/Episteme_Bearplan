@@ -119,7 +119,8 @@ later sync can create another copy. Automatic sync stays paused if you paused it
 The safeguard cannot identify duplicates created before it was installed.
 
 Connection flows and uncertain-create recovery have been exercised with fake
-providers. VoiceOver and real-account operator evidence remain open.
+providers. A bounded VoiceOver and disposable operator walkthrough have been
+reported; real-account operator evidence remains open.
 See [shared progress](docs/PROGRESS.md) for the current gates.
 
 ## Back up and restore
