@@ -1,5 +1,14 @@
 # BearPlans — completed work log
 
+## November 11, 2026 — Assistant project destination fix
+
+Fixed “under this planner check project” being treated as a parent task.
+83 affected regressions and 30/30 local-model evaluation cases passed with no
+unauthorized changes. The exact request now returns a top-level task proposal
+in the named project. [Review](reviews/2026-11-11-assistant-project-creation.md);
+user confirmation and broader Assistant acceptance remain pending.
+
+
 ## November 11, 2026 — Settings implementation handoff
 
 Delivered the [implementation handoff](../frontend/plans/settings-connections/IMPLEMENTATION_HANDOFF.md)

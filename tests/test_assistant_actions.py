@@ -409,3 +409,33 @@ def test_rename_summary_names_the_old_title(db):
     proposal = propose_action(db, None, "update_task", {"task_id": task.id, "title": "Weekly groceries"})
     assert proposal["summary"] == 'Edit "Groceries" (Inbox): title → Weekly groceries'
     assert apply_action(db, None, proposal, key())["summary"] == proposal["summary"]
+
+
+@pytest.mark.parametrize("destination", ["this planner check project", "project planner check", "the planner check project"])
+@pytest.mark.parametrize("include_project", [True, False])
+def test_create_under_explicit_project_does_not_invent_parent(db, destination, include_project):
+    project = create_project(db, "planner check")
+    create_task(db, "planner check", project_id=project.id)  # A colliding task must not become the parent.
+    before = rows(db)
+    route = {"intent": "create_task", "title": "Review Notes"}
+    if include_project:
+        route["project"] = "planner check"
+    reply = ask(db, FakeProvider(routes=[route]), f'Create a work item as "Review Notes" under {destination}')
+    assert reply["kind"] == "proposal"
+    args = reply["proposals"][0]["arguments"]
+    assert args["project_id"] == project.id and not args.get("parent_id")
+    assert rows(db) == before
+
+
+def test_create_under_unknown_project_asks_for_project_not_parent(db):
+    route = {"intent": "create_task", "title": "Review Notes"}
+    reply = ask(db, FakeProvider(routes=[route]), 'Create "Review Notes" under this Unknown project')
+    questions = " ".join(reply["clarification"]["questions"])
+    assert "project" in questions and "top-level task" not in questions
+
+
+def test_create_under_task_with_project_in_title_keeps_parent(db):
+    parent = create_task(db, "Review project")
+    route = {"intent": "create_task", "title": "Review Notes"}
+    reply = ask(db, FakeProvider(routes=[route]), 'Create "Review Notes" under task Review project')
+    assert reply["proposals"][0]["arguments"]["parent_id"] == parent.id

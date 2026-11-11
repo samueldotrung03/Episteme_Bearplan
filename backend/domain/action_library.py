@@ -265,7 +265,18 @@ def _fill_creation(values: dict[str, Any], message: str, project_names: list[str
         values["title"] = found.group(1).strip() if found else None
     if not values["parent"] and not values["parent_id"]:
         found = _UNDER.search(message)
-        values["parent"] = found.group(1).strip() if found else None
+        if found:
+            destination = found.group(1).strip()
+            # "under this History project" names a project, not a task.
+            # An explicit "task" marker still permits titles containing "project".
+            explicit_task = re.search(r"\bunder\s+(?:the\s+)?task\s+", message, re.IGNORECASE)
+            project = re.fullmatch(r"(?:(?:this|the)\s+)?project\s+[\"“']?(.+?)[\"”']?", destination, re.IGNORECASE)
+            project = project or re.fullmatch(r"(?:(?:this|the)\s+)?(.+?)\s+project", destination, re.IGNORECASE)
+            if project and not explicit_task:
+                if not values["project"] and not values["project_id"]:
+                    values["project"] = project.group(1).strip(' \"“”\'')
+            else:
+                values["parent"] = destination
     if not values["project"] and not values["project_id"] and not values["parent"]:
         rest = _normal(message)
         for text in (values["title"], values["parent"]):

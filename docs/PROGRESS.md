@@ -256,6 +256,14 @@ work, CLAUDE.md edits and untracked `(1)` copies remain outside this checkpoint.
   ([UX register](#ux-delivery-register)).
 - **M4 core trial:** candidate recorded; actual seven-day trial not reported.
 
+## Assistant walkthrough finding — November 11
+
+The reported project/parent confusion is fixed in creation fallback parsing.
+The exact local-model request now proposes Review Notes in planner check with
+no parent. 83 affected tests and the 30/30 qwen3:8b evaluation passed. See the
+[fix review](reviews/2026-11-11-assistant-project-creation.md). The disposable
+demo has the fix; next is user confirmation and continued Assistant walkthrough.
+
 ## Next up
 
 1. **Settings UX-C02–C06 delivered with follow-ups.** Latest [context/handoff review](reviews/2026-11-04-settings-context-handoff.md): 54 window frames across three sizes/two themes, 165/165 new finite models and bounded user reports accepted. [Consolidated guide](https://www.figma.com/proto/jobFe4sXDot7BKsej0arNB?page-id=2%3A5&node-id=293-8853&starting-point-node-id=293%3A8853&scaling=min-zoom). APP-C01 baseline is complete. APP-C02.1 credential recovery is complete. APP-C02.2 authorization attempts are complete. APP-C02.3 Disconnect coordination is complete. APP-C02 account and credential boundaries are complete. APP-C03.1 backend status is complete. APP-C03.2 typed frontend mapping is complete. APP-C04.1 Pause durability is complete. APP-C04.2 automatic trigger coverage is complete. APP-C04.3 Pause acknowledgement is complete. APP-C04.4 one-shot/Resume reconciliation is complete. APP-C05.1 Settings route and context is complete. APP-C05.2 dialogs and input handling are complete. APP-C05.3 provider panels are complete. APP-C06.1 bCourses token controls are complete. APP-C06.2 course management and assignment review are complete. APP-C07.1 Google sharing review is complete. APP-C07.2 combined sync feedback is complete. APP-C07.3 Plan/calendar/task integration is complete. APP-C07.4 Google recovery is complete. APP-C08.1 integrated process/fault verification is complete. APP-C08.2 passed with bounded user-reported VoiceOver evidence. APP-C08.3 delivery review passed with follow-ups. Existing core/hardware/runtime gates remain open.

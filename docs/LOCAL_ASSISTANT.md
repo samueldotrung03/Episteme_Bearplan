@@ -8,6 +8,11 @@ was actually stated and matches exactly one record. If something is missing or
 several tasks match, it asks a question or shows choice buttons and keeps the
 request waiting (**Start over** clears it). Only then does a proposal card
 appear, showing every field it will set; nothing is saved until you choose **Apply**.
+To create work directly in a project, say “Create a task called Review Notes
+under this planner check project.” To create a subtask, name the task explicitly,
+for example “Add a subtask called Read under task Essay.” Review the destination
+on the proposal before Apply.
+
 Ask for one change at a time. Day words such as “Tuesday”, “next Friday” or
 “November 12” are converted by BearPlans, not the model; check the weekday on
 the card. Numeric dates like 11/12 are ambiguous and will be asked.
