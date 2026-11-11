@@ -36,3 +36,17 @@ an operator-tested same-account reconnect, full offline system behavior, or
 the separate core-trial, hardware and release gates. Earlier automated results
 and their exact environment are recorded in the linked integrated and create
 guard reviews, not newly rerun here.
+
+## Same-account and offline evidence check — November 11
+
+On macOS arm64 at source commit `725168f`, ran `.venv/bin/python -m pytest
+-q -p no:cacheprovider -p tests.connections_sandbox tests/test_google_account.py
+tests/test_service_restart.py::test_google_pause_and_local_plan_survive_abrupt_service_restart`:
+15 passed in 3.11 seconds. The account tests use fake providers and include
+same-account mapping reuse and account isolation. The process test covers saved
+Pause and local plan persistence across an abrupt service restart without a
+Google grant. Earlier offline Plan regressions are described in the
+[integrated review](2026-11-06-settings-integrated-regression.md). The user
+also performed local planning and timer work in the fake-provider demo with
+non-loopback urllib transport blocked. These checks do not establish real
+Google reauthorization or a system-wide network-disconnected operator test.
