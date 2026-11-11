@@ -13,7 +13,7 @@ const plan: Planning = { today: "2026-11-11", timezone: "America/Los_Angeles", w
 
 function renderToday(onRun = vi.fn(async (work: () => Promise<unknown>) => { await work(); })) {
   const onTrack = vi.fn();
-  render(<Today plan={plan} projects={[project]} loading={false} error={null} locked={false} onRun={onRun} onTrack={onTrack} />);
+  render(<Today visible={false} lastSessionId={null} plan={plan} projects={[project]} loading={false} error={null} locked={false} onRun={onRun} onTrack={onTrack} />);
   return { onTrack };
 }
 

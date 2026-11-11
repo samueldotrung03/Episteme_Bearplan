@@ -5,7 +5,7 @@ from tests.test_e2e_browser import browser, evidence, no_horizontal_overflow, pl
 
 pytestmark = pytest.mark.e2e
 
-@pytest.mark.parametrize("width,theme", [(640, "light"), (1440, "dark")])
+@pytest.mark.parametrize("width,theme", [(375, "dark"), (640, "light"), (1440, "dark")])
 def test_today_completion_reopen_and_focus(browser, evidence, tmp_path, width, theme):
     expect = playwright_sync.expect
     service = Service(tmp_path / f"today-{width}", free_port()).start()
@@ -23,6 +23,11 @@ def test_today_completion_reopen_and_focus(browser, evidence, tmp_path, width, t
         checkbox = today.get_by_role("checkbox", name="Read the primary source — Seminar")
         expect(checkbox).to_be_visible()
         expect(today.get_by_text("Seminar", exact=True)).to_be_visible()
+        streak = today.get_by_role("region", name="Saved focus streak")
+        expect(streak.get_by_text("0-day streak")).to_be_visible()
+        icon = streak.locator("img")
+        assert icon.evaluate("image => image.complete && image.naturalWidth === 24 && image.naturalHeight === 24")
+        assert icon.bounding_box()["width"] == 24 and icon.bounding_box()["height"] == 24
         assert no_horizontal_overflow(page)
         page.screenshot(path=str(evidence / f"today-{width}-{theme}.png"), full_page=True)
         checkbox.focus()

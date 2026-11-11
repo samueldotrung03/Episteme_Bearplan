@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { ApiError, setTaskCompletion, type Planning, type Project, type Task } from "./api";
 import { StartTrackingButton } from "./Countdown";
+import { DailyStreak } from "./DailyStreak";
 
 const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
 
@@ -10,6 +11,8 @@ type Props = {
   loading: boolean;
   error: string | null;
   locked: boolean;
+  visible: boolean;
+  lastSessionId: string | null;
   onRun: (work: () => Promise<unknown>, done: string) => Promise<void>;
   onTrack: (taskId: string) => void;
 };
@@ -32,7 +35,7 @@ function TodayRow({ task, context, onRun, onTrack, onSaved, locked }: { task: Ta
 }
 
 /** A projection of existing active placements, never a copy of task state. */
-export function Today({ plan, projects, loading, error, onRun, onTrack, locked }: Props) {
+export function Today({ plan, projects, loading, error, onRun, onTrack, locked, visible, lastSessionId }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [pendingFocus, setPendingFocus] = useState<{ id: string; complete: boolean } | null>(null);
   const disclosureId = useId();
@@ -56,6 +59,7 @@ export function Today({ plan, projects, loading, error, onRun, onTrack, locked }
   };
   return <section className="today-view" aria-labelledby="today-heading">
     <div className="today-heading"><h2 id="today-heading">Today</h2>{plan ? <time dateTime={plan.today}>{dateLabel.format(new Date(`${plan.today}T00:00:00Z`))}</time> : null}</div>
+    <DailyStreak visible={visible} lastSessionId={lastSessionId} compact />
     {loading && !plan ? <p role="status">Loading today's tasks…</p> : null}
     {error ? <p className="error">Today's tasks may be out of date. Use Retry weekly plan below.</p> : null}
     {plan ? <>

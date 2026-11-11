@@ -1,5 +1,13 @@
 # BearPlans — completed work log
 
+## November 11, 2026 — Today saved-focus streak
+
+Added the compact streak using existing saved-session data and the reviewed Figma
+icon. Frontend: 184 passed plus typecheck/build; focused Chrome: 4 passed;
+planner/timer/Settings Chrome regressions: 15 passed. [Review](reviews/2026-11-11-today-streak.md).
+The broader UX redesign and app user acceptance remain open.
+
+
 ## November 11, 2026 — Today task-list first implementation slice
 
 Added a compact service-Today task projection with project/parent context, Start,

@@ -331,6 +331,7 @@ test("a failed projects load reports the problem and can be retried", async () =
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
     const url = String(input);
     if (url === "/api/timer") return json({ server_now: "2026-10-16T16:00:00.000000Z", active_session: null, last_session: null });
+    if (url === "/api/streaks") return json({ today: "2026-10-15", timezone: "America/Los_Angeles", threshold_microseconds: 3_600_000_000, current_streak: 0, streak_through: null, days: [{ date: "2026-10-15", active_microseconds: 0, qualified: false }] });
     if (url.startsWith("/api/planning")) return json(planningSnapshot([], [], url));
     if (url === "/api/projects") {
       attempt += 1;
@@ -381,6 +382,7 @@ test("a mutation resolving after a project switch does not show the old project'
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
     const url = String(input);
     if (url === "/api/timer") return json({ server_now: "2026-10-16T16:00:00.000000Z", active_session: null, last_session: null });
+    if (url === "/api/streaks") return json({ today: "2026-10-15", timezone: "America/Los_Angeles", threshold_microseconds: 3_600_000_000, current_streak: 0, streak_through: null, days: [{ date: "2026-10-15", active_microseconds: 0, qualified: false }] });
     if (url.startsWith("/api/planning")) return json(planningSnapshot([], [], url));
     if (url === "/api/projects")
       return json({ projects: [project(MATH, "Math 55", true), project(CS, "CS 61A")] });
@@ -413,6 +415,7 @@ test("Try again refetches the tasks, not only the projects", async () => {
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
     const url = String(input);
     if (url === "/api/timer") return json({ server_now: "2026-10-16T16:00:00.000000Z", active_session: null, last_session: null });
+    if (url === "/api/streaks") return json({ today: "2026-10-15", timezone: "America/Los_Angeles", threshold_microseconds: 3_600_000_000, current_streak: 0, streak_through: null, days: [{ date: "2026-10-15", active_microseconds: 0, qualified: false }] });
     if (url.startsWith("/api/planning")) return json(planningSnapshot([], [], url));
     if (url === "/api/projects") return json({ projects: [project(MATH, "Math 55", true)] });
     if (url === "/api/google/changes") return json({ version: 0 });

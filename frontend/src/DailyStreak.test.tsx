@@ -157,3 +157,24 @@ test("visible minute rechecks cross midnight while hidden documents stop reads a
   await act(async () => vi.advanceTimersByTimeAsync(120_000));
   expect(fetcher).toHaveBeenCalledTimes(4);
 });
+
+
+test("compact Today streak shows saved minutes and accessible day states", async () => {
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(json(streak()));
+  render(<DailyStreak visible lastSessionId={null} compact />);
+  const region = screen.getByRole("region", { name: "Saved focus streak" });
+  expect(await within(region).findByText("2-day streak")).toBeVisible();
+  expect(within(region).getByText("30 / 60 min saved today")).toBeVisible();
+  expect(within(region).getByRole("list", { name: "Last seven days" })).toHaveTextContent("W");
+  expect(within(region).getByLabelText(/Oct 21: not qualified, today/)).toBeInTheDocument();
+});
+
+test("compact streak handles invalid service data and allows retry", async () => {
+  const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(json({ invalid: true })).mockResolvedValueOnce(json(streak()));
+  const user = userEvent.setup();
+  render(<DailyStreak visible lastSessionId={null} compact />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("Could not load your daily streak");
+  await user.click(screen.getByRole("button", { name: "Refresh streak" }));
+  expect(await screen.findByText("2-day streak")).toBeVisible();
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});

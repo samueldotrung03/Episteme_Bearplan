@@ -286,7 +286,7 @@ export default function App() {
         </p>
       ) : null}
 
-      <Today plan={planning.plan} projects={projects ?? []} loading={planning.loading} error={planning.error} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onRun={run} onTrack={openTrack} />
+      <Today visible={screen === "plan"} lastSessionId={timer.state?.last_session?.id ?? null} plan={planning.plan} projects={projects ?? []} loading={planning.loading} error={planning.error} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onRun={run} onTrack={openTrack} />
 
       <div className="workspace">
         <div className="work-list">

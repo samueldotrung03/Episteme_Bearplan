@@ -1269,3 +1269,16 @@ details > summary:focus-visible {
 .today-completed { margin-top: 0.5rem; }
 .today-empty { color: var(--muted); }
 .today-task .tracking-entry .link { color: var(--text); text-decoration: none; min-height: 36px; padding: 0.5rem; }
+
+.today-streak { display: flex; align-items: center; gap: 1rem; min-height: 60px; padding: 0.5rem 1rem; margin-top: 0.75rem; border-radius: 0.75rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.today-streak > img { flex: none; }
+.today-streak-copy { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 0.25rem; }
+.today-streak-copy strong { color: var(--accent); font-size: 0.9375rem; }
+.today-streak-copy span { color: var(--muted); font-size: 0.8125rem; }
+.today-streak-copy .error { margin: 0; }
+.today-streak-days { display: flex; gap: 0.5rem; list-style: none; margin: 0; padding: 0; }
+.today-streak-days li { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; color: var(--muted); font-size: 0.6875rem; }
+.today-streak-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--border); }
+.today-streak-dot.qualified { background: var(--accent); }
+.today-streak-dot.today:not(.qualified) { background: transparent; border: 2px solid var(--accent); }
+@media (max-width: 500px) { .today-streak { flex-wrap: wrap; } .today-streak-days { width: 100%; justify-content: space-between; } }

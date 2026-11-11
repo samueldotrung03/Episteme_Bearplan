@@ -286,18 +286,20 @@ early-finish result, no active session and the reopened task. See the
 No ticket is active; broader Assistant operator coverage and existing release
 and hardware gates remain separate.
 
-## UX implementation — Today task-list slice
+## UX implementation — Today task list and streak
 
-The first app-side redesign slice is implemented: service-Today tasks show
-project/parent context, completion/reopen, compact completed rows and Start.
+The first two app-side redesign slices are implemented: service-Today tasks show
+project/parent context, completion/reopen, compact completed rows and Start; a
+prominent streak shows only finalized saved time.
 The current Week and Projects controls remain below it while the rest is built.
 Frontend: 182 passed plus typecheck/build; final Chrome Today checks: 3 passed;
 earlier affected browser regression: 17 passed. See the
-[implementation review](reviews/2026-11-11-today-task-list.md).
+[task-list review](reviews/2026-11-11-today-task-list.md). The streak slice passed
+184 frontend tests, typecheck/build, four focused Chrome tests and 15 surrounding
+browser regressions. See the [streak review](reviews/2026-11-11-today-streak.md).
 
-Next: implement the reviewed shell and Today/Week/Projects navigation with the
-prominent streak, then the remaining task, planning, history and secondary-screen
-units. Today’s Earlier unfinished, cross-week Done and ordering require their
+Next: implement the reviewed shell and Today/Week/Projects navigation, then the
+remaining task, planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 
 ## Next up
