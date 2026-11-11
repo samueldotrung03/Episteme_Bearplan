@@ -12,7 +12,7 @@ Read this first in every session; update it last. Ticket details are in
 | RF-02 | Gate register and limit on waiting work | Done | RF-01 helps | — (answered 2026-11-11) |
 | RF-03 | Decision sheet for the user | Done | — | — (answered 2026-11-11) |
 | RF-04 | New core-trial candidate and trial start | Blocked | UX task-entry slice closed | Trial scope; tag; Day 1 |
-| RF-05 | Repository cleanup | Ready | — | Approval to move duplicates; push |
+| RF-05 | Repository cleanup | Waiting on user | — | Approval to move duplicates; push |
 | RF-06 | One command for every check | Ready | — | Hook and CI, yes or no |
 | RF-07 | Documentation map | Ready | RF-02 (links to gate register) | — |
 | RF-08 | Closing re-evaluation | Blocked | RF-01 to RF-07 | — |
@@ -33,6 +33,46 @@ Copy this template for each session. Keep an entry under 20 lines.
 - Commit: <not committed; proposed message given to user | committed by user as <hash>>
 ```
 
+### 2026-11-11 — Claude — RF-05 — Waiting on user (commit + push)
+- Did: step 4 after user's "yes": moved all 47 paths (`mv -n`, layout kept) to
+  `~/Desktop/BearPlans-duplicates-2026-11-11/` (152 MB). They were *tracked*
+  (committed in `5687685`, already on origin), so `git status` shows 4,453 ` D`
+  files. History check redone excluding `(1)` paths: 112/114 match; the other two
+  are older drafts of `7e38d7c` (see inventory correction). Step 6: PROGRESS
+  handoff note updated. Step 5 credential check: only `backend/platform/secrets.py`
+  and `tests/test_secrets_location.py`.
+- Files: inventory (correction + move sections); `docs/PROGRESS.md` (pointer,
+  handoff note); this file.
+- Checks: frontend `npm test` 213 passed, `npm run build` ok; backend `pytest -q
+  -p no:cacheprovider` **4 failed**, 1138 passed, 1 skipped (305 s). Failures:
+  `test_add_task_disclosure_browser.py::test_add_task_retry_cancel_and_focus`
+  [375-dark, 640-light, 1440-dark] and `test_e2e_browser.py::test_long_text_layout_and_keyboard_creation`;
+  `get_by_role("alert")` with "Could not save task" not found. Very likely from Codex's
+  `400bdfe` (committed mid-session; it changed TaskCaptureForm focus/errors),
+  not the move: no test references a `(1)` path. Not proven by a pre-move rerun.
+- Not done: user commits the deletion and pushes; then RF-05 can be Done.
+- Waiting on user: commit + push (step 5).
+- Next step: after the push, confirm `git status` has no `(1)` paths, `git
+  rev-list --count origin/main..main` is 0, then close RF-05 (board, COMPLETED).
+- Watch out: Codex is active (`400bdfe`; uncommitted G-02 matrix review, GATES.md,
+  PROGRESS/COMPLETED hunks). Its G-02 review claims 640/1440 pass while the four tests above fail.
+- Commit: not committed; proposed message given to user.
+
+### 2026-11-11 — Claude — RF-05 — Waiting on user (inventory)
+- Did: steps 1–3. Inventory of 47 `(1)` paths (6 folders, 41 files, ~152 MB):
+  each source/doc copy matches a committed version; `.evidence` folders and
+  sleep-probe logs match their ignored originals; the rest is generated output. None unique.
+- Files: `docs/reviews/2026-11-11-duplicate-inventory.md` (new); this file;
+  `docs/PROGRESS.md` (refinement pointer only).
+- Checks: `git hash-object`/`git cat-file -e` per file; `cmp` and `diff -rq`
+  against originals; `git check-ignore`. No tests run (nothing moved).
+- Not done: step 4 move (after a yes), step 5 push (user), step 6 PROGRESS note.
+- Waiting on user: yes/no to moving all 47 paths to `~/Desktop/BearPlans-duplicates-2026-11-11/`.
+- Next step: on a yes, move with relative paths kept, then `git status` and both suites.
+- Watch out: ticket said ~30 paths/120 MB; actual 47/152 MB. Codex's uncommitted
+  work now includes five untracked task-capture reviews (last entry said three).
+- Commit: not committed; proposed message given to user.
+
 ### 2026-11-11 — Claude — RF-03 — Done
 - Did: steps 3–4. User: "yes accept every recommended choices" → A1–A5 a; U1 b
   (60 px); U2 c (set width after a browser layout test); U3 a; U4 a; U5 a.
@@ -50,7 +90,8 @@ Copy this template for each session. Keep an entry under 20 lines.
 - Watch out: `frontend/BEARPLANS_UX_PLAN.md` and `BEARPLANS_UX_HANDOFF.md` still
   call these "proposed"; they were outside RF-03's file list, so not edited (AGENTS.md
   now takes precedence). PROGRESS.md and COMPLETED.md also carry Codex's uncommitted hunks.
-- Commit: not committed; proposed message given to user.
+- Commit: committed by user as `a55ccc3` (7 files; Codex's hunks left unstaged).
+  `main` is 3 ahead of origin; not pushed.
 
 ### 2026-11-11 — Claude — RF-03 — Waiting on user
 - Did: steps 1–2. Wrote `DECISIONS_FOR_USER.md`: 10 one-letter questions

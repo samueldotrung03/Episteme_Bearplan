@@ -21,7 +21,7 @@ recommended choices". Recorded as dated user decisions in `AGENTS.md` and in not
 on the [actions review](reviews/2026-11-01-assistant-actions.md) and
 [R24 UX review](reviews/2026-11-03-ux-r24-handoff.md). Rows are 60 px; the
 wide-layout width waits for a browser layout test. No code change; no tests run
-(documentation only). Not committed.
+(documentation only). Committed as `a55ccc3`.
 
 ## 2026-11-11 — Closed-week task capture recovery check
 

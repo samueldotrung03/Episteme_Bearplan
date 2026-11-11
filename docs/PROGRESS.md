@@ -135,7 +135,11 @@ Separate from the active UX slice. Entry point:
 [STATUS.md](plans/refinement/STATUS.md). RF-01 (rebaseline the roadmap) is done;
 target dates are in the roadmap's "Next" table. RF-02 is done: [GATES.md](GATES.md)
 and the AGENTS.md limit. RF-03 is done: all ten decisions answered in
-[DECISIONS_FOR_USER.md](plans/refinement/DECISIONS_FOR_USER.md). Next: RF-05 (repository cleanup).
+[DECISIONS_FOR_USER.md](plans/refinement/DECISIONS_FOR_USER.md). RF-05 (repository
+cleanup): the [duplicate inventory](reviews/2026-11-11-duplicate-inventory.md)
+found all 47 `(1)` paths redundant; with the user's yes they were moved to
+`~/Desktop/BearPlans-duplicates-2026-11-11/`. Waiting on the user to commit the
+deletion of the 4,453 tracked `(1)` files and push `main`.
 RF-04 (new core-trial candidate) waits for the task-entry slice to close (target Nov 14).
 
 ## Handoff notes
@@ -143,7 +147,9 @@ RF-04 (new core-trial candidate) waits for the task-entry slice to close (target
 - User data and credentials stay in the app data directory; do not use personal
   data for testing. The running disposable demo may use an older service; identify
   and restart it deliberately before testing a changed API.
-- Preserve existing unrelated working-tree edits and `(1)` duplicate files.
+- Preserve existing unrelated working-tree edits. The `(1)` duplicate files were
+  moved out of the repository on 2026-11-11 (RF-05,
+  [inventory](reviews/2026-11-11-duplicate-inventory.md)); do not restore them.
   Do not push without a separate request. Review older planning statements against
   current product decisions and the linked evidence; preserve outstanding gates.
 - A detailed historical status and delivery-register snapshot is available in Git
