@@ -87,8 +87,12 @@ confirms the Cancel focus in two live tabs. Closing the stale form exposed a
 second focus gap; the fix returning focus to the project heading passed a live
 two-tab browser recheck, the 213-test frontend suite and build.
 
-**Next concrete step:** Complete real browser verification of storage/lock failures,
-broader keyboard/accessibility and theme coverage, and user acceptance using the
+G-02 passed its bounded keyboard and light/dark matrix at 640, 800 and 1440 px;
+see the [matrix review](reviews/2026-11-11-task-capture-g02-matrix.md) for the
+tested path and remaining accessibility limitations.
+
+**Next concrete step:** Complete real browser verification of storage/lock failures
+and user acceptance using the
 [UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md). The task-entry integration
 remains in progress.
 

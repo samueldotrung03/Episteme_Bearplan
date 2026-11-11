@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — G-02 task-entry keyboard and theme matrix
+
+Passed the bounded form keyboard and light/dark checks at 640, 800 and 1440 px in Chrome on macOS with disposable data. Screen-reader and other accessibility checks remain outside this evidence. [Review](reviews/2026-11-11-task-capture-g02-matrix.md).
+
 ## 2026-11-11 — Cross-tab task capture focus check
 
 Verified Cancel focus after another tab resolves a pending task; fixed focus after closing the stale form by returning it to the project heading during refresh. A live two-tab recheck confirmed heading focus and Tab to Add task. Frontend: 213 tests and build passed on macOS. [Review](reviews/2026-11-11-task-capture-cross-tab-focus.md).
