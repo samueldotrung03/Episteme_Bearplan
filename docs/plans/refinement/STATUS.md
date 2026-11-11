@@ -10,7 +10,7 @@ Read this first in every session; update it last. Ticket details are in
 | --- | --- | --- | --- | --- |
 | RF-01 | Rebaseline the roadmap | Done | — | — (dates set 2026-11-11) |
 | RF-02 | Gate register and limit on waiting work | Done | RF-01 helps | — (answered 2026-11-11) |
-| RF-03 | Decision sheet for the user | Ready | — | Answers to each decision |
+| RF-03 | Decision sheet for the user | Done | — | — (answered 2026-11-11) |
 | RF-04 | New core-trial candidate and trial start | Blocked | UX task-entry slice closed | Trial scope; tag; Day 1 |
 | RF-05 | Repository cleanup | Ready | — | Approval to move duplicates; push |
 | RF-06 | One command for every check | Ready | — | Hook and CI, yes or no |
@@ -32,6 +32,44 @@ Copy this template for each session. Keep an entry under 20 lines.
 - Watch out: <anything surprising in the tree; other agents' uncommitted work>
 - Commit: <not committed; proposed message given to user | committed by user as <hash>>
 ```
+
+### 2026-11-11 — Claude — RF-03 — Done
+- Did: steps 3–4. User: "yes accept every recommended choices" → A1–A5 a; U1 b
+  (60 px); U2 c (set width after a browser layout test); U3 a; U4 a; U5 a.
+  Recorded as dated user decisions in `AGENTS.md` (UX and assistant bullets) and
+  in notes at the end of both source reviews; PROGRESS "Decisions still open" bullet
+  replaced. No code change needed, so nothing added to the roadmap "Later" list.
+- Files: `AGENTS.md`; `docs/reviews/2026-11-01-assistant-actions.md`;
+  `docs/reviews/2026-11-03-ux-r24-handoff.md`; `DECISIONS_FOR_USER.md`;
+  `docs/PROGRESS.md` (two hunks: decisions bullet, pointer); `docs/COMPLETED.md`
+  (top RF-03 entry); this file.
+- Checks: `git diff --stat` on my files; no tests run (docs only).
+- Not done: nothing in RF-03. The U2 browser layout test is still open (not a gate).
+- Waiting on user: nothing.
+- Next step: RF-05 (repository cleanup), step 1 per TICKETS.md.
+- Watch out: `frontend/BEARPLANS_UX_PLAN.md` and `BEARPLANS_UX_HANDOFF.md` still
+  call these "proposed"; they were outside RF-03's file list, so not edited (AGENTS.md
+  now takes precedence). PROGRESS.md and COMPLETED.md also carry Codex's uncommitted hunks.
+- Commit: not committed; proposed message given to user.
+
+### 2026-11-11 — Claude — RF-03 — Waiting on user
+- Did: steps 1–2. Wrote `DECISIONS_FOR_USER.md`: 10 one-letter questions
+  (A1–A5 = Assistant defaults 2–6, already built; U1–U5 = UX row height,
+  wide-layout width, cross-month filing, Earlier unfinished, Figma font).
+- Files: `docs/plans/refinement/DECISIONS_FOR_USER.md` (new); this file;
+  `docs/PROGRESS.md` (refinement pointer only).
+- Checks: read source passages (actions review "Decisions"; UX plan §2; UX
+  handoff "Defaults/discrepancies"); `styles.css` rows are 60 px; no 1280 px
+  breakpoint in code. No tests run (docs only).
+- Not done: step 3 answers; step 4 recording (AGENTS.md/review notes, PROGRESS list).
+- Waiting on user: answers to A1–A5, U1–U5 (asked in chat).
+- Next step: record each answer in the sheet's Answers table, then step 4.
+- Watch out: RF-02 entry said "not committed"; user committed `8acd618`, which
+  also included Codex's PROGRESS/COMPLETED hunks linking two still-untracked
+  reviews. `main` is 2 ahead of origin. Codex was active during this session
+  (uncommitted): `TaskCaptureForm.tsx` + test, `taskCaptureRecovery.ts`, three
+  reviews, a COMPLETED.md entry and a title-accessibility hunk in PROGRESS.md.
+- Commit: not committed.
 
 ### 2026-11-11 — Claude — RF-02 — Done
 - Did: steps 3–5. User: "We can wait for these all", then "yes accept them as

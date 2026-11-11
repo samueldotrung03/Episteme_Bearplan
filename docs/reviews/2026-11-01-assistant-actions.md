@@ -298,3 +298,9 @@ Checks: pytest 861 passed, 1 skipped (Windows-only), 187.89 s; Vitest 145
 passed. M5 evaluation run 8: 30/30, routing 100%, no unauthorized changes,
 Gate PASSED.
 
+
+## User decision on defaults 2–6 (2026-11-11)
+
+The user accepted defaults 2–6 above as written ("yes accept every recommended
+choices"), through the [decision sheet](../plans/refinement/DECISIONS_FOR_USER.md)
+items A1–A5. They are now user decisions, recorded in `AGENTS.md`. No code change.

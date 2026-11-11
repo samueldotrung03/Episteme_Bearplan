@@ -96,9 +96,10 @@ The bullets below are kept as context while the task-entry slice edits this file
 - The requested frontend/backend/shared-test ownership and documentation map is
   not started. Codex project registration still points at the old nested folder;
   reopen/select `/Users/hiberkeley/Desktop/Projects/Episteme_Bearplan` if needed.
-- Decisions still open: assistant defaults 2–6 in the [actions review](reviews/2026-11-01-assistant-actions.md);
-  UX draft row/breakpoint measurements, cross-month week filing, Earlier selection,
-  and Figma font fallback. Do not treat proposed defaults as user decisions.
+- Assistant defaults 2–6 and the UX row height, cross-month filing, Earlier
+  selection and Figma font were decided by the user on 2026-11-11 (rules in
+  `AGENTS.md`; [decision sheet](plans/refinement/DECISIONS_FOR_USER.md)). The
+  wide-layout width is to be set after a browser layout test; that test is open.
 
 ## Refinement plan (tracking and release readiness)
 
@@ -106,7 +107,8 @@ Separate from the active UX slice. Entry point:
 [docs/plans/refinement](plans/refinement/README.md); board and handoff log in its
 [STATUS.md](plans/refinement/STATUS.md). RF-01 (rebaseline the roadmap) is done;
 target dates are in the roadmap's "Next" table. RF-02 is done: [GATES.md](GATES.md)
-and the AGENTS.md limit. Next: RF-03 (decision sheet for the user).
+and the AGENTS.md limit. RF-03 is done: all ten decisions answered in
+[DECISIONS_FOR_USER.md](plans/refinement/DECISIONS_FOR_USER.md). Next: RF-05 (repository cleanup).
 RF-04 (new core-trial candidate) waits for the task-entry slice to close (target Nov 14).
 
 ## Handoff notes

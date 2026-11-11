@@ -1,5 +1,16 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Open user decisions answered (refinement RF-03)
+
+Wrote [DECISIONS_FOR_USER.md](plans/refinement/DECISIONS_FOR_USER.md): ten
+one-letter questions (Assistant defaults 2–6; UX row height, wide-layout width,
+cross-month filing, Earlier unfinished, Figma font). User: "yes accept every
+recommended choices". Recorded as dated user decisions in `AGENTS.md` and in notes
+on the [actions review](reviews/2026-11-01-assistant-actions.md) and
+[R24 UX review](reviews/2026-11-03-ux-r24-handoff.md). Rows are 60 px; the
+wide-layout width waits for a browser layout test. No code change; no tests run
+(documentation only). Not committed.
+
 ## 2026-11-11 — Gate register and limit on waiting work (refinement RF-02)
 
 Added [GATES.md](GATES.md): 12 open gates collected from current and historical

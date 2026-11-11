@@ -52,6 +52,15 @@ dates; use their contents and commit history to determine which evidence is curr
   details/controls after a confirmed save. Preserve accessible context, focus,
   error recovery, shared completion, active timers and frozen read-only history.
   This is a specification until separately implemented, not a current UI claim.
+- User decisions (2026-11-11, accepting the recommendations in the
+  [decision sheet](docs/plans/refinement/DECISIONS_FOR_USER.md)): active task rows
+  have a 60 px minimum and may grow for long titles; the wide-layout width is set
+  only after a browser layout test shows the room projects, seven columns, long
+  titles and controls need (1280 px is not confirmed); a week spanning two months
+  is filed under its Monday's month with the full range shown; Earlier unfinished
+  shows current incomplete leaf work with a past saved planned date and no plan for
+  today or later, once per task, including archived membership, never rescheduling;
+  Inter is the Figma-only fallback and the app keeps the system font.
 - The accepted future drag design includes both within-day ordering and date
   moves. Current same-day drops remain no-ops until a separately scoped build
   implements persisted ordering. Cancellation/outside drops and unchanged-position
@@ -259,6 +268,12 @@ dates; use their contents and commit history to determine which evidence is curr
 - Future AI/connections call the same application functions, stay outside write
   transactions while fetching/generating, and follow the build plan's bounded tools,
   revision/replay checks, preview/Undo and credential/privacy requirements.
+  Assistant action rules confirmed by the user (2026-11-11, defaults 2–6 of the
+  [actions review](docs/reviews/2026-11-01-assistant-actions.md#decisions)): Undo
+  deletes an assistant-created task only while unused; Undo of a completion change
+  restores the exact previous `completed_at`; timer actions have no Undo (Track is
+  the control); one change per request with at most 4 clarification rounds; proposals
+  are stateless and fully revalidated by the service on Apply.
   For assistant write actions use the
   [assistant actions skill](.agents/skills/bearplans-assistant-actions/SKILL.md).
 
