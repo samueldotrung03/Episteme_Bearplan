@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, StrictStr
 
+from backend.domain.task_capture import CaptureResult, capture_task
 from backend.domain.tasks import (
     UNSET, CompletionProgress, Task, completion_progress, create_task, list_tasks,
     remove_subtask, update_task,
@@ -25,6 +26,11 @@ class TaskCreateRequest(BaseModel):
     deadline: StrictStr | None = None
     # Strict so that true does not quietly become an estimate of one minute.
     estimate_minutes: StrictInt | None = None
+
+
+class TaskCaptureRequest(TaskCreateRequest):
+    operation_id: StrictStr
+    planned_date: StrictStr | None = None
 
 
 class TaskUpdateRequest(BaseModel):
@@ -78,6 +84,11 @@ def post_task(body: TaskCreateRequest, request: Request) -> Task:
         deadline=body.deadline,
         estimate_minutes=body.estimate_minutes,
     )
+
+
+@router.post("/task-captures", status_code=201)
+def post_task_capture(body: TaskCaptureRequest, request: Request) -> CaptureResult:
+    return capture_task(_db(request), **body.model_dump())
 
 
 @router.patch("/tasks/{task_id}")

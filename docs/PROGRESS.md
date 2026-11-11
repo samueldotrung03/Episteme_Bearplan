@@ -324,9 +324,9 @@ Active Week cards now group time, deadline and estimate in a wrapping detail row
 
 Crowded project task lists now scroll within a bounded area, retaining in-progress edits across view switches. [Review](reviews/2026-11-11-project-task-scroll.md).
 
-Atomic task capture foundation is implemented but not yet exposed through the API or UI: optional placement, task, and replay receipt commit together; retry after restart returns the original result. Schema 24 upgrade is tested on disposable data. [Review](reviews/2026-11-11-task-capture-foundation.md).
+Atomic task capture is implemented and exposed by the local API, but the task form does not use it yet. Optional placement, task, and replay receipt commit together; retry against a new app instance returns the original result. Schema 24 upgrade is tested on disposable data. [Foundation review](reviews/2026-11-11-task-capture-foundation.md), [API review](reviews/2026-11-11-task-capture-api.md).
 
-Next: expose and test this capture operation through the API, then connect the task form with retained drafts and safe retry. Continue remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
+Next: connect the task form to atomic capture with retained drafts and safe retry, including uncertain-response recovery. Continue remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 
 ## Next up

@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Atomic task capture API
+
+- Exposed replay-safe task capture with strict validation and verified failures, retries, closed history and same-origin protection. 268 focused backend tests passed; the UI connection remains pending. [Review](reviews/2026-11-11-task-capture-api.md).
+
 ## 2026-11-11 — Atomic task capture foundation
 
 - Added transactional task-plus-optional-plan capture with durable replay and schema 24. Verified rollback, retry, concurrent replay, restart and schema upgrade; 210 targeted tests passed. API and UI integration remain pending. [Review](reviews/2026-11-11-task-capture-foundation.md).
