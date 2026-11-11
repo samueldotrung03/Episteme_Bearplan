@@ -46,6 +46,11 @@ def test_compact_week_reopen_failure_retry(browser, evidence, tmp_path, width, t
         expect(checkbox).to_be_focused()
         expect(card.get_by_text("Due Dec 1, 2026")).to_be_visible()
         expect(card.get_by_text("Move or remove")).to_be_visible()
+        expect(card.get_by_text("30 min estimated")).to_be_visible()
+        if width == 640:
+            assert card.get_by_text("Due Dec 1, 2026").bounding_box()["y"] == card.get_by_text("30 min estimated").bounding_box()["y"]
+        assert no_horizontal_overflow(page)
+        page.screenshot(path=str(evidence / f"active-week-{width}-{theme}.png"))
     finally:
         page.close()
         service.stop()

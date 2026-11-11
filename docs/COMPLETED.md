@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Compact active Week task details
+
+- Grouped time, due date and estimate in a wrapping row while preserving task controls and recovery. Verified 191 frontend tests, build and 12 disposable browser checks. [Review](reviews/2026-11-11-week-task-details.md).
+
 ## 2026-11-11 — Week day counts
 
 - Added planned-task counts to compact Week day choices, including completed work and frozen history. Verified 191 frontend tests, build and six disposable Chrome drag, closure and responsive checks. [Review](reviews/2026-11-11-week-day-counts.md).

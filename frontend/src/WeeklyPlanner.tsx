@@ -258,9 +258,11 @@ function PlannedCard({ task, placement, context, onRun, locked, onTrack, drag }:
         <label htmlFor={id}>{task.title}</label>
       </div>
       <div hidden={task.completed}>
-      {placement.start_time ? <p className="planned-meta">At {showTime(placement.start_time)}</p> : null}
-      {task.deadline ? <p className="planned-meta muted">Due {showDate(task.deadline)}</p> : null}
-      {task.estimate_minutes ? <p className="planned-meta muted">{task.estimate_minutes} min estimated</p> : null}
+      {placement.start_time || task.deadline || task.estimate_minutes ? <div className="planned-details">
+        {placement.start_time ? <p className="planned-meta">At {showTime(placement.start_time)}</p> : null}
+        {task.deadline ? <p className="planned-meta muted">Due {showDate(task.deadline)}</p> : null}
+        {task.estimate_minutes ? <p className="planned-meta muted">{task.estimate_minutes} min estimated</p> : null}
+      </div> : null}
       {onTrack ? <StartTrackingButton task={task} onTrack={() => onTrack(task.id)} disabled={busy || locked} /> : null}
       <details>
         <summary>Move or remove</summary>

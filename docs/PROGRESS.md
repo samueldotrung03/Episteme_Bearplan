@@ -320,6 +320,8 @@ Week now has a prototype-inspired completion bar with unique-leaf counts and a d
 
 Compact Week day buttons now show planned-task counts, with accessible labels and frozen-history counts. [Review](reviews/2026-11-11-week-day-counts.md).
 
+Active Week cards now group time, deadline and estimate in a wrapping detail row. [Review](reviews/2026-11-11-week-task-details.md).
+
 Next: refine the remaining project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 
