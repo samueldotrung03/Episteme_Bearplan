@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Atomic task capture foundation
+
+- Added transactional task-plus-optional-plan capture with durable replay and schema 24. Verified rollback, retry, concurrent replay, restart and schema upgrade; 210 targeted tests passed. API and UI integration remain pending. [Review](reviews/2026-11-11-task-capture-foundation.md).
+
 ## 2026-11-11 — Crowded project task scrolling
 
 - Bounded project task lists and verified lower tasks, keyboard editing and retained drafts at three widths. Frontend: 191 tests and build passed; disposable Chrome project checks passed. [Review](reviews/2026-11-11-project-task-scroll.md).
