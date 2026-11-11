@@ -107,6 +107,7 @@ def test_choose_courses_add_assignment_and_review_due_change(browser, evidence, 
         status, replay = http_json("POST", url + "/api/bcourses/assignments/11/add")
         assert status == 200 and replay["task"]["id"] == tasks[0].id
         page.get_by_role("link", name="Plan", exact=True).click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         expect(page.get_by_role("button", name="MATH 54 - Linear Algebra", exact=True)).to_be_visible()
 
         page.get_by_role("link", name="bCourses", exact=True).click()

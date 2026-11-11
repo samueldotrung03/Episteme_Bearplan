@@ -92,6 +92,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         expect(tab.get_by_role("status")).to_contain_text("Saved your calendars")
 
         page.get_by_role("link", name="Plan", exact=True).click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         events = page.locator(".day-events")
         expect(events).to_have_count(1)
         expect(events.get_by_text("Office hours")).not_to_be_visible()  # closed until opened
@@ -123,6 +124,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
 
         # Tick it in Google; the open page picks it up when the window regains focus.
         page.get_by_role("link", name="Plan", exact=True).click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         page.evaluate("window.dispatchEvent(new Event('focus'))")  # learn the current version
         page.wait_for_timeout(300)
         google_task = next(item for items in tasks.items.values() for item in items.values() if item.get("title") == "Office hours")
@@ -135,6 +137,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         previous = page.request.get(url + "/api/google").json()["tasks"]["last_success_at"]
         google_task["status"] = "needsAction"
         calendar.fail_event_read = True
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         draft = page.get_by_label("Title", exact=True)
         draft.fill("Draft kept during Google sync")
         page.get_by_role("link", name="Settings").click()
@@ -151,8 +154,9 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         expect(settings.get_by_text("Last full sync", exact=False)).to_be_visible()
         page.screenshot(path=evidence / "google-partial-sync.png")
         page.get_by_role("button", name="Back to work").click()
-        expect(page.locator(".planned-card", has_text="Office hours").get_by_role("checkbox")).not_to_be_checked()
         expect(draft).to_have_value("Draft kept during Google sync")
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
+        expect(page.locator(".planned-card", has_text="Office hours").get_by_role("checkbox")).not_to_be_checked()
 
         calendar.fail_event_read = False
         page.get_by_role("link", name="Settings").click()
@@ -169,6 +173,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         tab.get_by_role("button", name="Save calendars").click()
         expect(tab.get_by_role("status")).to_contain_text("Plan now shows events from your selection")
         page.get_by_role("link", name="Plan", exact=True).click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         expect(events).to_have_count(0)
         expect(card).to_have_count(1)
         assert [t.id for t in list_tasks(db) if t.title == "Office hours"] == [task.id]

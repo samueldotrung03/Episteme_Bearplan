@@ -63,6 +63,7 @@ export default function App() {
   const planning = usePlanning();
   const timer = useCountdown();
   const [screen, setScreen] = useState(readScreen);
+  const [planView, setPlanView] = useState<"today" | "week" | "projects">("today");
   const [setup, setSetup] = useState<{ provider: SetupProvider } | null>(null);
   const [setupNotice, setSetupNotice] = useState("");
   const [credentialVersion, setCredentialVersion] = useState(0);
@@ -287,10 +288,17 @@ export default function App() {
         </p>
       ) : null}
 
-      <Today visible={screen === "plan"} lastSessionId={timer.state?.last_session?.id ?? null} plan={planning.plan} projects={projects ?? []} loading={planning.loading} error={planning.error} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onRun={run} onTrack={openTrack} />
+      <nav className="plan-navigation" aria-label="Plan views">
+        <button type="button" aria-pressed={planView === "today"} onClick={() => setPlanView("today")}>Today</button>
+        <button type="button" aria-pressed={planView === "week"} onClick={() => setPlanView("week")}>Week</button>
+        <button type="button" aria-pressed={planView === "projects"} onClick={() => setPlanView("projects")}>Projects</button>
+      </nav>
+      <div hidden={planView !== "today"}>
+      <Today visible={screen === "plan" && planView === "today"} lastSessionId={timer.state?.last_session?.id ?? null} plan={planning.plan} projects={projects ?? []} loading={planning.loading} error={planning.error} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onRun={run} onTrack={openTrack} onRetry={() => void planning.refresh()} />
+      </div>
 
-      <div className="workspace">
-        <div className="work-list">
+      <div className="workspace plan-workspace" hidden={planView === "today"}>
+        <div className="work-list" hidden={planView !== "projects"}>
           <section className="projects" aria-labelledby="projects-heading">
             <h2 id="projects-heading">Projects</h2>
             {projects === null && !loadError ? <p className="muted">Loading…</p> : null}
@@ -452,7 +460,7 @@ export default function App() {
             </section>
           ) : null}
         </div>
-      <WeeklyPlanner state={planning} projects={projects ?? []} onRun={run} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onTrack={openTrack} />
+      <div hidden={planView !== "week"}><WeeklyPlanner state={planning} projects={projects ?? []} onRun={run} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onTrack={openTrack} /></div>
       </div>
 
       </div>

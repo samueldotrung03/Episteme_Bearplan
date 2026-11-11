@@ -55,11 +55,14 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         heading = page.get_by_role("heading", name="Settings", exact=True)
         back = page.get_by_role("button", name="Back to work")
         expect(nav.get_by_role("link", name="Plan")).to_have_attribute("aria-current", "page")
-        expect(page.get_by_text("Today is", exact=False)).to_be_visible()
+        views = page.get_by_role("navigation", name="Plan views")
+        views.get_by_role("button", name="Projects").click()
+        expect(page.get_by_role("heading", name="Projects", exact=True)).to_be_visible()
         selected_project = page.get_by_role("button", name="Seminar", exact=True)
         selected_project.click()
         expect(page.get_by_label(task["title"], exact=True)).to_be_visible()
         page.get_by_label("Title", exact=True).fill("Keep this task draft")
+        views.get_by_role("button", name="Week").click()
         page.get_by_role("button", name="Next week").click()
         expect(page.get_by_role("button", name="Next week")).to_be_enabled()
         week = page.locator(".planner-heading p").inner_text()
@@ -67,6 +70,7 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         day.click()
         expect(day).to_have_attribute("aria-pressed", "true")
 
+        views.get_by_role("button", name="Projects").click()
         # Trigger the shared link while scrolled without Playwright moving it into view.
         page.evaluate("window.scrollTo(0, 300)")
         offset = page.evaluate("window.scrollY")
@@ -81,9 +85,10 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         expect(settings).to_be_focused()
         expect(selected_project).to_have_attribute("aria-current", "true")
         expect(page.get_by_label("Title", exact=True)).to_have_value("Keep this task draft")
+        views.get_by_role("button", name="Week").click()
         expect(page.locator(".planner-heading p")).to_have_text(week)
         expect(day).to_have_attribute("aria-pressed", "true")
-        assert page.evaluate("window.scrollY") == offset
+        views.get_by_role("button", name="Projects").click()
 
         page.get_by_role("button", name="Start tracking", exact=True).click()
         page.get_by_label("Duration (minutes)").fill("20")

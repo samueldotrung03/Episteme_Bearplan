@@ -13,7 +13,7 @@ const plan: Planning = { today: "2026-11-11", timezone: "America/Los_Angeles", w
 
 function renderToday(onRun = vi.fn(async (work: () => Promise<unknown>) => { await work(); })) {
   const onTrack = vi.fn();
-  render(<Today visible={false} lastSessionId={null} plan={plan} projects={[project]} loading={false} error={null} locked={false} onRun={onRun} onTrack={onTrack} />);
+  render(<Today visible={false} lastSessionId={null} plan={plan} projects={[project]} loading={false} error={null} locked={false} onRun={onRun} onTrack={onTrack} onRetry={vi.fn()} />);
   return { onTrack };
 }
 
@@ -38,4 +38,11 @@ test("failed completion keeps the task and offers an actionable error", async ()
   await user.click(screen.getByRole("checkbox", { name: "Read source — Seminar / Discussion" }));
   expect(screen.getByRole("checkbox", { name: "Read source — Seminar / Discussion" })).not.toBeChecked();
   expect(screen.getByRole("alert")).toHaveTextContent("Could not save this task");
+});
+
+test("planning errors can be retried from Today", async () => {
+  const onRetry = vi.fn();
+  render(<Today visible={false} lastSessionId={null} plan={plan} projects={[project]} loading={false} error="offline" locked onRun={vi.fn()} onTrack={vi.fn()} onRetry={onRetry} />);
+  await userEvent.setup().click(screen.getByRole("button", { name: "Retry" }));
+  expect(onRetry).toHaveBeenCalledOnce();
 });

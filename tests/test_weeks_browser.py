@@ -35,6 +35,7 @@ def test_closed_week_and_reviewed_carryover_survive_changes_restart_and_lost_res
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(service.url)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         expect(page.get_by_text("Open week", exact=True)).to_be_visible()
         page.get_by_role("button", name="End Week", exact=True).focus()
         page.keyboard.press("Enter")
@@ -75,6 +76,7 @@ def test_closed_week_and_reviewed_carryover_survive_changes_restart_and_lost_res
         assert service.stop() == 0
         service = Service(data_dir, port).start()
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         board = page.locator(".week-board")
         expect(board.get_by_text("Draft proof", exact=True)).to_be_visible()
         expect(board.get_by_text("Proof seminar / Assignment", exact=True)).to_have_count(2)

@@ -1307,3 +1307,11 @@ details > summary:focus-visible {
 .today-streak-dot.qualified { background: var(--accent); }
 .today-streak-dot.today:not(.qualified) { background: transparent; border: 2px solid var(--accent); }
 @media (max-width: 500px) { .today-streak { flex-wrap: wrap; } .today-streak-days { width: 100%; justify-content: space-between; } }
+
+/* Today, Week and Projects keep their state while the selected view is shown. */
+.plan-navigation { display: flex; gap: 0.5rem; margin: 0 0 0.75rem; }
+.plan-navigation button { min-height: 36px; padding: 0.45rem 1rem; border: 1px solid transparent; background: transparent; color: var(--text); font-size: 0.8125rem; }
+.plan-navigation button[aria-pressed="true"] { background: var(--surface); border-color: var(--border); }
+.plan-navigation button:last-child { margin-inline-start: auto; border-color: var(--border); }
+.plan-workspace { display: block; }
+.plan-workspace[hidden], .plan-workspace > [hidden] { display: none; }

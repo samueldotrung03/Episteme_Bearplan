@@ -152,6 +152,7 @@ function fakeService(projects: Project[], tasks: Task[], fail?: { url: string; s
 test("lists projects, selects the first, and shows its tasks", async () => {
   fakeService([project(MATH, "Math 55", true)], [task("00000000-0000-4000-8000-000000000001", "Write PS7")]);
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   expect(await screen.findByRole("button", { name: "Math 55", current: true })).toBeInTheDocument();
   expect(await screen.findByText("Write PS7")).toBeInTheDocument();
 });
@@ -159,6 +160,7 @@ test("lists projects, selects the first, and shows its tasks", async () => {
 test("shows an empty state for a project with no tasks", async () => {
   fakeService([project(MATH, "Math 55", true)], []);
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   expect(await screen.findByText(/no tasks in this project yet/i)).toBeInTheDocument();
 });
 
@@ -166,6 +168,7 @@ test("adds a task to the selected project, sending a trimmed title", async () =>
   const calls = fakeService([project(MATH, "Math 55", true)], []);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText(/no tasks in this project yet/i);
 
   await user.type(screen.getByLabelText("Title"), "  Essay outline  ");
@@ -181,6 +184,7 @@ test("adds a subtask under its parent", async () => {
   const calls = fakeService([project(MATH, "Math 55", true)], [parent]);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText("Write PS7");
 
   await user.click(screen.getByRole("button", { name: "Add subtask" }));
@@ -199,6 +203,7 @@ test("a task with subtasks shows progress and cannot be completed directly", asy
   const child = task("00000000-0000-4000-8000-000000000002", "read ch.4", { parent_id: parent.id, completed: true });
   fakeService([project(MATH, "Math 55", true)], [parent, child]);
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
 
   await screen.findByText("Write PS7");
   expect(screen.getByText("1 of 2 subtasks done")).toBeInTheDocument();
@@ -212,6 +217,7 @@ test("completing a subtask calls the completion endpoint", async () => {
   const calls = fakeService([project(MATH, "Math 55", true)], [parent, child]);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
 
   await user.click(await screen.findByLabelText("read ch.4"));
   await waitFor(() =>
@@ -224,6 +230,7 @@ test("editing a task sends its changed fields", async () => {
   const calls = fakeService([project(MATH, "Math 55", true)], [existing]);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
 
   await user.click(await screen.findByRole("button", { name: "Edit" }));
   const estimate = screen.getAllByLabelText("Estimate (minutes)").at(-1)!;
@@ -248,6 +255,7 @@ test("finishing a child save preserves a different editor opened while it was pe
   });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   const childRow = (await screen.findByLabelText(child.title)).closest("li")!;
   await user.click(within(childRow).getByRole("button", { name: "Edit" }));
   await user.click(screen.getByRole("button", { name: "Save changes" }));
@@ -273,6 +281,7 @@ test("a rejected save shows the service's message and keeps what was typed", asy
   });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText(/no tasks in this project yet/i);
 
   await user.type(screen.getByLabelText("Title"), "Essay outline");
@@ -286,6 +295,7 @@ test("the estimate field refuses an out-of-range value before it reaches the ser
   const calls = fakeService([project(MATH, "Math 55", true)], []);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText(/no tasks in this project yet/i);
 
   await user.type(screen.getByLabelText("Title"), "Essay outline");
@@ -302,6 +312,7 @@ test("adding a project selects it", async () => {
   fakeService([project(MATH, "Math 55", true)], []);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByRole("button", { name: "Math 55", current: true });
 
   await user.type(screen.getByLabelText("New project"), "CS 61A");
@@ -314,6 +325,7 @@ test("renaming a project keeps its tasks", async () => {
   fakeService([project(MATH, "Math 55", true)], [task("00000000-0000-4000-8000-000000000001", "Write PS7")]);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText("Write PS7");
 
   await user.click(screen.getByRole("button", { name: /rename/i }));
@@ -342,6 +354,7 @@ test("a failed projects load reports the problem and can be retried", async () =
   });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
 
   // Without a project there is no tasks section, so an error reported only there
   // would leave the page blank and silent.
@@ -356,6 +369,7 @@ test("adding a project closes an open rename form instead of retargeting it", as
   const calls = fakeService([project(MATH, "Math 55", true)], []);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByRole("button", { name: "Math 55", current: true });
 
   await user.click(screen.getByRole("button", { name: /rename/i }));
@@ -396,6 +410,7 @@ test("a mutation resolving after a project switch does not show the old project'
 
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText("Write PS7");
 
   await user.click(screen.getByLabelText("Write PS7")); // PUT hangs
@@ -425,6 +440,7 @@ test("Try again refetches the tasks, not only the projects", async () => {
   });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(/cannot reach the bearplans service/i);
   await user.click(screen.getByRole("button", { name: "Try again" }));
@@ -441,6 +457,7 @@ test("shows the service's leaf work total without counting the parent", async ()
   const child = task("00000000-0000-4000-8000-000000000002", "Done", { parent_id: parent.id, completed: true });
   fakeService([project(MATH, "Math 55", true)], [parent, child, task("00000000-0000-4000-8000-000000000003", "Standalone")]);
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   expect(await screen.findByText("1 of 2 work items complete")).toBeInTheDocument();
 });
 
@@ -451,6 +468,7 @@ test("removal needs an explicit action and restores parent completion control", 
   const calls = fakeService([project(MATH, "Math 55", true)], [parent, child]);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByText("Done");
   await user.click(screen.getAllByRole("button", { name: /^Edit$/ })[1]);
   await user.click(screen.getByRole("button", { name: "Remove subtask" }));
@@ -475,6 +493,7 @@ test("a storage save error keeps the edit available for correction or retry", as
   });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await user.click(await screen.findByRole("button", { name: /^Edit$/ }));
   const field = screen.getAllByLabelText("Title").at(-1)!;
   await user.clear(field);
@@ -486,10 +505,12 @@ test("a storage save error keeps the edit available for correction or retry", as
 });
 
 function taskPlanner(title: string) {
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   return within(screen.getByRole("checkbox", { name: title }).closest(".task-row")!.querySelector(".task-main") as HTMLElement);
 }
 
 function board() {
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Week" }));
   return within(screen.getByRole("region", { name: "Weekly plan" }));
 }
 
@@ -497,13 +518,14 @@ test("the server defines Today and the board spans Monday through Sunday across 
   const calls = fakeService([project(MATH, "Math 55", true)], []);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Week" }));
   expect(await screen.findByText("Today is Oct 15, 2026 · America/Los_Angeles")).toBeInTheDocument();
   expect(board().getByRole("region", { name: "Monday, Oct 12, 2026" })).toBeInTheDocument();
   expect(board().getByRole("region", { name: "Sunday, Oct 18, 2026" })).toBeInTheDocument();
   await user.click(board().getByRole("button", { name: "Next week" }));
   expect(await screen.findByRole("region", { name: "Monday, Oct 19, 2026" })).toBeInTheDocument();
   await user.click(board().getByRole("button", { name: "Previous week" }));
-  await screen.findByRole("region", { name: "Monday, Oct 12, 2026" });
+  await board().findByRole("region", { name: "Monday, Oct 12, 2026" });
   await user.click(board().getByRole("button", { name: "Today" }));
   expect(calls.filter((call) => call.url === "/api/planning")).toHaveLength(2);
   expect(addDays("2026-12-28", 6)).toBe("2027-01-03");
@@ -517,6 +539,7 @@ test("assigning existing leaf work preserves its fields and replaces assignment 
   const calls = fakeService([project(MATH, "Math 55", true)], [existing], undefined, placements);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByLabelText("Problem set");
   await user.click(taskPlanner("Problem set").getByText("Plan task"));
   const date = taskPlanner("Problem set").getByLabelText("Planned date for “Problem set”");
@@ -544,6 +567,7 @@ test("a stale assignment form rejects an already occupied date and keeps both re
   fakeService([project(MATH, "Math 55", true)], [existing], undefined, placements);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByLabelText("Read");
   await user.click(taskPlanner("Read").getByText("Plan task"));
   const date = taskPlanner("Read").getByLabelText("Planned date for “Read”");
@@ -563,6 +587,7 @@ test("parents are context; only leaves get assignment controls", async () => {
   const child = task("00000000-0000-4000-8000-000000000002", "Problem 1", { parent_id: parent.id });
   fakeService([project(MATH, "Math 55", true)], [parent, child], undefined, [placement("p1", child.id, "2026-10-15")]);
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByLabelText("Homework");
   expect(taskPlanner("Homework").queryByText("Plan task")).not.toBeInTheDocument();
   expect(taskPlanner("Homework").getByText("Plan the subtasks below.")).toBeInTheDocument();
@@ -579,6 +604,7 @@ test("moving across weeks keeps one planned day, preserves the task and leaves o
   const calls = fakeService([project(MATH, "Math 55", true)], [existing, other], undefined, placements);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await board().findByLabelText("Read, planned Oct 15, 2026");
   const thursday = within(board().getByRole("region", { name: "Thursday, Oct 15, 2026" }));
   await user.click(thursday.getByText("Move or remove"));
@@ -608,6 +634,7 @@ test("a failed move preserves the existing plan and the attempted destination fo
   fakeService([project(MATH, "Math 55", true)], [existing], { url: "/api/placements", status: 503, error: { code: "storage_unavailable", message: "Check disk space, then try again. No records were changed." } }, placements);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await board().findByLabelText("Read, planned Oct 15, 2026");
   const thursday = within(board().getByRole("region", { name: "Thursday, Oct 15, 2026" }));
   await user.click(thursday.getByText("Move or remove"));
@@ -626,6 +653,7 @@ test("removing a placement keeps its task accessible and never calls task deleti
   const calls = fakeService([project(MATH, "Math 55", true)], [existing], undefined, placements);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await board().findByLabelText("Keep this task, planned Oct 15, 2026");
   const thursday = within(board().getByRole("region", { name: "Thursday, Oct 15, 2026" }));
   await user.click(thursday.getByText("Move or remove"));
@@ -641,9 +669,12 @@ test("task completion stays consistent between its project list and its single p
   fakeService([project(MATH, "Math 55", true)], [existing], undefined, [placement("p1", existing.id, "2026-10-15")]);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await user.click(await board().findByLabelText("Read, planned Oct 15, 2026"));
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await waitFor(() => expect(screen.getByRole("checkbox", { name: "Read" })).toBeChecked());
   expect(board().getByLabelText("Read, planned Oct 15, 2026")).toBeChecked();
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await user.click(screen.getByRole("checkbox", { name: "Read" }));
   await waitFor(() => expect(board().getByLabelText("Read, planned Oct 15, 2026")).not.toBeChecked());
 });
@@ -653,6 +684,7 @@ test("failed placement saves retain the selected date and explain how to retry",
   fakeService([project(MATH, "Math 55", true)], [existing], { url: "/api/placements", status: 503, error: { code: "storage_unavailable", message: "Check disk space, then try again." } });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByLabelText("Read");
   await user.click(taskPlanner("Read").getByText("Plan task"));
   const date = taskPlanner("Read").getByLabelText("Planned date for “Read”");
@@ -667,6 +699,7 @@ test("selected-day controls change the day rendered in the narrow-window layout"
   fakeService([project(MATH, "Math 55", true)], []);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Week" }));
   await screen.findByText("Today is Oct 15, 2026 · America/Los_Angeles");
   const selector = within(board().getByRole("group", { name: "Selected day" }));
   await user.click(selector.getByRole("button", { name: /FriOct 16/ }));
@@ -692,12 +725,15 @@ test("a successful save with a failed readback is reported as saved and refresh 
   });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await user.click(await board().findByLabelText("Read, planned Oct 15, 2026"));
   expect(await screen.findByRole("alert")).toHaveTextContent("Cannot reach");
   expect(screen.getByRole("status")).toHaveTextContent("Saved. Some views could not refresh.");
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   expect(screen.getByRole("checkbox", { name: "Read" })).toBeDisabled();
   await user.click(board().getByRole("button", { name: "Retry weekly plan" }));
   await waitFor(() => expect(board().getByLabelText("Read, planned Oct 15, 2026")).toBeChecked());
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   expect(screen.getByRole("checkbox", { name: "Read" })).toBeEnabled();
   expect(calls.filter((call) => call.url.endsWith("/completion"))).toHaveLength(1);
 });
@@ -715,6 +751,7 @@ test("retrying a failed Next navigation keeps its requested week instead of sile
   });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Week" }));
   await screen.findByRole("region", { name: "Monday, Oct 12, 2026" });
   await user.click(board().getByRole("button", { name: "Next week" }));
   await screen.findByRole("alert");
@@ -737,6 +774,7 @@ test("retrying a failed Today navigation asks the service for current Today agai
   });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Week" }));
   await screen.findByRole("region", { name: "Monday, Oct 12, 2026" });
   await user.click(board().getByRole("button", { name: "Next week" }));
   await screen.findByRole("region", { name: "Monday, Oct 19, 2026" });
@@ -767,12 +805,15 @@ test("a mutation during slow week navigation refreshes the requested week and ig
   });
   const user = userEvent.setup();
   render(<App />);
-  await screen.findByRole("region", { name: "Monday, Oct 12, 2026" });
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  await board().findByRole("region", { name: "Monday, Oct 12, 2026" });
   await user.click(board().getByRole("button", { name: "Next week" }));
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await user.click(screen.getByRole("checkbox", { name: "Read" }));
   expect(await board().findByRole("region", { name: "Monday, Oct 19, 2026" })).toBeInTheDocument();
   expect(nextRequests).toBe(2);
   release();
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await waitFor(() => expect(screen.getByRole("checkbox", { name: "Read" })).toBeChecked());
   expect(board().getByRole("region", { name: "Monday, Oct 19, 2026" })).toBeInTheDocument();
 });
@@ -785,7 +826,9 @@ test("existing multiple dates remain editable without Add controls and synchroni
   const calls = fakeService([project(MATH, "Math 55", true)], [existing], undefined, placements);
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await board().findByLabelText("Read, planned Oct 15, 2026");
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await screen.findByRole("checkbox", { name: "Read" });
   await user.click(taskPlanner("Read").getByText("Move or remove plan"));
   expect(screen.queryByText("Add another planned day")).not.toBeInTheDocument();

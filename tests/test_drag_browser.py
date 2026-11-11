@@ -137,11 +137,14 @@ def test_native_move_alt_move_cancel_controls_keyboard_and_narrow_days(browser, 
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.on("request", lambda request: placement_requests.append(request.method) if "/api/placements" in request.url and request.method != "GET" else None)
         page.goto(service.url)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         expect(handle(page, task["title"], monday)).to_be_visible()
         expect(day_column(page, monday).locator(".planned-context")).to_have_text("Inbox / Seminar paper")
         check_context_grip(page, monday)
         check_board_dates(page, placements=1)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         expect(page.locator(".planning-summary").filter(has_text=f"Planned: {shown(monday)}")).to_be_visible()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         expect(page.get_by_text("Option (Mac) / Alt (Windows)", exact=True)).to_have_count(0)
         expect(page.get_by_text("Add another planned day", exact=True)).to_have_count(0)
         expect(page.locator(".weekly-planner").get_by_text("Drag a card’s handle", exact=False)).to_have_count(0)
@@ -174,6 +177,7 @@ def test_native_move_alt_move_cancel_controls_keyboard_and_narrow_days(browser, 
         # Existing extra dates survive the interface simplification unchanged.
         _, other_placement = http_json("POST", service.url + "/api/placements", {"task_id": task["id"], "planned_date": thursday.isoformat()})
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         expect(handle(page, task["title"], thursday)).to_be_visible()
         both = plan(service)["placements"]
         assert len(both) == 2 and alt_moved[0] in both and other_placement in both
@@ -288,6 +292,7 @@ def test_native_move_alt_move_cancel_controls_keyboard_and_narrow_days(browser, 
         assert plan(service) == final
         assert placement_requests and set(placement_requests) == {"PATCH"}
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         page.get_by_role("group", name="Selected day").get_by_role("button", name=re.compile("Fri")).click()
         expect(page.locator(".week-board .planned-card:visible")).to_have_count(1)
         assert errors == []
@@ -310,6 +315,7 @@ def test_native_drag_failures_stale_conflicts_and_closed_source(browser, evidenc
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(service.url)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         expect(handle(page, task["title"], monday)).to_be_visible()
         check_board_dates(page, placements=1)
         before = saved_rows(service)

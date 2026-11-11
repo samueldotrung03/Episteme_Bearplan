@@ -134,6 +134,7 @@ test("leaf Start tracking opens Track with that task and keeps the duration acro
   service();
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   const start = await screen.findByRole("button", { name: "Start tracking" });
   expect(screen.getAllByRole("button", { name: "Start tracking" })).toHaveLength(1);
   await user.click(start);
@@ -165,6 +166,7 @@ test("completed Plan leaves disable new-session entry without extra explanation"
   const { calls } = service(empty(), { ...plan, tasks: [{ ...task, completed: true }] });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   const start = await screen.findByRole("button", { name: "Start tracking" });
   expect(start).toBeDisabled();
   expect(screen.queryByText("Reopen this task to start a new session. An existing session continues.")).not.toBeInTheDocument();
@@ -179,6 +181,7 @@ test("a weekly card opens Track by keyboard with the same task and existing dura
   await user.click(screen.getByRole("link", { name: "Track" }));
   fireEvent.change(screen.getByLabelText("Duration (minutes)"), { target: { value: "9" } });
   await user.click(screen.getByRole("link", { name: "Plan" }));
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Week" }));
   const friday = await screen.findByRole("region", { name: /Friday,/ });
   const start = within(friday).getByRole("button", { name: "Start tracking" });
   start.focus();
@@ -234,6 +237,7 @@ test.each(["running", "paused", "needs_review"] as const)("completing a task pre
   const user = userEvent.setup();
   render(<App />);
   const compact = await screen.findByRole("complementary", { name: "Active countdown" });
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await user.click(await screen.findByLabelText(task.title));
   await waitFor(() => expect(screen.getByRole("button", { name: "Start tracking" })).toBeDisabled());
   expect(holder.state).toEqual(active);
@@ -277,6 +281,7 @@ test("starting from the same task again reselects it after a different Track cho
   });
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   await user.click(await screen.findByRole("button", { name: "Start tracking" }));
   await user.selectOptions(screen.getByLabelText("Task to track"), second.id);
   await user.click(screen.getByRole("link", { name: "Plan" }));
@@ -308,6 +313,7 @@ test("the compact timer remains available while Plan operations are usable", asy
   service(running());
   const user = userEvent.setup();
   render(<App />);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
   const compact = await screen.findByRole("complementary", { name: "Active countdown" });
   expect(compact).toHaveTextContent(task.title);
   await user.type(await screen.findByLabelText("Title"), "Another task");

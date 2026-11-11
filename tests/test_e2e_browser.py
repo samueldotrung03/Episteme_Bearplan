@@ -65,6 +65,7 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
 
         page.goto(service.url)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         expect(page).to_have_title("BearPlans")
         # Migration 0002 always leaves a default project, so there is somewhere to start.
         expect(page.get_by_role("button", name="Inbox", exact=True)).to_be_visible()
@@ -134,6 +135,7 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         page = browser.new_page(viewport={"width": 1280, "height": 900})
         page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
         page.goto(service.url)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_role("button", name="Math 55 — Honors", exact=True).click()
 
         expect(page.get_by_text("Write PS7", exact=True)).to_be_visible()
@@ -150,6 +152,7 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
 
         page.set_viewport_size({"width": 375, "height": 720})
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_role("button", name="Math 55 — Honors", exact=True).click()
         expect(page.get_by_text("2 of 2 subtasks done")).to_be_visible()
         assert no_horizontal_overflow(page)
@@ -158,11 +161,13 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         page.emulate_media(color_scheme="dark")
         page.set_viewport_size({"width": 1280, "height": 900})
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_role("button", name="Math 55 — Honors", exact=True).click()
         expect(page.get_by_text("2 of 2 subtasks done")).to_be_visible()
         page.screenshot(path=evidence / "05-dark-wide.png", full_page=True)
         page.emulate_media(color_scheme="light")
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_role("button", name="Math 55 — Honors", exact=True).click()
 
         # Reopening and adding work must both make a completed container incomplete.
@@ -189,6 +194,7 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         assert service.stop() == 0
         service = Service(data_dir, port).start()
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_role("button", name="Math 55 — Honors", exact=True).click()
         expect(page.get_by_label("Write PS7", exact=True)).to_be_checked()
         expect(page.get_by_label("Write PS7", exact=True)).to_be_enabled()
@@ -210,6 +216,7 @@ def test_long_text_layout_and_keyboard_creation(browser, evidence: Path, tmp_pat
     try:
         page = browser.new_page(viewport={"width": 1280, "height": 900})
         page.goto(service.url)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_label("New project").fill("P" * 100)
         page.get_by_label("New project").press("Enter")
         expect(page.get_by_role("heading", name="P" * 100)).to_be_visible()
@@ -222,6 +229,7 @@ def test_long_text_layout_and_keyboard_creation(browser, evidence: Path, tmp_pat
         for width in (1280, 375):
             page.set_viewport_size({"width": width, "height": 900})
             page.reload()
+            page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
             page.get_by_role("button", name="P" * 100, exact=True).click()
             expect(page.get_by_label("T" * 200, exact=True)).to_be_visible()
             assert no_horizontal_overflow(page)

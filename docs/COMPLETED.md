@@ -1,5 +1,9 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Today, Week and Projects view switch
+
+- Added Today-first view controls, preserving mounted project drafts and week state and providing a Today retry for planning failures. Frontend suite, build and Chrome journey checks are recorded in the [review](reviews/2026-11-11-plan-views.md). The full project and week redesign remains open.
+
 ## 2026-11-11 — Compact shared navigation
 
 - Replaced the oversized app header with compact navigation and the Figma tree and Settings assets, retaining direct provider links and Settings return behavior. Verified the frontend build and 184 frontend tests, 17 Chrome navigation/Today/Stats checks, and four additional icon/Today checks on macOS. [Review](reviews/2026-11-11-compact-navigation.md).

@@ -15,6 +15,7 @@ type Props = {
   lastSessionId: string | null;
   onRun: (work: () => Promise<unknown>, done: string) => Promise<void>;
   onTrack: (taskId: string) => void;
+  onRetry: () => void;
 };
 
 function TodayRow({ task, context, onRun, onTrack, onSaved, locked }: { task: Task; context: string; onRun: Props["onRun"]; onTrack: Props["onTrack"]; onSaved: (id: string, complete: boolean) => void; locked: boolean }) {
@@ -35,7 +36,7 @@ function TodayRow({ task, context, onRun, onTrack, onSaved, locked }: { task: Ta
 }
 
 /** A projection of existing active placements, never a copy of task state. */
-export function Today({ plan, projects, loading, error, onRun, onTrack, locked, visible, lastSessionId }: Props) {
+export function Today({ plan, projects, loading, error, onRun, onTrack, locked, visible, lastSessionId, onRetry }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [pendingFocus, setPendingFocus] = useState<{ id: string; complete: boolean } | null>(null);
   const disclosureId = useId();
@@ -61,7 +62,7 @@ export function Today({ plan, projects, loading, error, onRun, onTrack, locked, 
     <div className="today-heading"><h2 id="today-heading">Today</h2>{plan ? <time dateTime={plan.today}>{dateLabel.format(new Date(`${plan.today}T00:00:00Z`))}</time> : null}</div>
     <DailyStreak visible={visible} lastSessionId={lastSessionId} compact />
     {loading && !plan ? <p role="status">Loading today's tasks…</p> : null}
-    {error ? <p className="error">Today's tasks may be out of date. Use Retry weekly plan below.</p> : null}
+    {error ? <p className="error">Today's tasks may be out of date. <button type="button" className="link" onClick={onRetry}>Retry</button></p> : null}
     {plan ? <>
       <p className="today-count">{incomplete.length} unfinished · {completed.length} complete</p>
       {incomplete.length ? <ul className="today-tasks">{incomplete.map(row)}</ul> : <p className="today-empty">No unfinished tasks planned for today.</p>}

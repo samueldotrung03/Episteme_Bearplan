@@ -35,9 +35,11 @@ def test_weekly_entry_completed_choices_stale_start_and_active_completion(browse
         page.screenshot(path=evidence / "eligibility-01-choices-wide.png", full_page=True)
 
         page.get_by_role("link", name="Plan", exact=True).click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         completed_row = page.locator(".tasks > .task").filter(has=page.get_by_label(done["title"], exact=True))
         expect(completed_row.get_by_role("button", name="Start tracking", exact=True)).to_be_disabled()
         expect(completed_row).not_to_contain_text("Reopen this task")
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         card = page.locator(".week-board .planned-card").filter(has_text=planned["title"])
         completed_card = page.locator(".week-board .planned-card").filter(has_text=done["title"])
         expect(completed_card.get_by_role("button", name="Start tracking", exact=True)).to_be_disabled()
@@ -58,6 +60,7 @@ def test_weekly_entry_completed_choices_stale_start_and_active_completion(browse
 
         # Local completion saves the tracked child's session with confirmed time.
         page.get_by_role("link", name="Plan", exact=True).click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         card.get_by_role("checkbox").click()
         expect(card.get_by_role("checkbox")).to_be_checked()
         expect(page.get_by_label(parent["title"], exact=True)).to_be_checked()
@@ -101,6 +104,7 @@ def test_weekly_entry_completed_choices_stale_start_and_active_completion(browse
         expect(page.get_by_text("No incomplete tasks to track", exact=False)).to_be_visible()
         expect(selector.locator("option")).to_have_count(1)
         page.get_by_role("link", name="Plan", exact=True).click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         expect(card.get_by_role("button", name="Start tracking", exact=True)).to_be_disabled()
         assert no_horizontal_overflow(page)
         page.screenshot(path=evidence / "eligibility-05-board-narrow.png", full_page=True)

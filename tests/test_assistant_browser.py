@@ -54,6 +54,7 @@ def test_assistant_sources_keyboard_narrow_failure_and_cancel(browser, evidence,
             try: route.abort()
             except playwright_sync.Error: pass
         page.get_by_role("link", name="Plan", exact=True).click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         expect(page.get_by_role("heading", name="Projects", exact=True)).to_be_visible()
         _, plan = http_json("GET", service.url + "/api/planning")
         assert plan["tasks"] == []  # Provider display fixtures did not create tasks.

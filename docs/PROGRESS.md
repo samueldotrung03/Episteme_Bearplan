@@ -291,7 +291,7 @@ and hardware gates remain separate.
 The first two app-side redesign slices are implemented: service-Today tasks show
 project/parent context, completion/reopen, compact completed rows and Start; a
 prominent streak shows only finalized saved time.
-The current Week and Projects controls remain below it while the rest is built.
+Today, Week and Projects now have separate view controls; their components stay mounted to preserve in-progress work.
 Frontend: 182 passed plus typecheck/build; final Chrome Today checks: 3 passed;
 earlier affected browser regression: 17 passed. See the
 [task-list review](reviews/2026-11-11-today-task-list.md). The streak slice passed
@@ -302,8 +302,9 @@ The compact shared header is implemented with the Figma brand and Settings icons
 existing bCourses and Google links remain reachable. Chrome navigation and context
 checks passed. See the [header review](reviews/2026-11-11-compact-navigation.md).
 
-Next: implement the reviewed Today/Week/Projects navigation, then the
-remaining task, planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
+The view switch is implemented and verified; see the [plan views review](reviews/2026-11-11-plan-views.md). The existing project editor and weekly board still need their visual redesign.
+
+Next: refine the project/task surfaces and Week presentation, followed by planning, history and secondary-screen units. Today’s Earlier unfinished, cross-week Done and ordering require their
 separate domain/persistence work. Full redesign and user acceptance remain open.
 
 ## Next up

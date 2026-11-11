@@ -33,6 +33,7 @@ def test_countdown_navigation_tabs_pause_retry_and_history(browser, evidence, tm
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(service.url)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         row = page.locator(".subtasks > .task").filter(has=page.get_by_label(child["title"], exact=True))
         row.get_by_role("button", name="Start tracking", exact=True).click()
         expect(page.get_by_label("Task to track", exact=True)).to_have_value(child["id"])

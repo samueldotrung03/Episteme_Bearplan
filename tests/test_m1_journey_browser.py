@@ -20,6 +20,7 @@ def test_m1_create_plan_move_close_revisit_and_carry_same_work(browser, evidence
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(service.url)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_label("New project").fill("M1 review seminar")
         page.get_by_role("button", name="Add project", exact=True).click()
         expect(page.get_by_role("heading", name="M1 review seminar", exact=True)).to_be_visible()
@@ -60,6 +61,7 @@ def test_m1_create_plan_move_close_revisit_and_carry_same_work(browser, evidence
         _, assigned = http_json("GET", service.url + "/api/planning")
         assert assigned["tasks"] == created["tasks"]
         original_placement = next(item for item in assigned["placements"] if item["task_id"] == draft["id"])
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         draft_card = page.locator(".week-board .planned-card").filter(has_text="Draft the argument")
         draft_card.get_by_text("Move or remove", exact=True).click()
         draft_card.locator(".planning-form").filter(has=page.get_by_role("button", name="Move placement", exact=True)).locator('input[type="date"]').fill(friday.isoformat())
@@ -73,6 +75,7 @@ def test_m1_create_plan_move_close_revisit_and_carry_same_work(browser, evidence
         assert moved_placement["created_at"] == original_placement["created_at"]
         assert moved["tasks"] == created["tasks"]
 
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_label("Check the lemma", exact=True).click()
         expect(page.get_by_label("Check the lemma", exact=True)).to_be_checked()
         expect(page.get_by_label("Prove the theorem", exact=True)).not_to_be_checked()
@@ -80,6 +83,7 @@ def test_m1_create_plan_move_close_revisit_and_carry_same_work(browser, evidence
         expect(page.get_by_text("1 of 2 work items complete", exact=True)).to_be_visible()
         _, before_close = http_json("GET", service.url + "/api/planning")
         page.screenshot(path=evidence / "m1-joined-01-planned.png", full_page=True)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         page.get_by_role("button", name="End Week", exact=True).focus()
         page.keyboard.press("Enter")
         expect(page.get_by_role("region", name="End week preview")).to_contain_text("1 of 2 work items complete (50%)")
@@ -93,6 +97,7 @@ def test_m1_create_plan_move_close_revisit_and_carry_same_work(browser, evidence
         assert next(item for item in frozen["placements"] if item["task_id"] == draft["id"]) == moved_placement
 
         # A current edit must not rewrite the saved closed view or its deadline.
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         row = page.locator(".subtasks > .task").filter(has=page.get_by_label("Draft the argument", exact=True))
         row.get_by_role("button", name="Edit", exact=True).click()
         row.get_by_label("Title", exact=True).fill("Revise the argument")
@@ -102,7 +107,9 @@ def test_m1_create_plan_move_close_revisit_and_carry_same_work(browser, evidence
         assert service.stop() == 0
         service = Service(data_dir, port).start()
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_role("button", name="M1 review seminar", exact=True).click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week").click()
         page.get_by_label("Closed-week history").select_option(monday.isoformat())
         board = page.locator(".week-board")
         expect(board.get_by_text("Draft the argument", exact=True)).to_be_visible()
@@ -140,6 +147,7 @@ def test_m1_create_plan_move_close_revisit_and_carry_same_work(browser, evidence
         page.screenshot(path=evidence / "m1-joined-03-carried-narrow.png", full_page=True)
 
         # Current completion follows the original children, with frozen history untouched.
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
         page.get_by_label("Revise the argument", exact=True).click()
         expect(page.get_by_label("Prove the theorem", exact=True)).to_be_checked()
         expect(page.get_by_text("2 of 2 work items complete", exact=True)).to_be_visible()

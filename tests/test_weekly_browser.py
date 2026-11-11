@@ -37,8 +37,10 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(service.url)
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         expect(page.get_by_role("heading", name="Weekly plan")).to_be_visible()
         expect(page.get_by_text("America/Los_Angeles", exact=False)).to_be_visible()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         expect(page.get_by_label("Homework", exact=True)).to_be_disabled()
         parent_row = page.locator(".tasks > .task").filter(has=page.get_by_label("Homework", exact=True))
         expect(parent_row.get_by_text("Plan the subtasks below.", exact=True)).to_be_visible()
@@ -60,12 +62,14 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         _, state = http_json("GET", service.url + "/api/planning")
         assert len(state["tasks"]) == len(initial["tasks"]) == 4
         assert next(task for task in state["tasks"] if task["id"] == child["id"]) == child
-        expect(page.get_by_text("Due Nov 20, 2026").first).to_be_visible()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
+        expect(page.locator(".week-board").get_by_text("Due Nov 20, 2026")).to_be_visible()
         expect(page.locator(".week-board").get_by_text("Inbox / Homework")).to_have_count(2)
         assert no_horizontal_overflow(page)
         page.screenshot(path=evidence / "single-day-01-wide.png", full_page=True)
 
         # A stale tab cannot add another placement for the same task/date.
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         backlog_row = page.locator(".tasks > .task").filter(has=page.get_by_label("Unscheduled reading", exact=True))
         backlog_row.get_by_text("Plan task", exact=True).click()
         backlog_assign = backlog_row.locator(".planning-form").first
@@ -82,18 +86,23 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         page.reload()
 
         # Each day is separate child work; the parent waits for both children.
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         boxes = page.locator(".week-board").get_by_role("checkbox")
         boxes.first.click()
         expect(boxes.first).to_be_checked()
         expect(boxes.last).not_to_be_checked()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         expect(page.get_by_label("Homework", exact=True)).not_to_be_checked()
         expect(page.get_by_label("Draft proof", exact=True)).to_be_checked()
         expect(page.get_by_text("1 of 2 subtasks done", exact=True)).to_be_visible()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         boxes.last.click()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         expect(page.get_by_label("Homework", exact=True)).to_be_checked()
         expect(page.get_by_text("2 of 2 subtasks done", exact=True)).to_be_visible()
 
         # Move only one child's placement across weeks; the other stays unchanged.
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         monday_card = page.locator(".week-board .planned-card").filter(has=page.get_by_role("checkbox", name=f"Draft proof, planned {display(monday)}", exact=True))
         monday_card.get_by_text("Move or remove", exact=True).click()
         monday_card.get_by_label(f'Move “Draft proof” from {display(monday)} to').fill(next_monday.isoformat())
@@ -134,6 +143,7 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         assert after_restart == after_remove
         page.set_viewport_size({"width": 1024, "height": 900})
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         day_selector = page.get_by_role("group", name="Selected day")
         day_selector.get_by_role("button", name=re.compile("Tue")).click()
         expect(page.locator(".week-board .planned-card:visible")).to_have_count(1)
@@ -141,11 +151,12 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         assert no_horizontal_overflow(page)
         page.screenshot(path=evidence / "single-day-03-laptop.png", full_page=True)
         page.get_by_role("button", name="Previous week", exact=True).click()
-        page.get_by_role("button", name="Today", exact=True).click()
+        page.get_by_role("region", name="Weekly plan").get_by_role("button", name="Today", exact=True).click()
         expect(page.locator(".planner-heading")).to_contain_text(display(monday))
         expect(page.get_by_role("group", name="Selected day").get_by_role("button", pressed=True)).to_contain_text("Today")
 
         # A stopped service must retain the intended date; retry succeeds after restart.
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         child_row = page.locator(".subtasks > .task").filter(has=page.get_by_label("Draft proof", exact=True))
         child_row.get_by_text("Plan task", exact=True).click()
         assign = child_row.locator(".planning-form").first
@@ -170,6 +181,7 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         expect(page.get_by_label("Unscheduled reading", exact=True)).to_be_visible()
         page.set_viewport_size({"width": 375, "height": 850})
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         page.get_by_role("group", name="Selected day").get_by_role("button", name=re.compile("Tue")).click()
         assert no_horizontal_overflow(page)
         expect(page.locator(".week-board .planned-card:visible")).to_have_count(1)
@@ -177,6 +189,7 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         page.set_viewport_size({"width": 1600, "height": 1000})
         page.emulate_media(color_scheme="dark")
         page.reload()
+        page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         expect(page.locator(".week-board .planned-card:visible")).to_have_count(2)
         assert no_horizontal_overflow(page)
         page.screenshot(path=evidence / "single-day-06-dark-wide.png", full_page=True)
