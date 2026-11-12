@@ -240,8 +240,8 @@ def test_long_text_layout_and_keyboard_creation(browser, evidence: Path, tmp_pat
         page.get_by_label("Notes").fill("N" * 2000)
         page.get_by_label("Title").press("Enter")
         expect(page.get_by_label("T" * 200, exact=True)).to_be_visible()
-        expect(page.get_by_label("Title")).to_have_value("")
-        expect(page.get_by_label("Title")).to_be_focused()
+        expect(page.get_by_label("Title")).to_have_count(0)
+        expect(page.get_by_role("button", name="+ Add task", exact=True)).to_be_focused()
         for width in (1280, 375):
             page.set_viewport_size({"width": width, "height": 900})
             page.reload()

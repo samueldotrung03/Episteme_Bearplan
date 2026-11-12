@@ -18,7 +18,7 @@ def test_add_task_retry_cancel_and_focus(browser, evidence, tmp_path, width, the
                 route.fulfill(status=503, json={"error": {"code": "unavailable", "message": "Could not save task. Try again."}})
                 return
         route.continue_()
-    page.route("**/api/tasks", handle)
+    page.route("**/api/task-captures", handle)
     try:
         page.goto(service.url)
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects").click()
@@ -36,8 +36,10 @@ def test_add_task_retry_cancel_and_focus(browser, evidence, tmp_path, width, the
         expect(page.get_by_label("Notes", exact=True)).to_have_value("Keep this note")
         assert no_horizontal_overflow(page)
         page.screenshot(path=str(evidence / f"add-task-error-{width}-{theme}.png"))
-        page.get_by_role("button", name="Add task", exact=True).click()
+        page.get_by_role("button", name="Check save status", exact=True).click()
         expect(page.get_by_label("Read the source", exact=True)).to_be_visible()
+        expect(add).to_be_focused()
+        add.click()
         expect(title).to_have_value("")
         page.get_by_role("button", name="Cancel", exact=True).click()
         expect(add).to_be_focused()

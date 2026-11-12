@@ -105,14 +105,16 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
     } catch (caught) { setRejected(false); setError(`${message(caught)} Your request is kept; check its status again.`); }
     finally { setBusy(false); }
   }
-  return <form ref={form} className="task-form" onSubmit={submit}>
+  return <form ref={form} className="task-form capture-form" onSubmit={submit}>
+    <h3>New task</h3>
     <div className="field"><label htmlFor={`capture-title-${uid}`}>Title</label><input ref={titleInput} autoFocus id={`capture-title-${uid}`} value={title} disabled={locked} onChange={e => setTitle(e.target.value)} required aria-invalid={titleTooLong || undefined} aria-describedby={titleTooLong ? `capture-title-error-${uid}` : undefined} /></div>
     <div className="field-row">
       <div className="field"><label htmlFor={`capture-deadline-${uid}`}>Deadline</label><input id={`capture-deadline-${uid}`} type="date" value={deadline} disabled={locked} onChange={e => setDeadline(e.target.value)} /></div>
       <div className="field"><label htmlFor={`capture-estimate-${uid}`}>Estimate (minutes)</label><input id={`capture-estimate-${uid}`} type="number" min={ESTIMATE_MIN_MINUTES} max={ESTIMATE_MAX_MINUTES} value={estimate} disabled={locked} onChange={e => setEstimate(e.target.value)} /></div>
     </div>
-    <div className="field"><label htmlFor={`capture-day-${uid}`}>Planned day</label><input id={`capture-day-${uid}`} type="date" value={day} disabled={locked} onChange={e => setDay(e.target.value)} /><span className="muted">Deadline and planned day are separate.</span></div>
+    <div className="field"><label htmlFor={`capture-day-${uid}`}>Planned day</label><input id={`capture-day-${uid}`} type="date" value={day} disabled={locked} onChange={e => setDay(e.target.value)} /></div>
     <div className="field"><label htmlFor={`capture-notes-${uid}`}>Notes</label><textarea id={`capture-notes-${uid}`} rows={2} value={notes} disabled={locked} onChange={e => setNotes(e.target.value)} /></div>
+    <p className="muted task-form-hint">Deadline and planned day are separate.</p>
     {titleTooLong ? <p id={`capture-title-error-${uid}`} className="error">Keep the title to {TITLE_MAX_LENGTH} characters or fewer.</p> : null}
     {resolvedElsewhere ? <p className="error" role="alert">This pending save was resolved elsewhere. Close this form and check your task list before creating it again.</p> : error ? <p className="error" role="alert">{error}</p> : null}
     <div className="form-actions">
