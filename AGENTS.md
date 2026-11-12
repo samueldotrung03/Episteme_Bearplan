@@ -291,6 +291,14 @@ npm --prefix frontend run typecheck
 npm --prefix frontend run build
 ```
 
+**Checks.** Before any handoff that changed code, run `python3 tools/check.py`
+(Windows: `py tools\check.py`). It runs frontend typecheck, frontend tests, frontend
+build and backend tests in that order, stops at the first failure, prints one line
+per step and exits non-zero on failure. `--fast` skips the real-browser (`e2e`)
+tests for quick iteration; the full run is required before a handoff. It uses a
+disposable data folder and a non-existent secrets file, so it never touches real
+data. Record its summary lines in the handoff.
+
 On Windows use `py launch.py` and `.venv\Scripts\python.exe`. Launcher options:
 `--no-browser`, `--port N` (or `BEARPLANS_PORT`). Set `BEARPLANS_DATA_DIR` to a
 disposable directory outside the repository when testing startup/persistence.

@@ -480,6 +480,8 @@ python3 launch.py --no-browser         # first run creates .venv
 cd frontend && npm test && npm run typecheck
 ```
 
+**Checks.** `python3 tools/check.py` runs every check in one go — frontend typecheck, tests and build, then backend tests — and stops at the first failure with a non-zero exit. Add `--fast` to skip the real-browser tests (about 100 seconds instead of several minutes). It uses a temporary data folder, so it never touches your planner data or saved connections. Run the full command before handing off any code change.
+
 Interface work with hot reload: run the service (`python3 launch.py --no-browser`) and, in `frontend/`, `npm run dev`, then open <http://127.0.0.1:5173/>. Vite proxies `/api` to the service.
 
 The browser test (`tests/test_e2e_browser.py`) drives an installed Chrome or Edge through Playwright and skips if neither is available or the interface is not built. Set `BEARPLANS_EVIDENCE_DIR` to keep its screenshots.

@@ -1,5 +1,31 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — G-13 task-entry presentation matrix
+
+The current inline form passed bounded keyboard, width and theme checks in
+Chrome with disposable data; error recovery had separate focused browser checks.
+The planned Figma modal requires fresh verification. [Review](reviews/2026-11-11-task-capture-g13-matrix.md).
+
+## 2026-11-11 — G-01 real browser storage failure
+
+An isolated Chrome profile exhausted its actual storage quota; task entry kept
+the draft editable, showed an actionable error and sent no capture request.
+This passes the storage-failure alternative; actual Web Locks failure remains
+unverified. [Review](reviews/2026-11-11-task-capture-real-quota.md).
+
+## 2026-11-11 — One command for every check (refinement RF-06)
+
+Added `tools/check.py` (standard library only): frontend typecheck, tests and
+build, then backend tests, stopping at the first failure with a non-zero exit.
+`--fast` skips the real-browser (`e2e`) tests. It uses a temporary data folder and
+a non-existent secrets file. Documented in `AGENTS.md` and `README.md`; evidence
+in the [review](reviews/2026-11-11-rf06-check-command.md). Checks on macOS:
+`--fast` exit 0 (99.8 s); a deliberate failing test gave exit 1; the full run first
+failed on 4 known add-task browser tests, then passed (exit 0, 296.6 s, backend 1142
+passed, 1 skipped; frontend 213 passed) with Codex's then-uncommitted fix in the tree.
+The user declined the optional pre-push hook and CI workflow. Linting is a follow-up.
+Committed by Claude at the user's request.
+
 ## 2026-11-11 — Repository cleanup (refinement RF-05)
 
 Inventoried all 47 `(1)` duplicate paths, about 152 MB

@@ -91,10 +91,36 @@ G-02 passed its bounded keyboard and light/dark matrix at 640, 800 and 1440 px;
 see the [matrix review](reviews/2026-11-11-task-capture-g02-matrix.md) for the
 tested path and remaining accessibility limitations.
 
-**Next concrete step:** Complete real browser verification of storage/lock failures
-and user acceptance using the
+**Next concrete step:** Continue the Figma task-entry dialog and complete its
+presentation matrix and user acceptance using the
 [UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md). The task-entry integration
 remains in progress.
+
+On November 11, a joint walkthrough was started with a disposable schema-24
+instance on port 18991, using `/private/tmp/bearplans-shared-check-20261111`.
+The launcher rebuilt the interface successfully. Browser-control access was
+unavailable in this session; the user was asked to try the task-entry acceptance
+scenario directly. No acceptance has been recorded. G-01 subsequently passed
+with a real Chrome storage-quota failure; see the
+[quota review](reviews/2026-11-11-task-capture-real-quota.md).
+Continue with the other user checks before the seven-day trial, as requested;
+the old trial candidate and its checklist remain superseded by RF-04.
+
+The user subsequently requested implementation of the remaining Figma UX in the
+current project. The active task-entry slice now has an initial presentation
+adjustment toward the Figma New task screen (heading, field spacing and surface).
+It is still an inline form, not the Figma dialog. Its existing save/recovery
+behavior remains in place. The new appearance passed the bounded G-13 matrix
+in browser automation on the inline form. Continue the
+active slice before treating it as accepted, then scope the remaining redesign
+under the open-gate rule. The user requested the seven-day trial last.
+The [alignment review](reviews/2026-11-11-task-entry-figma-alignment.md) records
+partial 640 px light and 1440 px dark error-state inspection, passing focused
+browser checks after updating stale tests, and the remaining verification.
+The final `python3 tools/check.py` run passed typecheck, 213 frontend tests,
+build and 1142 backend/browser tests (1 skipped), using disposable data on macOS.
+The [G-13 matrix](reviews/2026-11-11-task-capture-g13-matrix.md) passed on the
+current inline form; a future modal needs fresh verification.
 
 ## Open follow-ups and gates
 
@@ -138,7 +164,10 @@ and the AGENTS.md limit. RF-03 is done: all ten decisions answered in
 [DECISIONS_FOR_USER.md](plans/refinement/DECISIONS_FOR_USER.md). RF-05 (repository
 cleanup): the [duplicate inventory](reviews/2026-11-11-duplicate-inventory.md)
 found all 47 `(1)` paths redundant; they were moved out and the deletion was
-committed and pushed (`6e5751c`), so RF-05 is done. Next: RF-06 (one command for every check).
+committed and pushed (`6e5751c`), so RF-05 is done. RF-06: `tools/check.py` is
+written and documented ([review](reviews/2026-11-11-rf06-check-command.md)); both
+`--fast` and the full run pass, so RF-06 is done (user declined the hook and CI).
+Next: RF-07 (documentation map).
 RF-04 (new core-trial candidate) waits for the task-entry slice to close (target Nov 14).
 
 ## Handoff notes

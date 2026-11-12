@@ -19,9 +19,7 @@ no new build while more than three user-owned gates block the trial or the alpha
 
 | ID | What must be checked | Owner | What to do, roughly how long | Blocks | Evidence | Opened |
 | --- | --- | --- | --- | --- | --- | --- |
-| G-01 | Task entry keeps the typed task safe when browser storage or the cross-window lock really fails (so far only simulated) | Agent (UX slice) | Force a real storage/lock failure in Chrome with disposable data and record the result; about 1 hour | Closing the task-entry slice, so the new trial candidate (RF-04) | [Storage review](reviews/2026-11-11-task-capture-storage-feedback.md), [storage access review](reviews/2026-11-11-task-capture-storage-access.md) (in progress, uncommitted) | Nov 11 |
-| G-03 | You accept the new task-entry form | User | Follow the [UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md) with disposable data: add a task with and without a planned day, reload, and say "accept" or what is wrong; about 15 minutes | Same as G-01 | Asked for in [PROGRESS](PROGRESS.md) "Next concrete step" | Nov 11 |
-| G-13 | Verify the changed task-entry presentation at compact and wide sizes in light and dark themes, including keyboard and error recovery | Agent (UX slice) | Open the current build with disposable data, inspect the form and its controls at 640, 800 and 1440 px in both themes, and check keyboard and failure recovery; about 1 hour | Closing the task-entry slice and the new trial candidate | [Progress](PROGRESS.md#active-work-task-entry-in-the-ux-redesign); the earlier [matrix](reviews/2026-11-11-task-capture-g02-matrix.md) predates the presentation change | Nov 11 |
+| G-03 | You accept the new task-entry form | User | Follow the [UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md) with disposable data: add a task with and without a planned day, reload, and say "accept" or what is wrong; about 15 minutes | Closing the task-entry slice and the new trial candidate (RF-04) | Asked for in [PROGRESS](PROGRESS.md) "Next concrete step" | Nov 11 |
 
 ## Gates that block the alpha
 

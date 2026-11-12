@@ -13,7 +13,7 @@ Read this first in every session; update it last. Ticket details are in
 | RF-03 | Decision sheet for the user | Done | — | — (answered 2026-11-11) |
 | RF-04 | New core-trial candidate and trial start | Blocked | UX task-entry slice closed | Trial scope; tag; Day 1 |
 | RF-05 | Repository cleanup | Done | — | — (moved and pushed 2026-11-11, `6e5751c`) |
-| RF-06 | One command for every check | Ready | — | Hook and CI, yes or no |
+| RF-06 | One command for every check | Done | — | — (hook: no; CI: no, 2026-11-11) |
 | RF-07 | Documentation map | Ready | RF-02 (links to gate register) | — |
 | RF-08 | Closing re-evaluation | Blocked | RF-01 to RF-07 | — |
 
@@ -32,6 +32,34 @@ Copy this template for each session. Keep an entry under 20 lines.
 - Watch out: <anything surprising in the tree; other agents' uncommitted work>
 - Commit: <not committed; proposed message given to user | committed by user as <hash>>
 ```
+
+### 2026-11-11 — Claude — RF-06 — Done
+- Closed: user declined hook and CI (step 4). Full rerun → exit 0, 296.6 s, backend
+  1142 passed, 1 skipped, frontend 213 passed. That run used Codex's then-uncommitted
+  add-task fix; Codex later committed it as `d82af99` (its diff may differ slightly from
+  the tested tree; Codex records its own passing `tools/check.py` run in PROGRESS).
+- Next step: RF-07 (documentation map), step 1 per TICKETS.md. User to make the GitHub repo private.
+- Commit: committed by Claude at the user's request (RF-06 files only; see `git log`).
+
+### 2026-11-11 — Claude — RF-06 — Waiting on user
+- Did: steps 1–3 and 5. Wrote `tools/check.py` (standard library only; disposable data
+  folder and non-existent secrets file, because an empty value falls back to the data
+  folder). Documented it in AGENTS.md and README. Linting noted as a follow-up in the review.
+- Files: `tools/check.py` (new); `docs/reviews/2026-11-11-rf06-check-command.md` (new);
+  `AGENTS.md`, `README.md` (Checks paragraphs); `docs/PROGRESS.md` (pointer only); this file.
+- Checks: `--fast` → exit 0, 99.8 s; full → exit 1, 329 s, 4 failed / 1138 passed (the
+  same add-task browser tests as RF-05); deliberate canary test → exit 1.
+- Not done: the full run must pass (UX slice owns the 4 tests); step 4 extras.
+- Waiting on user: nothing for RF-06. User said no to the pre-push hook and no to
+  GitHub Actions ("we already test in other part"), 2026-11-11. User will make the
+  GitHub repository private (they do it; not verified yet). Secret scan of all 125 commits (file names
+  and key patterns): no credentials found; commit author emails are public.
+- Next step: on the user's answers, add the hook command and/or workflow; rerun the full check
+  after the UX fix; then close RF-06 (board, COMPLETED).
+- Watch out: fresh clone at 21:17 (no `.venv` or `node_modules`; created both). Codex is
+  active in this clone (uncommitted PROGRESS walkthrough paragraph, GATES.md,
+  `frontend/src/TaskCaptureForm.tsx`, `styles.css`) and has run `tools/check.py` itself.
+- Commit: not committed; proposed message given to user.
 
 ### 2026-11-11 — Claude — RF-05 — Done
 - Did: confirmed the user's commit `6e5751c` (4,457 files: 4,453 `(1)` deletions
