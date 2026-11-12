@@ -1,5 +1,13 @@
 # BearPlans — completed work log
 
+## 2026-11-11 — Documentation map (refinement RF-07)
+
+New [docs/README.md](README.md): which document answers which question, which
+folder and entry document belong to each area and which checks cover it, and which
+documents are living, append-only or frozen. One link each from `AGENTS.md` and
+`README.md`. Checks: 34 links, 0 broken; every top-level document and plan folder
+listed. Documentation only, so app tests were not rerun. Not yet committed.
+
 ## 2026-11-11 — G-13 task-entry presentation matrix
 
 The current inline form passed bounded keyboard, width and theme checks in
@@ -24,7 +32,7 @@ in the [review](reviews/2026-11-11-rf06-check-command.md). Checks on macOS:
 failed on 4 known add-task browser tests, then passed (exit 0, 296.6 s, backend 1142
 passed, 1 skipped; frontend 213 passed) with Codex's then-uncommitted fix in the tree.
 The user declined the optional pre-push hook and CI workflow. Linting is a follow-up.
-Staged by Claude; the user commits.
+Committed and pushed by the user in `577cd52` (with Codex's task-capture records) and `b64751c`.
 
 ## 2026-11-11 — Repository cleanup (refinement RF-05)
 

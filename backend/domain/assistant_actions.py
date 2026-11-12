@@ -31,7 +31,7 @@ from backend.domain.timer import TimerService
 from backend.storage.db import Database, utc_now
 
 TASK_KINDS = ("create_task", "update_task", "assign_task_date", "complete_task")
-TIMER_KINDS = ("start_timer", "pause_timer", "finish_timer")
+TIMER_KINDS = ("start_timer", "pause_timer", "resume_timer", "finish_timer")
 WEEK_KINDS = ("carry_over_week",)
 MAX_CARRY = 50
 EDITABLE = ("title", "notes", "deadline", "estimate_minutes")
@@ -95,6 +95,7 @@ ACTION_MODELS: dict[str, tuple[type[Arguments], str]] = {
     "complete_task": (CompleteTaskArguments, "Propose marking one leaf task by exact ID complete (or complete=false to reopen). Parents complete through subtasks. Not applied until the user presses Apply."),
     "start_timer": (StartTimerArguments, "Propose starting a countdown of 1–180 minutes on one incomplete leaf task by exact ID. Not applied until the user presses Apply."),
     "pause_timer": (Arguments, "Propose pausing the running countdown. Not applied until the user presses Apply."),
+    "resume_timer": (Arguments, "Propose resuming the paused countdown. Not applied until the user presses Apply."),
     "finish_timer": (Arguments, "Propose finishing and saving the current running or paused countdown. Not applied until the user presses Apply."),
     "carry_over_week": (CarryOverArguments, "Propose carrying a closed week's unfinished work to the same weekday next week. Not applied until the user presses Apply."),
 }
@@ -112,7 +113,7 @@ class Proposal(BaseModel):
     """What the browser sends back to apply. Summary/preview are display-only and excluded."""
     model_config = ConfigDict(extra="ignore", strict=True)
     kind: Literal["create_task", "update_task", "assign_task_date", "complete_task",
-                  "start_timer", "pause_timer", "finish_timer", "carry_over_week"]
+                  "start_timer", "pause_timer", "resume_timer", "finish_timer", "carry_over_week"]
     arguments: dict[str, Any]
     expected: Expected
 
@@ -196,6 +197,8 @@ def _summary(kind: str, args: dict[str, Any], task: dict[str, Any] | None) -> st
         return summary
     if kind == "start_timer":
         return f"Start a {args['duration_minutes']}-minute countdown for {title}"
+    if kind == "resume_timer":
+        return f"Resume the paused countdown for {title}"
     return f"{'Pause' if kind == 'pause_timer' else 'Finish and save'} the current countdown for {title}"
 
 
@@ -363,9 +366,11 @@ def propose_action(db: Database, timer: TimerService | None, kind: str, raw: obj
     if active is None:
         raise ActionConflict("session", "No countdown is running or paused. Nothing was changed.")
     if active.state == "needs_review":
-        raise ActionConflict("session", "This countdown needs review in Track before it can be paused or finished.")
+        raise ActionConflict("session", "This countdown needs review in Track before it can be paused, resumed or finished.")
     if kind == "pause_timer" and active.state != "running":
         raise ActionConflict("session", "The countdown is already paused.")
+    if kind == "resume_timer" and active.state != "paused":
+        raise ActionConflict("session", "The countdown is already running. Nothing was changed.")
     session = active.model_dump(mode="json")
     return {"kind": kind, "arguments": args, "expected": {"tasks": {}, "session_id": active.id,
             "session_revision": session["revision"]},
@@ -445,7 +450,7 @@ def _apply_timer(db: Database, timer: TimerService | None, key: str, proposal: P
     else:
         if proposal.expected.session_id is None or proposal.expected.session_revision is None:
             raise InvalidInput("expected", "This timer proposal lacks its reviewed countdown. Ask again; nothing was changed.")
-        action = "pause" if proposal.kind == "pause_timer" else "finish"
+        action = {"pause_timer": "pause", "resume_timer": "resume"}.get(proposal.kind, "finish")
         view = timer.control(proposal.expected.session_id, action,
                              expected_revision=proposal.expected.session_revision, operation_id=key)
         title = (view.active_session or view.last_session).task_title

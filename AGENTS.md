@@ -18,6 +18,7 @@ newest first. Detailed review records remain evidence, not parallel task tracker
    [build plan](BearPlans_Build_Plan.md),
    [review plan](BearPlans_Build_Review_Plan.md),
    [daily roadmap](BearPlans_Dated_Roadmap.md), and [README](README.md).
+   The [documentation map](docs/README.md) says which document answers which question.
 
 Explicit user instructions and the latest explicit product decisions take priority
 over stale summaries. The roadmap supersedes timing only, not safety, persistence,

@@ -60,19 +60,18 @@ def test_concurrent_retries_and_optional_date(db):
 def test_upgrade_from_schema_23_preserves_task_and_plan(tmp_path):
     from backend.domain.planning import create_placement
     from backend.domain.tasks import create_task
-    from backend.storage.migrations import current_version
+    from backend.storage.db import Database
+    from backend.storage.migrations import current_version, load_migrations, migrate
 
     path = tmp_path / "upgrade.sqlite3"
-    db = open_database(path)
+    # A true schema-23 database: only the first 23 shipped migrations applied.
+    db = Database(path)
+    migrate(db, load_migrations()[:23])
+    assert current_version(db) == 23
     task = create_task(db, "Existing task")
     placement = create_placement(db, task.id, "2026-11-11")
-    # Construct a schema-23 fixture from this disposable database.
-    with db.write() as conn:
-        conn.execute("DROP TABLE task_capture_operations")
-        conn.execute("DELETE FROM migration_fingerprints WHERE version = 24")
-        conn.execute("DELETE FROM schema_migrations WHERE version = 24")
     upgraded = open_database(path)
-    assert current_version(upgraded) == 24
+    assert current_version(upgraded) == len(load_migrations())
     assert list_tasks(upgraded) == [task]
     assert list_placements(upgraded) == [placement]
     assert capture_task(upgraded, str(uuid4()), "New task").task.title == "New task"

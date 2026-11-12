@@ -391,6 +391,54 @@ def test_invented_estimate_never_reaches_the_card_and_named_project_narrows(db):
     assert reopen["proposals"][0]["arguments"] == {"task_id": target.id, "complete": False}
 
 
+@pytest.fixture
+def testing_projects(db):
+    """User testing, Nov 11 (A-04): Test #1 lives in Testing; Projecting is another project."""
+    testing = create_project(db, "Testing")
+    projecting = create_project(db, "Projecting")
+    return create_task(db, "Test #1", project_id=testing.id), testing, projecting
+
+
+@pytest.mark.parametrize("route_project", ["projecting", None])  # None: the router omitted the project
+def test_existing_task_in_the_wrong_named_project_is_never_proposed(db, testing_projects, route_project):
+    task, _, _ = testing_projects
+    route = {"intent": "complete_task", "task": "Test #1", **({"project": route_project} if route_project else {})}
+    before = rows(db)
+    reply = ask(db, FakeProvider(routes=[route]), 'mark the "Test #1" task in "projecting" project')
+    assert reply["kind"] == "clarify" and reply["proposals"] == [] and rows(db) == before
+    assert "“Test #1” is in Testing, not Projecting" in reply["answer"]
+    assert [c["value"] for c in reply["clarification"]["choices"]["task_id"]] == [task.id]
+    chosen = ask(db, FakeProvider(), "", pending=reply["clarification"]["pending"], choice={"slot": "task_id", "value": task.id})
+    assert chosen["kind"] == "proposal" and chosen["proposals"][0]["arguments"] == {"task_id": task.id, "complete": True}
+    assert rows(db) == before
+
+
+def test_existing_task_in_an_unknown_project_asks_and_says_where_it_is(db, testing_projects):
+    task, _, _ = testing_projects
+    before = rows(db)
+    for route in ({"intent": "complete_task", "task": "Test #1", "project": "Nowhere"}, {"intent": "complete_task", "task": "Test #1"}):
+        reply = ask(db, FakeProvider(routes=[route]), "Complete Test #1 in the Nowhere project")
+        assert reply["kind"] == "clarify" and reply["proposals"] == [] and rows(db) == before
+        assert "couldn't find a project named “Nowhere”" in reply["answer"] and "is in Testing" in reply["answer"]
+        assert [c["value"] for c in reply["clarification"]["choices"]["task_id"]] == [task.id]
+
+
+def test_existing_task_in_the_right_named_project_is_proposed(db, testing_projects, timer):
+    task, testing, projecting = testing_projects
+    create_task(db, "Test #1", project_id=projecting.id)  # same title elsewhere must not matter
+    reply = ask(db, FakeProvider(routes=[{"intent": "complete_task", "task": "Test #1", "project": "Testing"}]),
+                'mark the "Test #1" task in "Testing" project')
+    assert reply["kind"] == "proposal" and reply["proposals"][0]["arguments"] == {"task_id": task.id, "complete": True}
+    start = ask(db, FakeProvider(routes=[{"intent": "start_timer", "task": "Test #1", "project": "testing", "duration_minutes": 30}]),
+                "start tracking \"Test #1\" in testing for 30'", timer)
+    assert start["kind"] == "proposal"
+    assert start["proposals"][0]["arguments"] == {"task_id": task.id, "duration_minutes": 30}
+    plan = ask(db, FakeProvider(routes=[{"intent": "assign_task_date", "task": "Test #1", "date": "tomorrow"}]),
+               "Plan Test #1 in Projecting tomorrow")
+    assert plan["kind"] == "proposal" and plan["proposals"][0]["arguments"]["task_id"] != task.id
+    assert timer.get().active_session is None
+
+
 def test_creation_details_are_read_from_the_users_words_when_the_router_omits_them(db):
     biology = create_project(db, "Biology")
     writing = create_project(db, "Writing")
@@ -496,3 +544,89 @@ def test_completion_proposal_rechecks_timer_revision_and_replays_finalization(db
     before = rows(db)
     assert apply_action(db, timer, fresh, op) == {**applied, "replayed": True}
     assert rows(db) == before and timer.get().active_session is None
+
+
+def _paused(db, timer, title="Test #1"):
+    task = create_task(db, title)
+    view = timer.start(task.id, 30, key())
+    session = view.active_session
+    timer.control(session.id, "pause", expected_revision=session.revision)
+    return task
+
+
+def test_resume_after_pause_is_proposed_applied_once_and_has_no_undo(db, timer):
+    """User testing, Nov 11 (A-05): "Resume the test #1" asked for minutes."""
+    _paused(db, timer)
+    before = rows(db)
+    # The router filed this as start_timer in the user's run; code corrects it.
+    reply = ask(db, FakeProvider(routes=[{"intent": "start_timer", "task": "the test #1"}]), "Resume the test #1", timer)
+    assert rows(db) == before and reply["kind"] == "proposal", reply["answer"]
+    proposal = reply["proposals"][0]
+    assert proposal["kind"] == "resume_timer" and not proposal["undoable"]
+    assert proposal["summary"] == 'Resume the paused countdown for "Test #1"'
+    op = key()
+    resumed = apply_action(db, timer, proposal, op)
+    assert resumed["session"]["state"] == "running" and timer.get().active_session.state == "running"
+    assert apply_action(db, timer, proposal, op)["replayed"]
+    with pytest.raises(ActionConflict, match="Timer changes cannot be undone"):
+        undo_action(db, op, key())
+    routed = ask(db, FakeProvider(routes=[{"intent": "resume_timer"}]), "Resume", timer)
+    assert routed["kind"] == "blocked" and "already running" in routed["answer"]
+
+
+def test_resume_is_blocked_without_a_paused_countdown_or_for_another_task(db, timer):
+    create_task(db, "Essay")
+    nothing = ask(db, FakeProvider(routes=[{"intent": "resume_timer"}]), "Resume the countdown", timer)
+    assert nothing["kind"] == "blocked" and "No countdown is running or paused" in nothing["answer"]
+    _paused(db, timer)
+    before = rows(db)
+    other = ask(db, FakeProvider(routes=[{"intent": "resume_timer", "task": "Essay"}]), "Resume Essay", timer)
+    assert other["kind"] == "blocked" and "is for “Test #1”, not “Essay”" in other["answer"] and rows(db) == before
+    pause_other = ask(db, FakeProvider(routes=[{"intent": "finish_timer", "task": "Essay"}]), "Finish Essay", timer)
+    assert pause_other["kind"] == "blocked" and rows(db) == before
+
+
+def test_resume_proposal_is_stale_after_a_change_in_track(db, timer):
+    _paused(db, timer)
+    proposal = propose_action(db, timer, "resume_timer", {})
+    session = timer.get().active_session
+    timer.control(session.id, "resume", expected_revision=session.revision)
+    timer.control(session.id, "pause", expected_revision=session.revision + 1)
+    with pytest.raises(Exception, match="changed in another tab"):
+        apply_action(db, timer, proposal, key())
+    assert timer.get().active_session.state == "paused"
+
+
+def test_migration_0025_keeps_receipts_allows_resume_and_stays_immutable(tmp_path):
+    import sqlite3
+    from backend.storage.db import Database
+    from backend.storage.migrations import current_version, load_migrations, migrate
+
+    shipped = load_migrations()
+    assert shipped[24].name == "assistant_resume_timer"
+    path = tmp_path / "old.sqlite3"
+    db = Database(path)
+    migrate(db, shipped[:24])
+    receipt, undo, paused = key(), key(), key()
+    with db.write() as conn:
+        conn.execute("INSERT INTO assistant_actions VALUES (?, 'complete_task', 'f', '{}', '{}', '{\"summary\": \"x\"}', 't')", (receipt,))
+        conn.execute("INSERT INTO assistant_actions VALUES (?, 'pause_timer', 'g', '{}', NULL, '{}', 't')", (paused,))
+        conn.execute("INSERT INTO assistant_action_undos VALUES (?, ?, '{}', 't')", (undo, receipt))
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute("INSERT INTO assistant_actions VALUES (?, 'resume_timer', 'f', '{}', NULL, '{}', 't')", (key(),))
+    upgraded = open_database(path)
+    assert current_version(upgraded) == len(shipped)
+    reopened = open_database(path)  # restart: nothing reapplied, rows intact
+    with reopened.read() as conn:
+        assert [tuple(r) for r in conn.execute("SELECT operation_id, kind FROM assistant_actions ORDER BY kind")] == [
+            (receipt, "complete_task"), (paused, "pause_timer")]
+        assert conn.execute("SELECT action_operation_id FROM assistant_action_undos").fetchone()[0] == receipt
+    for statement in ("UPDATE assistant_actions SET kind = 'update_task'", "DELETE FROM assistant_actions",
+                      "UPDATE assistant_action_undos SET created_at = 'x'", "DELETE FROM assistant_action_undos"):
+        with pytest.raises(sqlite3.DatabaseError, match="immutable"):
+            with reopened.write() as conn:
+                conn.execute(statement)
+    with reopened.write() as conn:
+        conn.execute("INSERT INTO assistant_actions VALUES (?, 'resume_timer', 'f', '{}', NULL, '{}', 't')", (key(),))
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute("INSERT INTO assistant_actions VALUES (?, 'drop_everything', 'f', '{}', NULL, '{}', 't')", (key(),))

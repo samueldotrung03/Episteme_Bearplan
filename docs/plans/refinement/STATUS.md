@@ -14,7 +14,7 @@ Read this first in every session; update it last. Ticket details are in
 | RF-04 | New core-trial candidate and trial start | Blocked | UX task-entry slice closed | Trial scope; tag; Day 1 |
 | RF-05 | Repository cleanup | Done | — | — (moved and pushed 2026-11-11, `6e5751c`) |
 | RF-06 | One command for every check | Done | — | — (hook: no; CI: no, 2026-11-11) |
-| RF-07 | Documentation map | Ready | RF-02 (links to gate register) | — |
+| RF-07 | Documentation map | Done | RF-02 (links to gate register) | — (map in `docs/README.md`, 2026-11-11) |
 | RF-08 | Closing re-evaluation | Blocked | RF-01 to RF-07 | — |
 
 ## Handoff log (newest first)
@@ -33,13 +33,31 @@ Copy this template for each session. Keep an entry under 20 lines.
 - Commit: <not committed; proposed message given to user | committed by user as <hash>>
 ```
 
+### 2026-11-11 — Claude — RF-07 — Done
+- Did: wrote the documentation map (three tables: where to look, who owns what,
+  document lifecycle; plus size limits). One link added from AGENTS.md and README.md.
+- Files: `docs/README.md` (new); `AGENTS.md`, `README.md` (one line each);
+  `docs/PROGRESS.md` (pointer only); `docs/COMPLETED.md`; this file.
+- Checks: link check of `docs/README.md` → 34 links, 0 broken; coverage check →
+  every root/`docs/` document, `docs/plans/refinement/*`, `frontend/*.md`, `frontend/plans`,
+  `frontend/design`, `docs/reviews` named. Active/next/waiting reachable in one link
+  (PROGRESS, GATES). Documentation only; app tests not rerun (AGENTS.md rule).
+- Not done: nothing in RF-07. Found: PROGRESS is 185 lines (limit ~100); PROGRESS
+  line 149 and GATES.md line 60 still call the map not started (outside RF-07's files).
+- Waiting on user: whether to fix those two stale lines and trim PROGRESS.
+- Next step: RF-04 stays blocked until the task-entry slice closes; RF-08 after RF-04.
+- Watch out: Codex has uncommitted work in `frontend/src/` and
+  `tests/test_add_task_disclosure_browser.py`; not touched. Prior session's
+  COMPLETED/STATUS edits were already staged at session start.
+- Commit: not committed; proposed message given to user.
+
 ### 2026-11-11 — Claude — RF-06 — Done
 - Closed: user declined hook and CI (step 4). Full rerun → exit 0, 296.6 s, backend
   1142 passed, 1 skipped, frontend 213 passed. That run used Codex's then-uncommitted
   add-task fix; Codex later committed it as `d82af99` (its diff may differ slightly from
   the tested tree; Codex records its own passing `tools/check.py` run in PROGRESS).
-- Next step: RF-07 (documentation map), step 1 per TICKETS.md. User to make the GitHub repo private.
-- Commit: RF-06 files staged by Claude; the user writes the message and commits.
+- Next step: RF-07 (documentation map), step 1 per TICKETS.md. Repo is now private (GitHub API 404 without login, 2026-11-11).
+- Commit: committed and pushed by the user: RF-06 files in `577cd52` (bundled with Codex's task-capture commit), wording fix `b64751c`.
 
 ### 2026-11-11 — Claude — RF-06 — Waiting on user
 - Did: steps 1–3 and 5. Wrote `tools/check.py` (standard library only; disposable data

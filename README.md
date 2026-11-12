@@ -44,6 +44,7 @@ Episteme_Bearplan/
 ```
 
 Run commands from this root unless a guide explicitly names another directory.
+The [documentation map](docs/README.md) lists which document answers which question.
 Frontend tests remain alongside frontend source. Subsystem documentation and
 agent-guide organization are a separate follow-up; this relocation changes no
 application rules or saved-data locations. See the

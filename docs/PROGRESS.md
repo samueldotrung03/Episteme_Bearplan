@@ -167,7 +167,7 @@ found all 47 `(1)` paths redundant; they were moved out and the deletion was
 committed and pushed (`6e5751c`), so RF-05 is done. RF-06: `tools/check.py` is
 written and documented ([review](reviews/2026-11-11-rf06-check-command.md)); both
 `--fast` and the full run pass, so RF-06 is done (user declined the hook and CI).
-Next: RF-07 (documentation map).
+RF-07 is done: the [documentation map](README.md). Remaining: RF-04, then RF-08.
 RF-04 (new core-trial candidate) waits for the task-entry slice to close (target Nov 14).
 
 ## Handoff notes

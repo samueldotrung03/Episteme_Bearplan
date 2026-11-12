@@ -27,7 +27,23 @@ no new build while more than three user-owned gates block the trial or the alpha
 | --- | --- | --- | --- | --- | --- | --- |
 | G-04 | Seven days of real use of the core app | User | After RF-04 names a new candidate: follow the [trial guide](CORE_TRIAL_CHECKLIST.md), report Day 1 (date, data folder, backup result), then short daily notes and a closing review; about 30 minutes to start, 5 minutes a day | The alpha (M4 release). The Nov 1 candidate folder is superseded by RF-04 | [Trial guide](CORE_TRIAL_CHECKLIST.md) | Nov 1 |
 | G-05 | End-of-week carryover, the Stats "Missed" count and the Assistant carryover command work in the app on real data | User | Run End Week once in the app, check the carried tasks and the Missed count, try the Assistant carryover command and Undo; about 15 minutes. Can be done during the trial | Carryover in the alpha | [Carryover review](reviews/2026-11-01-end-week-carryover.md); prototype walkthrough only in [UX-R23](reviews/2026-11-02-ux-r23-walkthrough.md) | Nov 1 |
-| G-06 | Assistant daily writes beyond the scenarios already tried (create, Apply/Undo, completion) | User | Try the other everyday requests (change a date, start/pause/finish a timer, edit a task) with Apply and Undo; about 20 minutes. Can be done during the trial | Assistant writes in the alpha | [Actions review](reviews/2026-11-01-assistant-actions.md); [Nov 11 walkthrough](COMPLETED.md#november-11-2026--assistant-create--apply--undo-walkthrough) | Nov 1 |
+| G-06 | Assistant daily writes beyond the scenarios already tried (create, Apply/Undo, completion) | User, then Agent | **Partly tried Nov 11: not passed.** Six requests, four defects (A-01–A-05 below). The agent fixes A-01–A-05 with tests; the user then retries the [six requests](reviews/2026-11-11-assistant-user-testing.md#results) plus edit and finish, with Apply and Undo; about 20 minutes | Assistant writes in the alpha | [Actions review](reviews/2026-11-01-assistant-actions.md); [Nov 11 walkthrough](COMPLETED.md#november-11-2026--assistant-create--apply--undo-walkthrough); [Nov 11 user testing](reviews/2026-11-11-assistant-user-testing.md) | Nov 1 |
+
+### Planned fixes from G-06 testing (Nov 11)
+
+Agent-owned work, not separate gates; G-06 stays open until the user's retry
+passes. Order: A-04 first (it can change the wrong record), then A-05, A-02,
+A-03, A-01. Each fix gets backend tests that replay the user's exact wording;
+the full `python3 tools/check.py` run is required before handoff.
+
+| ID | Defect | Planned fix | User decision |
+| --- | --- | --- | --- |
+| A-04 | A named project is ignored when acting on an existing task ("Test #1 in projecting" was offered for completion) | **Fixed Nov 11, awaiting your retry.** Accept `project` for every action on an existing task. If the project does not exist, say so; if the task is not in it, say where it is ("Test #1 is in Testing, not Projecting") and offer no Apply | No |
+| A-05 | "Resume" asks for a countdown length | **Fixed Nov 11, awaiting your retry** (schema migration 25, approved by the user). Add a `resume_timer` intent with no required details, like pause: resume the paused countdown or say nothing is paused. Uses the existing timer resume | No |
+| A-02 | "Create Test#2 on Wednesday, Nov 18th 2026, due Nov 20th 2026" is refused as two changes | Let `create_task` take an optional planned day and propose one change (create and plan, one Apply, one Undo), matching the app's task form. Teach `parse_day` to accept a weekday before a date and ask when they disagree. Update the router example that calls this `multiple` | No |
+| A-03 | A deadline before today can be saved | Reject a newly entered or changed deadline before today in the API, the form and the Assistant. Keep stored overdue deadlines valid when other fields are edited, and keep imported (Google Tasks, bCourses) past deadlines | Decided by the user, Nov 11: a deadline of today is allowed ("YES") |
+| A-01 | "Todos for next week" searched for a task titled "next week" and limited itself to one project | Parse this/next/last week as a Monday–Sunday range in code; never use date words as title search words; keep searches across all projects unless the user names one | Decided by the user, Nov 11: show both, labelled — tasks planned next week and tasks due next week ("YES") |
+| A-06 | Task lists are not ordered by deadline (minor) | Order incomplete-task answers by deadline, then title | No |
 
 ## Gates accepted as unverified (not open)
 

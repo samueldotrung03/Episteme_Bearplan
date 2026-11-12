@@ -24,7 +24,7 @@ from backend.domain.timer import TimerService
 from backend.storage.db import Database
 
 ActionIntent = Literal["create_task", "update_task", "assign_task_date", "complete_task",
-                       "start_timer", "pause_timer", "finish_timer", "carry_over_week"]
+                       "start_timer", "pause_timer", "resume_timer", "finish_timer", "carry_over_week"]
 MAX_CLARIFICATION_ROUNDS = 4
 MAX_CHOICES = 8
 _DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
@@ -48,6 +48,7 @@ LIBRARY: dict[str, ActionSpec] = {
     "complete_task": ActionSpec("complete_task", "Mark a task complete or reopen it", ("task",), ("complete",)),
     "start_timer": ActionSpec("start_timer", "Start a countdown on a task", ("task", "duration_minutes")),
     "pause_timer": ActionSpec("pause_timer", "Pause the running countdown", ()),
+    "resume_timer": ActionSpec("resume_timer", "Resume the paused countdown", ()),
     "finish_timer": ActionSpec("finish_timer", "Finish and save the current countdown", ()),
     # Week defaults to the current one; "last week" or a stated date picks another.
     "carry_over_week": ActionSpec("carry_over_week", "Carry a closed week's unfinished work to the same weekday next week",
@@ -115,6 +116,9 @@ def merge(pending: Pending | None, intent: ActionIntent, extracted: Slots) -> Pe
 def apply_choice(pending: Pending, choice: Choice) -> Pending:
     values = pending.slots.model_dump()
     values[choice.slot] = choice.value
+    if choice.slot == "task_id" and pending.intent != "create_task":
+        # The chosen task is exact; a project named earlier only located it.
+        values["project"] = values["project_id"] = None
     return Pending(intent=pending.intent, slots=Slots(**values), round=pending.round)
 
 
@@ -122,15 +126,20 @@ def apply_choice(pending: Pending, choice: Choice) -> Pending:
 # value the model attached to the wrong action can never reach a tool.
 ALLOWED = {
     "create_task": ("title", "project", "parent", "deadline", "estimate_minutes", "notes"),
-    "update_task": ("task", "title", "notes", "deadline", "estimate_minutes"),
-    "assign_task_date": ("task", "date"),
-    "complete_task": ("task", "complete"),
-    "start_timer": ("task", "duration_minutes"),
-    "pause_timer": (),
-    "finish_timer": (),
+    # On existing-task actions a project only locates the task; it never moves it.
+    "update_task": ("task", "project", "title", "notes", "deadline", "estimate_minutes"),
+    "assign_task_date": ("task", "project", "date"),
+    "complete_task": ("task", "project", "complete"),
+    "start_timer": ("task", "project", "duration_minutes"),
+    # A task named with a countdown control only checks it is the countdown's task.
+    "pause_timer": ("task",),
+    "resume_timer": ("task",),
+    "finish_timer": ("task",),
     "carry_over_week": ("date",),
     "question": ("task", "project", "date"),
 }
+TIMER_CONTROLS = ("pause_timer", "resume_timer", "finish_timer")
+_RESUME_COMMAND = re.compile(r"^(?:please\s+)?(?:resume|unpause|un-pause)\b")
 _REOPEN = re.compile(r"\b(re-?open|undo|unmark|uncheck|incomplete|unfinished|uncomplete|not\s+(yet\s+)?(done|complete|completed|finished))\b")
 _COMPLETION_COMMAND = re.compile(r"^(?:please\s+)?mark\s+(?:as\s+)?(?:complete[d]?|done|finished)\b")
 _NUMBER_WORDS = {"a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "half": 0.5}
@@ -139,6 +148,17 @@ _NUMBER_WORDS = {"a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "half": 0.5}
 def _normal(text: str) -> str:
     # Keep decimal points ("1.5 hours"); drop other punctuation.
     return " ".join(re.sub(r"[\"'“”‘’,!?;:()]|(?<!\d)\.|\.(?!\d)", " ", text.casefold()).split())
+
+
+def correct_intent(intent: str, message: str) -> str:
+    """Code check on the router: "Resume Test #1" resumes, never starts a new countdown.
+
+    Measured Nov 11 (G-06 user testing): the router filed "Resume the test #1" as
+    start_timer, which then asked for minutes.
+    """
+    if intent in ("start_timer", "unsupported") and _RESUME_COMMAND.search(_normal(message)):
+        return "resume_timer"
+    return intent
 
 
 def ground(intent: str, extracted: Slots, message: str) -> tuple[Slots, list[str]]:
@@ -292,6 +312,33 @@ def _fill_creation(values: dict[str, Any], message: str, project_names: list[str
         values["project"] = named[0] if len(named) == 1 else None
 
 
+_IN_PROJECT = re.compile(
+    r"\bin\s+(?:the\s+)?(?:project\s+[\"“']?(?P<after>[^\"”'.?!,;\s]+)|[\"“']?(?P<before>[^\"”'.?!,;]+?)[\"”']?\s+project\b)",
+    re.IGNORECASE)
+
+
+def _fill_locating_project(values: dict[str, Any], message: str, project_names: list[str]) -> None:
+    """The project the user named for an existing task, when the router omitted it.
+
+    "Test #1 in Projecting project" must never act on Test #1 in Testing, so an
+    explicit "in <name> project" or "in project <name>" is used even when no such
+    project exists (the gate then says so). Otherwise one exact project name
+    outside the task's words is used. Both are the user's own stated text.
+    """
+    if values["project"] or values["project_id"] or not message:
+        return
+    rest = message
+    if values["task"]:
+        rest = re.sub(re.escape(values["task"]), " ", rest, flags=re.IGNORECASE)
+    found = _IN_PROJECT.search(rest)
+    if found:
+        values["project"] = (found.group("after") or found.group("before")).strip()
+        return
+    said = _normal(rest)
+    named = [name for name in project_names if re.search(rf"\b{re.escape(_normal(name))}\b", said)]
+    values["project"] = named[0] if len(named) == 1 else None
+
+
 def evaluate(db: Database, timer: TimerService | None, pending: Pending, today: date | None = None,
              message: str = "") -> Gate:
     """Resolve records and check every required detail; never guess a missing one."""
@@ -304,6 +351,38 @@ def evaluate(db: Database, timer: TimerService | None, pending: Pending, today: 
     projects = {project.id: project.name for project in list_projects(db)}
     if pending.intent == "create_task" and message:
         _fill_creation(values, message, list(projects.values()))
+    elif "task" in spec.required:
+        _fill_locating_project(values, message, list(projects.values()))
+
+    def resolve_project(missing: str) -> bool:
+        """Resolve a named project to its ID. False means a question was asked."""
+        if values["project_id"] is not None and values["project_id"] not in projects:
+            values["project_id"] = None
+        if values["project_id"] is not None or not values["project"]:
+            return True
+        found = _matches(list(projects.items()), values["project"], lambda item: item[1])
+        if len(found) == 1:
+            values["project_id"] = found[0][0]
+            return True
+        if not found:
+            questions.append(f"I couldn't find a project named “{values['project']}”. {missing}")
+            values["project"] = None
+        else:
+            questions.append(f"Several projects match “{values['project']}”. Which one?")
+            choices["project_id"] = [{"value": key, "label": name} for key, name in found[:MAX_CHOICES]]
+        return False
+
+    def offer_elsewhere(text: str, where: str) -> None:
+        """The task exists, but not where the user said: say where, never act on it."""
+        found = _matches(tasks, text, lambda task: task.title)
+        if not found:
+            return
+        places = sorted({projects.get(task.project_id, "") for task in found} - {""})
+        if len(found) == 1 and places:
+            questions.append(f"“{found[0].title}” is in {places[0]}, not {where}. Choose it below if you meant that task.")
+        else:
+            questions.append(f"Tasks matching “{text}” are in other projects. Choose one below if you meant it.")
+        choices["task_id"] = [{"value": task.id, "label": _label(task, by_id, projects)} for task in found[:MAX_CHOICES]]
 
     def resolve_task(slot: str, text_slot: str, pool: list[Task], prompt: str) -> None:
         if values[slot] is not None:
@@ -330,8 +409,12 @@ def evaluate(db: Database, timer: TimerService | None, pending: Pending, today: 
             if slot == "task_id":
                 values["task_label"] = _label(found[0], by_id, projects)
         elif not found:
-            questions.append(f"I couldn't find a task matching “{text}”. {prompt}")
-            values[text_slot] = None
+            in_project = slot == "task_id" and pending.intent != "create_task" and values["project_id"]
+            if in_project and _matches(tasks, text, lambda task: task.title):
+                offer_elsewhere(text, projects[values["project_id"]])
+            else:
+                questions.append(f"I couldn't find a task matching “{text}”. {prompt}")
+                values[text_slot] = None
         else:
             questions.append(f"Several tasks match “{text}”. Which one do you mean?")
             choices[slot] = [{"value": task.id, "label": _label(task, by_id, projects)} for task in found[:MAX_CHOICES]]
@@ -339,23 +422,17 @@ def evaluate(db: Database, timer: TimerService | None, pending: Pending, today: 
                 questions.append(f"Showing {MAX_CHOICES} of {len(found)} matches; give a more exact title if yours is missing.")
 
     if "task" in spec.required:
-        resolve_task("task_id", "task", tasks, "What is its exact title?")
+        named_project = values["project"]
+        if resolve_project("Which project is the task in?"):
+            pool = [task for task in tasks if task.project_id == values["project_id"]] if values["project_id"] else tasks
+            resolve_task("task_id", "task", pool, "What is its exact title?")
+        elif values["task"] and not values["task_id"]:
+            offer_elsewhere(values["task"], f"“{named_project}”")
     if pending.intent == "create_task":
         if values["parent"] or values["parent_id"]:
             resolve_task("parent_id", "parent", [task for task in tasks if task.parent_id is None],
                          "Which existing top-level task should it go under?")
-        if values["project_id"] and values["project_id"] not in projects:
-            values["project_id"] = None
-        if values["project"] and not values["project_id"]:
-            found = _matches(list(projects.items()), values["project"], lambda item: item[1])
-            if len(found) == 1:
-                values["project_id"] = found[0][0]
-            elif not found:
-                questions.append(f"I couldn't find a project named “{values['project']}”. Which project, or leave it in the default project?")
-                values["project"] = None
-            else:
-                questions.append(f"Several projects match “{values['project']}”. Which one?")
-                choices["project_id"] = [{"value": key, "label": name} for key, name in found[:MAX_CHOICES]]
+        resolve_project("Which project, or leave it in the default project?")
         if not values["title"]:
             questions.append(QUESTIONS["title"])
     if today is None:
@@ -379,6 +456,12 @@ def evaluate(db: Database, timer: TimerService | None, pending: Pending, today: 
             questions.append(QUESTIONS["change"])
 
     resolved = Pending(intent=pending.intent, slots=Slots(**values), round=pending.round)
+    if pending.intent in TIMER_CONTROLS and values["task"] and timer is not None:
+        active = timer.get().active_session
+        named = re.sub(r"^(?:the|my)\s+", "", values["task"].strip(), flags=re.IGNORECASE)
+        if active is not None and not _matches([active.task_title], named, lambda title: title):
+            return Gate(resolved, blocked=f"The current countdown is for “{active.task_title}”, not “{values['task']}”. "
+                                          "Nothing was changed.")
     if questions:
         return Gate(resolved, questions=questions, choices=choices or None)
     if pending.intent == "complete_task" and not by_id[values["task_id"]].subtask_count:

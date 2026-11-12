@@ -2,7 +2,7 @@
 
 The first M5 ticket added read-only questions about day/week plans, task search,
 task details and exact saved-time totals. The second adds **proposed changes**:
-create/edit/plan/complete a task and start/pause/finish a countdown. A router
+create/edit/plan/complete a task and start/pause/resume/finish a countdown. A router
 model classifies each request; BearPlans then checks that every needed detail
 was actually stated and matches exactly one record. If something is missing or
 several tasks match, it asks a question or shows choice buttons and keeps the
@@ -14,6 +14,10 @@ for example “Add a subtask called Read under task Essay.” Review the destina
 on the proposal before Apply. To complete work, say “Mark complete Review Notes
 in planner check”; a completion proposal must say it marks the task complete.
 If it offers an unrelated field edit, leave it unapplied and report the result.
+A project named with an existing task only locates it: if the task is not in
+that project, or the project does not exist, the Assistant says where the task
+is and offers a choice instead of a proposal. “Resume” (optionally with the
+task's name) resumes the paused countdown; naming another task is refused.
 
 Ask for one change at a time. Day words such as “Tuesday”, “next Friday” or
 “November 12” are converted by BearPlans, not the model; check the weekday on
