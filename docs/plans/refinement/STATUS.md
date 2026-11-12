@@ -39,7 +39,7 @@ Copy this template for each session. Keep an entry under 20 lines.
   add-task fix; Codex later committed it as `d82af99` (its diff may differ slightly from
   the tested tree; Codex records its own passing `tools/check.py` run in PROGRESS).
 - Next step: RF-07 (documentation map), step 1 per TICKETS.md. User to make the GitHub repo private.
-- Commit: committed by Claude at the user's request (RF-06 files only; see `git log`).
+- Commit: RF-06 files staged by Claude; the user writes the message and commits.
 
 ### 2026-11-11 — Claude — RF-06 — Waiting on user
 - Did: steps 1–3 and 5. Wrote `tools/check.py` (standard library only; disposable data

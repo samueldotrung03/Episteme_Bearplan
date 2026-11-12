@@ -24,7 +24,7 @@ in the [review](reviews/2026-11-11-rf06-check-command.md). Checks on macOS:
 failed on 4 known add-task browser tests, then passed (exit 0, 296.6 s, backend 1142
 passed, 1 skipped; frontend 213 passed) with Codex's then-uncommitted fix in the tree.
 The user declined the optional pre-push hook and CI workflow. Linting is a follow-up.
-Committed by Claude at the user's request.
+Staged by Claude; the user commits.
 
 ## 2026-11-11 — Repository cleanup (refinement RF-05)
 
