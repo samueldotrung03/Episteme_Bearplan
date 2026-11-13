@@ -14,7 +14,7 @@ from datetime import date, datetime
 import re
 from typing import Any
 
-from backend.domain.action_library import parse_day
+from backend.domain.action_library import parse_day, parse_week
 from backend.domain.assistant_tools import read_tool
 from backend.domain.errors import InvalidInput
 from backend.storage.db import Database
@@ -22,13 +22,26 @@ from backend.storage.db import Database
 _WEEK = re.compile(r"\bweek(ly)?\b")
 _RELATIVE = re.compile(r"\b(yesterday|last|previous|next|ago|tomorrow|month|year|between|since)\b")
 _TOTAL = re.compile(r"\b(total|all[- ]time|overall|altogether|so far|ever)\b")
-_INCOMPLETE = re.compile(r"\b(incomplete|unfinished|open|remaining|left|to ?do|pending|outstanding|not\s+(yet\s+)?(done|complete|completed|finished))\b")
+_INCOMPLETE = re.compile(r"\b(incomplete|unfinished|open|remain(?:ing|ed)?|left|to ?do|pending|outstanding|not\s+(yet\s+)?(done|complete|completed|finished))\b")
 _COMPLETE = re.compile(r"\b(done|complete|completed|finished)\b")
 _SUBTASKS = re.compile(r"\bsub-?tasks?\b")
 _TOP_LEVEL = re.compile(r"\b(top[- ]level|parent|main)\s+tasks?\b")
 _LIST = re.compile(r"\b(list|show|check|which|what|all|my)\b")
 _DUE = re.compile(r"\b(due|deadlines?|overdue)\b")
+_TODO = re.compile(r"\b(to-?dos?|tasks?|assignments?|due|deadlines?)\b")
 _TITLED = re.compile(r"\b(?:titled|named|called)\s+[\"“']?(.+?)[\"”']?(?=\s+(?:and|in|from|with)\b|[.?!,;]|$)", re.IGNORECASE)
+
+
+_TIME_WORDS = re.compile(r"\b(time|hours?|minutes?|worked|work|tracked|spent|saved|sessions?|focus)\b")
+
+
+def correct_topic(topic: str | None, message: str) -> str | None:
+    """Deadline questions are task questions. Measured Nov 12 with router-v9: qwen3:8b
+    filed "What is due soonest?" and "what is due next week" under time."""
+    said = message.casefold()
+    if topic == "time" and _DUE.search(said) and not _TIME_WORDS.search(said):
+        return "tasks"
+    return topic
 
 
 @dataclass
@@ -73,8 +86,16 @@ def answer(db: Database, topic: str | None, message: str, *, task: str | None = 
     # The router often omits details on questions; read them from the user's words.
     titled = _TITLED.search(message)
     task = task or (titled.group(1).strip() if titled else None)
+    from backend.domain.calendar import application_today
+    week = parse_week(said, application_today(now)[0])
+    if task and (parse_week(task, now.date()) or "week" in task.casefold() or parse_day(task, now.date())):
+        task = None  # Day and week words are never title search words (A-01: "next week" was searched as a title).
     try:
         project = project or _mentioned_project(db, said)
+        if week and not task and topic == "plan" and not _TODO.search(said):
+            return None if project else _plan(db, said, None, now, day=week[0])
+        if week and not task and (topic in ("tasks", "plan") or (_TODO.search(said) and (topic != "time" or _DUE.search(said)))):
+            return _week(db, said, week, project, now)
         if project and topic in ("plan", "time"):
             return None  # Plans and time totals have no project filter; a specialist must scope them.
         if topic == "plan":
@@ -100,11 +121,13 @@ def _count(number: int, noun: str) -> str:
     return f"{number} {noun}" if number == 1 else f"{number} {noun}s"
 
 
-def _plan(db: Database, said: str, day_words: str | None, now: datetime) -> Direct | None:
+def _plan(db: Database, said: str, day_words: str | None, now: datetime, day: date | None = None) -> Direct | None:
     from backend.domain.calendar import application_today
 
     today = application_today(now)[0]
-    if day_words:
+    if day is not None:
+        pass  # A week range already resolved by parse_week.
+    elif day_words:
         day = parse_day(day_words, today)
         if day is None:
             return None
@@ -128,6 +151,42 @@ def _plan(db: Database, said: str, day_words: str | None, now: datetime) -> Dire
     head = (f"{span}: {_count(data['total_placements'], 'planned item')}; {data['completed_leaf_total']} of "
             f"{data['unique_leaf_total']} work items complete.{history}")
     return Direct(head + "\n" + "\n".join(lines) + more, _source(tool, arguments, data))
+
+
+def _week(db: Database, said: str, week: tuple[date, date, str], project: str | None, now: datetime) -> Direct:
+    """A Monday–Sunday week: what is planned in it and what is due in it, labelled (user decision, Nov 11, A-01).
+
+    Across all projects unless the user named one; completed due tasks are left out.
+    """
+    monday, sunday, words = week
+    where = f" in {project}" if project else " across all projects"
+    plan_args = {"date": monday.isoformat()}
+    plan = read_tool(db, "get_week_plan", plan_args, now=now)
+    items = [item for item in plan["items"] if not project or item["project_name"].casefold() == project.casefold()]
+    head = f"{words[0].upper()}{words[1:]} ({_day(monday.isoformat())} – {_day(sunday.isoformat())}){where}"
+    history = " Closed week: showing the frozen snapshot." if plan["historical"] else ""
+    planned = (f"Planned that week ({len(items)}):{history}\n" + "\n".join(
+        _task_line(item) + f" · {_day(item['planned_date'])}" for item in items) if items
+        else f"Planned that week: nothing.{history}")
+    if plan["truncated"]:
+        planned += f"\nShowing the first {len(plan['items'])} of {plan['total_placements']} placements."
+    sources = _source("get_week_plan", plan_args, plan)
+    due_args = {"status": "incomplete", "level": "any", "due_from": monday.isoformat(), "due_to": sunday.isoformat(),
+                "order": "deadline", **({"project": project} if project else {})}
+    due = read_tool(db, "list_tasks", due_args, now=now)
+    today = application_today_iso(now)
+    lines = [_task_line({**item, "deadline": None}) + f" — due {_day(item['deadline'])}" +
+             (" (overdue)" if item["deadline"] < today else "") for item in due["tasks"]]
+    due_text = (f"Due that week, not yet complete ({due['total']}):\n" + "\n".join(lines) if lines
+                else "Due that week, not yet complete: nothing.")
+    if due["next_offset"] is not None:
+        due_text += f"\nShowing {len(lines)} of {due['total']}; ask for more to see the rest."
+    return Direct(f"{head}:\n{planned}\n{due_text}", sources + _source("list_tasks", due_args, due))
+
+
+def application_today_iso(now: datetime) -> str:
+    from backend.domain.calendar import application_today
+    return application_today(now)[0].isoformat()
 
 
 def _time(db: Database, said: str, day_words: str | None, now: datetime) -> Direct | None:
@@ -169,7 +228,8 @@ def _tasks(db: Database, said: str, task: str | None, project: str | None, now: 
                       _source("search_tasks", arguments, data))
     if task or (status is None and level is None) or not _LIST.search(said):
         return None
-    arguments = {"status": status or "any", "level": level or "any", **scope}
+    order = {"order": "deadline"} if status == "incomplete" else {}  # A-06: earliest deadline, then title
+    arguments = {"status": status or "any", "level": level or "any", **order, **scope}
     data = read_tool(db, "list_tasks", arguments, now=now)
     noun = {"subtasks": "subtask", "top_level": "top-level task", "any": "task"}[arguments["level"]]
     kind = f"{status} {noun}" if status else noun

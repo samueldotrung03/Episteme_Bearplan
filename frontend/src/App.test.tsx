@@ -933,14 +933,18 @@ test("task creation opens on demand and retains separate drafts across projects"
   await user.click(add);
   expect(screen.getByRole("textbox", { name: "Title" })).toHaveFocus();
   await user.type(screen.getByRole("textbox", { name: "Title" }), "Math draft");
+  await user.click(screen.getByRole("button", { name: "Keep draft while this page is open" }));
   await user.click(screen.getByRole("button", { name: "Computer science" }));
   await user.click(screen.getByRole("button", { name: "+ Add task" }));
   await user.type(screen.getByRole("textbox", { name: "Title" }), "CS draft");
+  await user.click(screen.getByRole("button", { name: "Keep draft while this page is open" }));
   await user.click(screen.getByRole("button", { name: "Math 55" }));
+  await user.click(screen.getByRole("button", { name: "Continue task draft" }));
   expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("Math draft");
   await user.click(screen.getByRole("button", { name: "Cancel" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "+ Add task" })).toHaveFocus());
   await user.click(screen.getByRole("button", { name: "Computer science" }));
+  await user.click(screen.getByRole("button", { name: "Continue task draft" }));
   expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("CS draft");
 });
 
@@ -956,6 +960,28 @@ test("saving a new task returns keyboard focus to its add control", async () => 
   await waitFor(() => expect(screen.getByRole("button", { name: "+ Add task" })).toHaveFocus());
 });
 
+test("Escape does not hide the task dialog while a save is in flight", async () => {
+  fakeService([project(MATH, "Math 55", true)], []);
+  const fetcher = vi.mocked(fetch);
+  const service = fetcher.getMockImplementation()!;
+  let finish: (() => void) | undefined;
+  fetcher.mockImplementation((input, init) => String(input) === "/api/task-captures"
+    ? new Promise<Response>((resolve, reject) => { finish = () => { void Promise.resolve(service(input, init)).then(resolve, reject); }; })
+    : service(input, init));
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" }));
+  await user.click(await screen.findByRole("button", { name: "+ Add task" }));
+  await user.type(screen.getByLabelText("Title"), "Pending save");
+  await user.click(screen.getByRole("button", { name: "Add task" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled());
+  const dialog = screen.getByRole("dialog", { name: "New task" });
+  fireEvent(dialog, new Event("cancel", { cancelable: true }));
+  expect(dialog).toBeVisible();
+  finish?.();
+  await screen.findByRole("checkbox", { name: "Pending save" });
+});
+
 test("reviewing another window's pending save preserves an open task draft", async () => {
   fakeService([project(MATH, "Math 55", true)], []);
   const user = userEvent.setup();
@@ -964,14 +990,15 @@ test("reviewing another window's pending save preserves an open task draft", asy
   await screen.findByText(/no tasks in this project yet/i);
   await user.click(screen.getByRole("button", { name: "+ Add task" }));
   await user.type(screen.getByLabelText("Title"), "My unsaved draft");
+  await user.click(screen.getByRole("button", { name: "Keep draft while this page is open" }));
   localStorage.setItem("bearplans.task-capture.pending.v1", JSON.stringify({ operation_id: "pending-id", project_id: MATH, title: "Other window task", planned_date: null, notes: null, deadline: null, estimate_minutes: null }));
   fireEvent(window, new Event("storage"));
   await user.click(await screen.findByRole("button", { name: "Review pending task save" }));
   const review = screen.getByRole("region", { name: "Pending task save" });
   expect(within(review).getByLabelText("Title")).toHaveValue("Other window task");
-  expect(screen.getAllByLabelText("Title").some(input => (input as HTMLInputElement).value === "My unsaved draft")).toBe(true);
   await user.click(within(review).getByRole("button", { name: "Check save status" }));
   await waitFor(() => expect(screen.queryByRole("region", { name: "Pending task save" })).not.toBeInTheDocument());
+  await user.click(screen.getByRole("button", { name: "Continue task draft" }));
   expect(screen.getByLabelText("Title")).toHaveValue("My unsaved draft");
 });
 

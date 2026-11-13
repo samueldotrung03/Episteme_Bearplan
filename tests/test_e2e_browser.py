@@ -83,12 +83,12 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
 
         page.get_by_role("button", name="+ Add task", exact=True).click()
         page.get_by_label("Title").first.fill("Write PS7")
-        page.get_by_label("Deadline").first.fill("2026-10-20")
+        page.get_by_label("Deadline").first.fill("2099-10-20")
         page.get_by_label("Estimate (minutes)").first.fill("90")
         page.get_by_label("Notes").first.fill("Ch.4 and Ch.5 exercises.")
         page.get_by_role("button", name="Add task").click()
         expect(page.get_by_text("Write PS7", exact=True)).to_be_visible()
-        expect(page.get_by_text("Due Oct 20, 2026")).to_be_visible()
+        expect(page.get_by_text("Due Oct 20, 2099")).to_be_visible()
         expect(page.get_by_text("1 h 30 min")).to_be_visible()
 
         for subtask in ("read ch.4", "draft the proof"):
@@ -118,7 +118,7 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         child_row.get_by_role("button", name="Edit", exact=True).click()
         child_row.get_by_label("Title").fill("read ch.4 carefully")
         child_row.get_by_label("Notes").fill("Check definitions.")
-        child_row.get_by_label("Deadline").fill("2026-10-19")
+        child_row.get_by_label("Deadline").fill("2099-10-19")
         child_row.get_by_label("Estimate (minutes)").fill("25")
         child_row.get_by_role("button", name="Save changes").click()
         expect(page.get_by_text("Check definitions.")).to_be_visible()
@@ -145,12 +145,12 @@ def test_project_task_subtask_journey_survives_restart(browser, evidence: Path, 
         page.get_by_role("button", name="Math 55 — Honors", exact=True).click()
 
         expect(page.get_by_text("Write PS7", exact=True)).to_be_visible()
-        expect(page.get_by_text("Due Oct 20, 2026")).to_be_visible()
+        expect(page.get_by_text("Due Oct 20, 2099")).to_be_visible()
         expect(page.get_by_text("Ch.4 and Ch.5 exercises, final pass.")).to_be_visible()
         expect(page.get_by_label("read ch.4 carefully", exact=True)).to_be_checked()
         page.get_by_label("read ch.4 carefully", exact=True).click()
         expect(page.get_by_text("Check definitions.")).to_be_visible()
-        expect(page.get_by_text("Due Oct 19, 2026")).to_be_visible()
+        expect(page.get_by_text("Due Oct 19, 2099")).to_be_visible()
         expect(page.get_by_text("25 min")).to_be_visible()
         page.get_by_label("read ch.4 carefully", exact=True).click()
         expect(page.get_by_text("2 of 2 subtasks done")).to_be_visible()

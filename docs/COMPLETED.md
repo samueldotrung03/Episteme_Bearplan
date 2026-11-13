@@ -1,5 +1,75 @@
 # BearPlans — completed work log
 
+## 2026-11-12 — Assistant: create and plan in one change, no past deadlines, week to-dos, deadline order (A-02, A-03, A-01, A-06)
+
+Found in [G-06 user testing](reviews/2026-11-11-assistant-user-testing.md); details,
+decisions and gaps in the [review](reviews/2026-11-12-assistant-g06-fixes.md).
+A-02: a new task can be created with a planned day and a deadline as one change
+(one Apply, one Undo); a weekday before a date is accepted and must agree with it.
+A-03: deadlines before today are refused by the Assistant, task API and task
+capture; today is allowed; stored and imported deadlines are kept. A-01: “todos
+for next week” lists what is planned and what is due that Monday–Sunday week,
+labelled, across all projects. A-06: incomplete-task lists by deadline, then title.
+Router prompt `router-v9`. Changed `backend/domain/{action_library,assistant,
+assistant_actions,assistant_answers,assistant_tools,task_capture,tasks}.py`,
+`backend/routes/tasks.py`, `tests/test_assistant_actions.py`,
+`tests/test_assistant_answers.py`, new `tests/test_deadline_not_past.py`, and fixed
+past or soon-past deadlines (now 2099) in 13 API/restart/browser test files;
+`docs/{GATES,LOCAL_ASSISTANT}.md`.
+Checks on macOS: full `python3 tools/check.py` exit 0 (typecheck, 214 frontend
+tests, build, 1175 backend/browser tests, 1 skipped). `tools/m5_evaluation.py
+--model qwen3:8b`: 30/30, no unauthorized changes (an earlier v9 run was 29/30;
+fixed). Live replay of the user's phrases on disposable data behaved as above.
+An earlier full run hung for over an hour on a restart test that failed before
+the deadline fixtures were updated; it was stopped. Not committed. G-06 remains
+open until the user's retry.
+
+## 2026-11-11 — Assistant: resume a paused countdown (A-05)
+
+Found in [G-06 user testing](reviews/2026-11-11-assistant-user-testing.md):
+"Resume the test #1" asked for countdown minutes. New `resume_timer` action:
+proposal card, Apply through `TimerService` resume with revision check and
+replay, no Undo (Track rule). Naming a task that does not own the current
+countdown is refused for pause/resume/finish. Code corrects a router
+`start_timer`/`unsupported` route for a message starting "resume"/"unpause".
+Schema migration 25 rebuilds the receipt tables to allow the new kind, keeping
+every row and the immutability triggers (user approved the one-way upgrade).
+Router prompt `router-v8`. Changed `backend/domain/{assistant,assistant_actions,action_library}.py`,
+`backend/storage/migrations/0025_assistant_resume_timer.sql`, `tests/test_assistant_actions.py`,
+`tests/test_task_capture.py` (its schema-23 fixture now applies only migrations
+1–23, so it no longer assumes 24 is latest), `docs/LOCAL_ASSISTANT.md`.
+Checks on macOS: full `python3 tools/check.py` passed (typecheck, 214 frontend
+tests, build, 1156 backend/browser tests, 2 skipped); this run also covers A-04.
+`tools/m5_evaluation.py --model qwen3:8b`: 30/30, no unauthorized changes,
+disposable data. A live replay of the user's A-04/A-05 phrases on disposable
+data gave the expected clarify / proposal / resume cards. Not committed.
+G-06 remains open until the user's retry.
+
+## 2026-11-11 — Assistant: named project checked for existing tasks (A-04)
+
+Found in [G-06 user testing](reviews/2026-11-11-assistant-user-testing.md):
+"mark Test #1 in projecting project" was offered although Test #1 is in Testing.
+Updating, planning, completing and starting a timer on an existing task now
+accept a named project as a locator (never a move). An unknown project, or a
+task that is not in the named project, gets a question saying where the task is,
+with a choice button and no Apply. When the router omits the project, an
+explicit "in <name> project" / "in project <name>", or one exact project name in
+the message, is used. Changed `backend/domain/action_library.py`,
+`tests/test_assistant_actions.py` (four tests replay the user's wording; the
+wrong-project ones fail on the previous code). `python3 tools/check.py --fast`
+on macOS: typecheck, 214 frontend tests, build, 1083 backend tests passed
+(1 skipped, 70 browser tests deselected). Not run: browser tests,
+`tools/m5_evaluation.py` (router prompt unchanged). Not committed. G-06 remains open.
+
+## 2026-11-11 — Task-entry modal implementation
+
+The project task form opens as a keyboard-accessible modal; drafts can be put
+aside while the page is open, and pending saves retain existing recovery. The
+bounded Chrome matrix and failure cases passed, including Escape during an
+in-flight save. The [review](reviews/2026-11-11-task-entry-dialog.md) records
+the checks and the full-suite timing relative to the final guard. G-03 user
+acceptance remains open; the overall redesign is not complete.
+
 ## 2026-11-11 — Documentation map (refinement RF-07)
 
 New [docs/README.md](README.md): which document answers which question, which

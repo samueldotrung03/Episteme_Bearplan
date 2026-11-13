@@ -40,8 +40,9 @@ class ActionSpec:
 
 # The library: each change intent, the one tool it may use and the information it needs.
 LIBRARY: dict[str, ActionSpec] = {
-    "create_task": ActionSpec("create_task", "Create a task or subtask", ("title",),
-                              ("project", "parent", "deadline", "estimate_minutes", "notes")),
+    # date is the optional planned day, saved with the task as one change (A-02).
+    "create_task": ActionSpec("create_task", "Create a task or subtask, optionally planned on a day", ("title",),
+                              ("project", "parent", "date", "deadline", "estimate_minutes", "notes")),
     "update_task": ActionSpec("update_task", "Edit a task's title, notes, deadline or estimate", ("task", "change"),
                               ("title", "notes", "deadline", "estimate_minutes")),
     "assign_task_date": ActionSpec("assign_task_date", "Plan a task on a date", ("task", "date")),
@@ -125,7 +126,7 @@ def apply_choice(pending: Pending, choice: Choice) -> Pending:
 # Which router details each intent may use. Anything else is ignored, so a
 # value the model attached to the wrong action can never reach a tool.
 ALLOWED = {
-    "create_task": ("title", "project", "parent", "deadline", "estimate_minutes", "notes"),
+    "create_task": ("title", "project", "parent", "date", "deadline", "estimate_minutes", "notes"),
     # On existing-task actions a project only locates the task; it never moves it.
     "update_task": ("task", "project", "title", "notes", "deadline", "estimate_minutes"),
     "assign_task_date": ("task", "project", "date"),
@@ -188,6 +189,9 @@ def ground(intent: str, extracted: Slots, message: str) -> tuple[Slots, list[str
             hours = [_NUMBER_WORDS.get(word) or (float(word) if re.fullmatch(r"\d+(\.\d+)?", word) else None)
                      for index, word in enumerate(words) if index + 1 < len(words) and words[index + 1].startswith("hour")]
             grounded = str(value) in words or any(h is not None and h * 60 == value for h in hours)
+        elif intent == "create_task" and name == "date":
+            # A planned day must be stated apart from the deadline: "due November 12" is not a plan.
+            grounded = _stated_outside_due(_normal(value), said)
         else:
             grounded = bool(_normal(value)) and f" {_normal(value)} " in f" {said} "
         if grounded:
@@ -195,6 +199,19 @@ def ground(intent: str, extracted: Slots, message: str) -> tuple[Slots, list[str
         else:
             ignored.append(name)
     return Slots(**kept), ignored
+
+
+_DUE_BEFORE = re.compile(r"\b(?:due|deadline)(?:\s+(?:day|date))?(?:\s+(?:is|on|by|of))*\s*$")
+
+
+def _stated_outside_due(words: str, said: str) -> bool:
+    text = f" {said} "
+    start = text.find(f" {words} ") if words else -1
+    while start != -1:
+        if not _DUE_BEFORE.search(text[:start]):
+            return True
+        start = text.find(f" {words} ", start + 1)
+    return False
 
 
 def _label(task: Task, tasks: dict[str, Task], projects: dict[str, str]) -> str:
@@ -221,6 +238,7 @@ class Gate:
     blocked: str | None = None
 
 
+_WEEKDAY_NAMES = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 _WEEKDAYS = {name: index for index, names in enumerate((
     ("monday", "mon"), ("tuesday", "tue", "tues"), ("wednesday", "wed"), ("thursday", "thu", "thur", "thurs"),
     ("friday", "fri"), ("saturday", "sat"), ("sunday", "sun"))) for name in names}
@@ -236,9 +254,11 @@ def parse_day(text: str, today: date) -> date | None:
     Accepted: YYYY-MM-DD; today/tomorrow; a weekday or "this <weekday>" (next
     occurrence, today included); "next <weekday>" (that day in the following
     Monday–Sunday week); "<month> <day>[, year]" or "<day> <month> [year]"
-    (without a year, the next occurrence). Numeric forms like 11/12 are ambiguous.
+    (without a year, the next occurrence), optionally after its weekday
+    ("Wednesday, Nov 18th 2026"); a weekday that disagrees with the date means
+    ask (see weekday_conflict). Numeric forms like 11/12 are ambiguous.
     """
-    words = re.sub(r"[,.]|\b(on|the|of|by|due)\b|(?<=\d)(st|nd|rd|th)\b", " ", text.strip().casefold()).split()
+    words = _day_words(text)
     phrase = " ".join(words)
     if _DATE.fullmatch(phrase):
         try:
@@ -253,6 +273,9 @@ def parse_day(text: str, today: date) -> date | None:
             following_monday = today + timedelta(days=7 - today.weekday())
             return following_monday + timedelta(days=target)
         return today + timedelta(days=(target - today.weekday()) % 7)
+    stated_weekday = None
+    if len(words) > 1 and words[0] in _WEEKDAYS:
+        stated_weekday, words = _WEEKDAYS[words[0]], words[1:]
     month = day = year = None
     for word in words:
         if word in _MONTHS and month is None:
@@ -271,24 +294,76 @@ def parse_day(text: str, today: date) -> date | None:
             found = date(today.year + 1, month, day)
     except ValueError:
         return None
+    if stated_weekday is not None and found.weekday() != stated_weekday:
+        return None
     return found
 
 
+_WEEK_PHRASE = re.compile(r"\b(this|current|next|following|coming|last|previous|past)\s+week\b", re.IGNORECASE)
+_WEEK_OFFSET = {"this": 0, "current": 0, "next": 7, "following": 7, "coming": 7, "last": -7, "previous": -7, "past": -7}
+
+
+def parse_week(text: str, today: date) -> tuple[date, date, str] | None:
+    """"this/next/last week" as a Monday–Sunday range in code (A-01), with the user's words."""
+    found = _WEEK_PHRASE.search(text)
+    if found is None:
+        return None
+    monday = today - timedelta(days=today.weekday()) + timedelta(days=_WEEK_OFFSET[found.group(1).casefold()])
+    return monday, monday + timedelta(days=6), found.group(0)
+
+
+def _day_words(text: str) -> list[str]:
+    return re.sub(r"[,.]|\b(on|the|of|by|due)\b|(?<=\d)(st|nd|rd|th)\b", " ", text.strip().casefold()).split()
+
+
+def weekday_conflict(text: str, today: date) -> str | None:
+    """Explain a weekday that disagrees with its date, e.g. "Wednesday, Nov 19 2026"."""
+    words = _day_words(text)
+    if len(words) < 2 or words[0] not in _WEEKDAYS:
+        return None
+    found = parse_day(" ".join(words[1:]), today)
+    if found is None or found.weekday() == _WEEKDAYS[words[0]]:
+        return None
+    return (f"{found:%B} {found.day}, {found.year} is a {_WEEKDAY_NAMES[found.weekday()]}, "
+            f"not a {_WEEKDAY_NAMES[_WEEKDAYS[words[0]]]}.")
+
+
 _CALLED = re.compile(r"\b(?:called|named|titled)\s+[\"“']?(.+?)[\"”']?(?=\s+(?:under|in|into|due|for|with|to|and)\b|[.?!,;]|$)", re.IGNORECASE)
-_UNDER = re.compile(r"\bunder\s+(?:the\s+)?(?:task\s+)?[\"“']?(.+?)[\"”']?(?=\s+(?:in|due|for|with)\b|[.?!,;]|$)", re.IGNORECASE)
+_UNDER = re.compile(r"\bunder\s+(?:the\s+)?(?:task\s+)?[\"“']?(.+?)[\"”']?(?=\s+(?:in|due|for|with|as)\b|[.?!,;]|$)", re.IGNORECASE)
+_AS_TITLE = re.compile(r"\bas\s+[\"“](.+?)[\"”]")
+# Day words after "due"/"deadline" and after "on"/"for"; used only when they parse as a day.
+_STOP = r"(?=\s+(?:and|in|under|due|for|with|to|as)\b|[.?!;]|$)"
+_DUE = re.compile(r"\b(?:due(?:\s+(?:day|date))?|deadline)(?:\s+(?:is|on|by|of))*\s+(?P<when>.+?)" + _STOP, re.IGNORECASE)
+_ON = re.compile(r"\b(?:on|for)\s+(?P<when>.+?)" + _STOP, re.IGNORECASE)
 
 
-def _fill_creation(values: dict[str, Any], message: str, project_names: list[str]) -> None:
+def _stated_day(text: str, today: date) -> bool:
+    return parse_day(text, today) is not None or weekday_conflict(text, today) is not None
+
+
+def _fill_creation(values: dict[str, Any], message: str, project_names: list[str], top_titles: set[str],
+                   today: date) -> None:
     """Fill creation details the router omitted, only from the user's exact words.
 
     Measured: qwen3:8b sometimes drops "in Biology" or files the new title as an
     existing task. A title after called/named/titled, a parent after "under",
     and one exact project name outside the title are all stated text, so using
     them is not a guess; router values that passed grounding take precedence.
+    Measured Nov 11 (A-02): the router dropped "the due day is Nov 20th 2026" and
+    "under testing as \"Test#2\"" named the project, not a parent task. Day words
+    after "due"/"deadline" or "on"/"for" are used only when they parse as a day.
     """
     if not values["title"]:
-        found = _CALLED.search(message)
+        found = _CALLED.search(message) or _AS_TITLE.search(message)
         values["title"] = found.group(1).strip() if found else None
+    rest = message.replace(values["title"], " ") if values["title"] else message
+    due = _DUE.search(rest)
+    if due and _stated_day(due.group("when"), today):
+        rest = rest[:due.start()] + " " + rest[due.end():]
+        values["deadline"] = values["deadline"] or due.group("when").strip()
+    if not values["date"]:
+        values["date"] = next((found.group("when").strip() for found in _ON.finditer(rest)
+                               if _stated_day(found.group("when"), today)), None)
     if not values["parent"] and not values["parent_id"]:
         found = _UNDER.search(message)
         if found:
@@ -298,9 +373,14 @@ def _fill_creation(values: dict[str, Any], message: str, project_names: list[str
             explicit_task = re.search(r"\bunder\s+(?:the\s+)?task\s+", message, re.IGNORECASE)
             project = re.fullmatch(r"(?:(?:this|the)\s+)?project\s+[\"“']?(.+?)[\"”']?", destination, re.IGNORECASE)
             project = project or re.fullmatch(r"(?:(?:this|the)\s+)?(.+?)\s+project", destination, re.IGNORECASE)
-            if project and not explicit_task:
+            named = project.group(1).strip(' \"“”\'') if project else destination
+            # "under testing" names the Testing project unless a top-level task has that exact title.
+            is_project = bool(project) or (destination.casefold() not in top_titles and (
+                any(destination.casefold() == name.casefold() for name in project_names)
+                or (values["project"] and _normal(destination) == _normal(values["project"]))))
+            if is_project and not explicit_task:
                 if not values["project"] and not values["project_id"]:
-                    values["project"] = project.group(1).strip(' \"“”\'')
+                    values["project"] = named
             else:
                 values["parent"] = destination
     if not values["project"] and not values["project_id"] and not values["parent"]:
@@ -349,8 +429,12 @@ def evaluate(db: Database, timer: TimerService | None, pending: Pending, today: 
     tasks = list_tasks(db)
     by_id = {task.id: task for task in tasks}
     projects = {project.id: project.name for project in list_projects(db)}
+    if today is None:
+        from backend.domain.calendar import application_today
+        today = application_today()[0]
     if pending.intent == "create_task" and message:
-        _fill_creation(values, message, list(projects.values()))
+        _fill_creation(values, message, list(projects.values()),
+                       {task.title.casefold() for task in tasks if task.parent_id is None}, today)
     elif "task" in spec.required:
         _fill_locating_project(values, message, list(projects.values()))
 
@@ -435,14 +519,15 @@ def evaluate(db: Database, timer: TimerService | None, pending: Pending, today: 
         resolve_project("Which project, or leave it in the default project?")
         if not values["title"]:
             questions.append(QUESTIONS["title"])
-    if today is None:
-        from backend.domain.calendar import application_today
-        today = application_today()[0]
     for slot in ("date", "deadline"):
         if values[slot] is not None:
             day = parse_day(values[slot], today)
-            if day is None:
-                questions.append(f"I couldn't tell which {slot} “{values[slot]}” means. Give a date like “November 12” or 2026-11-12.")
+            conflict = weekday_conflict(values[slot], today) if day is None else None
+            label = "planned day" if slot == "date" and pending.intent == "create_task" else slot
+            if conflict:
+                questions.append(f"For the {label} “{values[slot]}”: {conflict} Which date do you mean?")
+            elif day is None:
+                questions.append(f"I couldn't tell which {label} “{values[slot]}” means. Give a date like “November 12” or 2026-11-12.")
             values[slot] = day.isoformat() if day else None
     if "date" in spec.required and values["date"] is None and not any("date" in q for q in questions):
         questions.append(QUESTIONS["date"])
@@ -483,7 +568,8 @@ def _arguments(intent: str, values: dict[str, Any]) -> dict[str, Any]:
     """Map sufficient details onto the tool's fixed schema."""
     if intent == "create_task":
         names = ("title", "project_id", "parent_id", "notes", "deadline", "estimate_minutes")
-        return {name: values[name] for name in names if values[name] is not None}
+        planned = {"planned_date": values["date"]} if values["date"] is not None else {}
+        return {**{name: values[name] for name in names if values[name] is not None}, **planned}
     if intent == "update_task":
         return {"task_id": values["task_id"], **{name: values[name] for name in ("title", "notes", "deadline", "estimate_minutes")
                                                  if values[name] is not None}}

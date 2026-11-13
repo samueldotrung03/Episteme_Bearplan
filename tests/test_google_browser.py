@@ -141,6 +141,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         page.get_by_role("button", name="+ Add task", exact=True).click()
         draft = page.get_by_label("Title", exact=True)
         draft.fill("Draft kept during Google sync")
+        page.get_by_role("button", name="Keep draft while this page is open").click()
         page.get_by_role("link", name="Settings").click()
         settings = page.get_by_role("region", name="Settings")
         settings.get_by_role("button", name="Pause automatic sync").click()
@@ -155,7 +156,9 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         expect(settings.get_by_text("Last full sync", exact=False)).to_be_visible()
         page.screenshot(path=evidence / "google-partial-sync.png")
         page.get_by_role("button", name="Back to work").click()
+        page.get_by_role("button", name="Continue task draft").click()
         expect(draft).to_have_value("Draft kept during Google sync")
+        page.get_by_role("button", name="Keep draft while this page is open").click()
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
         expect(page.locator(".planned-card", has_text="Office hours").get_by_role("checkbox")).not_to_be_checked()
 

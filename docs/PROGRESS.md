@@ -1,6 +1,6 @@
 # BearPlans — current progress
 
-Updated November 11, 2026. Read [AGENTS.md](../AGENTS.md) before resuming.
+Updated November 12, 2026. Read [AGENTS.md](../AGENTS.md) before resuming.
 Finished work and evidence are in [COMPLETED.md](COMPLETED.md); this file is the
 single current handoff.
 
@@ -91,10 +91,13 @@ G-02 passed its bounded keyboard and light/dark matrix at 640, 800 and 1440 px;
 see the [matrix review](reviews/2026-11-11-task-capture-g02-matrix.md) for the
 tested path and remaining accessibility limitations.
 
-**Next concrete step:** Continue the Figma task-entry dialog and complete its
-presentation matrix and user acceptance using the
-[UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md). The task-entry integration
-remains in progress.
+**Next concrete step:** Review the task-entry dialog with the user using the
+[UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md), including tasks with and without
+a planned day, reload and retained drafts. G-03 remains open; the task-entry
+integration remains in progress until that review is accepted.
+For this review a disposable schema-24 instance was started on port 18992 with
+data at `/private/tmp/bearplans-ux-dialog-review-20261111`; verify it is still
+running and uses this data folder before relying on it.
 
 On November 11, a joint walkthrough was started with a disposable schema-24
 instance on port 18991, using `/private/tmp/bearplans-shared-check-20261111`.
@@ -107,20 +110,21 @@ Continue with the other user checks before the seven-day trial, as requested;
 the old trial candidate and its checklist remain superseded by RF-04.
 
 The user subsequently requested implementation of the remaining Figma UX in the
-current project. The active task-entry slice now has an initial presentation
-adjustment toward the Figma New task screen (heading, field spacing and surface).
-It is still an inline form, not the Figma dialog. Its existing save/recovery
-behavior remains in place. The new appearance passed the bounded G-13 matrix
-in browser automation on the inline form. Continue the
-active slice before treating it as accepted, then scope the remaining redesign
-under the open-gate rule. The user requested the seven-day trial last.
+current project. The task-entry form now opens as a modal dialog. Escape or the
+keep-draft control puts an unsaved draft aside while the page stays open; pending
+save recovery retains its existing durable receipt and replay behavior. The
+[dialog review](reviews/2026-11-11-task-entry-dialog.md) records bounded browser
+checks and remaining acceptance. Continue the active slice before treating it as
+accepted, then scope the remaining redesign under the open-gate rule. The user
+requested the seven-day trial last.
 The [alignment review](reviews/2026-11-11-task-entry-figma-alignment.md) records
 partial 640 px light and 1440 px dark error-state inspection, passing focused
 browser checks after updating stale tests, and the remaining verification.
 The final `python3 tools/check.py` run passed typecheck, 213 frontend tests,
 build and 1142 backend/browser tests (1 skipped), using disposable data on macOS.
-The [G-13 matrix](reviews/2026-11-11-task-capture-g13-matrix.md) passed on the
-current inline form; a future modal needs fresh verification.
+The [G-13 matrix](reviews/2026-11-11-task-capture-g13-matrix.md) covered the
+earlier inline form. The new dialog has separate bounded checks documented in
+the [dialog review](reviews/2026-11-11-task-entry-dialog.md).
 
 ## Open follow-ups and gates
 
@@ -136,6 +140,24 @@ The bullets below are kept as context while the task-entry slice edits this file
   broader Assistant operator acceptance and the applied-action history view remain
   open. The user confirmed matching running/paused timers finish when their task
   is completed; Needs review must be resolved in Track first.
+- **Assistant user testing, Nov 11 (G-06 partly tried, not passed):** of six
+  requests, completion and the remaining-tasks list worked. Defects: a named
+  project is ignored when acting on a task (A-04, wrong record risk); "Resume"
+  asks for minutes (A-05); create with a planned day and deadline is refused as
+  two changes (A-02); past deadlines are accepted (A-03); "next week" is searched
+  as a title (A-01). Record: [user testing](reviews/2026-11-11-assistant-user-testing.md);
+  fix plan and order in [GATES.md](GATES.md#planned-fixes-from-g-06-testing-nov-11).
+  User decisions, Nov 11: a deadline of today is allowed (A-03); "todos for next
+  week" shows both tasks planned and tasks due next week, labelled (A-01).
+  A-04 and A-05 were committed (`98e0f78`; schema migration 25). A-02, A-03,
+  A-01 and A-06 were fixed on Nov 12 in the working tree, not committed (router
+  prompt `router-v9`; [review](reviews/2026-11-12-assistant-g06-fixes.md)): full
+  `tools/check.py` passed and the live evaluation passed 30/30 with qwen3:8b.
+  **Next: the user retries G-06** (the six requests plus edit and finish, with
+  Apply and Undo; about 20 minutes) on a restarted disposable instance. Open
+  follow-up: date pickers do not yet stop a past deadline before Save (the
+  server refuses it). Disposable/demo instances on schema 24 upgrade to 25 when
+  restarted with this build.
 - Settings and connections were delivered with follow-ups. Real same-account
   reauthorization, real-provider verification and a system-wide offline operator
   test remain unverified and require separately bounded authorization. A reviewed

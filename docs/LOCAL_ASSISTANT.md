@@ -18,10 +18,22 @@ A project named with an existing task only locates it: if the task is not in
 that project, or the project does not exist, the Assistant says where the task
 is and offers a choice instead of a proposal. “Resume” (optionally with the
 task's name) resumes the paused countdown; naming another task is refused.
+A new task can be planned and given a deadline in the same request, as in the
+task form: “Add Test#2 under Testing on Wednesday, Nov 18th 2026, due Nov 20th
+2026” is one card, one Apply and one Undo (Undo removes the task and its plan
+only while both are unchanged). A deadline may be today or later; an earlier
+one is refused here, in the task form and through the API. Deadlines already
+saved (or imported from Google Tasks or bCourses) stay as they are when other
+fields change.
 
 Ask for one change at a time. Day words such as “Tuesday”, “next Friday” or
 “November 12” are converted by BearPlans, not the model; check the weekday on
-the card. Numeric dates like 11/12 are ambiguous and will be asked.
+the card. A weekday before a date (“Wednesday, Nov 18th 2026”) must agree with
+it, otherwise the Assistant asks. Numeric dates like 11/12 are ambiguous and will be asked.
+“This week”, “next week” and “last week” mean Monday–Sunday. “Check the todos
+for next week” answers, across all projects unless you name one, with two
+labelled lists: what is planned that week and the incomplete tasks due that week.
+Lists of incomplete tasks are ordered by deadline, then title.
 Completing a task also finishes its matching active timer and saves confirmed
 time. Needs review must be resolved in Track first. Undo reopens the task while
 keeping the finalized session saved.

@@ -48,13 +48,13 @@ def test_reader_agent_has_only_read_tools(db):
 def test_sufficient_request_becomes_proposal_without_writing(db):
     project = create_project(db, "School")
     task = create_task(db, "Essay", project_id=project.id)
-    provider = FakeProvider(routes=[{"intent": "update_task", "task": "essay", "deadline": "2026-11-20", "notes": ""}])
+    provider = FakeProvider(routes=[{"intent": "update_task", "task": "essay", "deadline": "2099-11-20", "notes": ""}])
     before = rows(db)
-    reply = ask(db, provider, "Move Essay's deadline to 2026-11-20")
+    reply = ask(db, provider, "Move Essay's deadline to 2099-11-20")
     assert rows(db) == before and provider.messages == []  # the reader agent never ran
     assert reply["kind"] == "proposal" and reply["route"]["agents"] == ["router", "grounding", "action_library", "gate"]
     proposal = reply["proposals"][0]
-    assert proposal["arguments"] == {"task_id": task.id, "deadline": "2026-11-20"}
+    assert proposal["arguments"] == {"task_id": task.id, "deadline": "2099-11-20"}
     assert proposal["expected"]["tasks"] == {task.id: task.revision}
     assert "Nothing has changed yet" in reply["answer"]
     assert "never convert them" in provider.route_messages[0][0]["content"]  # dates are resolved by code
@@ -147,19 +147,19 @@ def test_router_output_is_validated(db):
 
 def test_create_apply_replay_and_undo(db):
     project = create_project(db, "School")
-    proposal = propose_action(db, None, "create_task", {"title": "Lab report", "project_id": project.id, "deadline": "2026-11-09"})
-    assert len(list_tasks(db)) == 0 and proposal["summary"] == 'Create task "Lab report" in School, due Mon 2026-11-09'
+    proposal = propose_action(db, None, "create_task", {"title": "Lab report", "project_id": project.id, "deadline": "2099-11-09"})
+    assert len(list_tasks(db)) == 0 and proposal["summary"] == 'Create task "Lab report" in School, due Mon 2099-11-09'
     op = key()
     applied = apply_action(db, None, proposal, op)
     task = get_task(db, applied["task"]["id"])
-    assert task.project_id == project.id and str(task.deadline) == "2026-11-09" and applied["undoable"]
+    assert task.project_id == project.id and str(task.deadline) == "2099-11-09" and applied["undoable"]
     assert apply_action(db, None, proposal, op) == {**applied, "replayed": True}
     assert len(list_tasks(db)) == 1
     with pytest.raises(ActionConflict, match="different change"):
         apply_action(db, None, {**proposal, "arguments": {"title": "Other"}}, op)
     undo = key()
     result = undo_action(db, op, undo)
-    assert result["summary"] == 'Undid: Create task "Lab report" in School, due Mon 2026-11-09' and list_tasks(db) == []
+    assert result["summary"] == 'Undid: Create task "Lab report" in School, due Mon 2099-11-09' and list_tasks(db) == []
     assert undo_action(db, op, undo) == {**result, "replayed": True}
     with pytest.raises(ActionConflict, match="already undone"):
         undo_action(db, op, key())
@@ -443,9 +443,9 @@ def test_creation_details_are_read_from_the_users_words_when_the_router_omits_th
     biology = create_project(db, "Biology")
     writing = create_project(db, "Writing")
     essay = create_task(db, "Essay", project_id=writing.id)
-    reply = ask(db, FakeProvider(routes=[{"intent": "create_task", "title": "Problem set 5", "deadline": "2026-11-11"}]),
-                "Create a task called Problem set 5 due 2026-11-11 in Biology.")
-    assert reply["proposals"][0]["arguments"] == {"title": "Problem set 5", "project_id": biology.id, "deadline": "2026-11-11"}
+    reply = ask(db, FakeProvider(routes=[{"intent": "create_task", "title": "Problem set 5", "deadline": "2099-11-11"}]),
+                "Create a task called Problem set 5 due 2099-11-11 in Biology.")
+    assert reply["proposals"][0]["arguments"] == {"title": "Problem set 5", "project_id": biology.id, "deadline": "2099-11-11"}
     sub = ask(db, FakeProvider(routes=[{"intent": "create_task", "task": "Conclusion"}]), "Add a subtask called Conclusion under Essay.")
     assert sub["proposals"][0]["arguments"] == {"title": "Conclusion", "parent_id": essay.id}
     titled = ask(db, FakeProvider(routes=[{"intent": "create_task"}]), "Create a task called Writing practice")
@@ -630,3 +630,114 @@ def test_migration_0025_keeps_receipts_allows_resume_and_stays_immutable(tmp_pat
         conn.execute("INSERT INTO assistant_actions VALUES (?, 'resume_timer', 'f', '{}', NULL, '{}', 't')", (key(),))
         with pytest.raises(sqlite3.IntegrityError):
             conn.execute("INSERT INTO assistant_actions VALUES (?, 'drop_everything', 'f', '{}', NULL, '{}', 't')", (key(),))
+
+
+A02_MESSAGE = 'add the task under testing as "Test#2" on Wednesday , Nov 18th 2026 and the due day is Nov 20th 2026'
+
+
+@pytest.fixture
+def nov_11(monkeypatch):
+    """Service Today of the user's G-06 session (a Wednesday)."""
+    from datetime import date
+    import backend.domain.calendar as calendar
+    monkeypatch.setattr(calendar, "application_today", lambda now=None: (date(2026, 11, 11), "America/Los_Angeles"))
+
+
+# Live qwen3:8b route for A02_MESSAGE with router-v8 (it dropped the deadline), and the full route.
+A02_ROUTES = [{"intent": "create_task", "title": "Test#2", "project": "testing", "date": "Wednesday, Nov 18th 2026"},
+              {"intent": "create_task", "title": "Test#2", "project": "testing", "date": "Wednesday, Nov 18th 2026",
+               "deadline": "Nov 20th 2026"},
+              {"intent": "create_task", "title": "Test#2"}]
+
+
+@pytest.mark.parametrize("route", A02_ROUTES)
+def test_create_with_planned_day_and_deadline_is_one_change(db, nov_11, route):
+    """User testing, Nov 11 (A-02): this was refused as two changes."""
+    testing = create_project(db, "Testing")
+    create_task(db, "Test #1", project_id=testing.id)
+    before = rows(db)
+    reply = ask(db, FakeProvider(routes=[route]), A02_MESSAGE)
+    assert rows(db) == before and reply["kind"] == "proposal", reply["answer"]
+    proposal = reply["proposals"][0]
+    assert proposal["arguments"] == {"title": "Test#2", "project_id": testing.id, "deadline": "2026-11-20",
+                                     "planned_date": "2026-11-18"}
+    assert proposal["summary"] == 'Create task "Test#2" in Testing, planned Wed 2026-11-18, due Fri 2026-11-20'
+    op = key()
+    applied = apply_action(db, None, proposal, op)
+    task = get_task(db, applied["task"]["id"])
+    assert str(task.deadline) == "2026-11-20" and task.project_id == testing.id
+    assert [(p.task_id, str(p.planned_date)) for p in list_placements(db)] == [(task.id, "2026-11-18")]
+    assert apply_action(db, None, proposal, op) == {**applied, "replayed": True}
+    assert len(list_placements(db)) == 1
+    undone = undo_action(db, op, key())
+    assert undone["summary"].startswith('Undid: Create task "Test#2"')
+    assert rows(db)["tasks"] == before["tasks"] and list_placements(db) == []
+
+
+def test_undo_of_create_and_plan_is_refused_after_the_plan_moves(db, nov_11):
+    from backend.domain.planning import move_placement
+    proposal = propose_action(db, None, "create_task", {"title": "Lab", "planned_date": "2026-11-18"})
+    op = key()
+    applied = apply_action(db, None, proposal, op)
+    move_placement(db, applied["placement"]["id"], "2026-11-19")
+    before = rows(db)
+    with pytest.raises(ActionConflict, match="planned date changed"):
+        undo_action(db, op, key())
+    assert rows(db) == before
+
+
+def test_planned_day_on_a_closed_week_is_blocked_and_nothing_is_created(db, nov_11):
+    preview_token = preview_close(db, "2026-11-02").preview_token
+    close_week(db, "2026-11-02", preview_token)
+    before = rows(db)
+    with pytest.raises(InvalidInput):
+        propose_action(db, None, "create_task", {"title": "Lab", "planned_date": "2026-11-04"})
+    assert rows(db) == before
+
+
+def test_weekday_that_disagrees_with_the_date_is_asked(db, nov_11):
+    message = 'add "Test#2" on Thursday, Nov 18th 2026'
+    before = rows(db)
+    reply = ask(db, FakeProvider(routes=[{"intent": "create_task", "title": "Test#2", "date": "Thursday, Nov 18th 2026"}]), message)
+    assert reply["kind"] == "clarify" and not reply["proposals"] and rows(db) == before
+    assert "November 18, 2026 is a Wednesday, not a Thursday" in reply["answer"]
+
+
+def test_parse_day_accepts_a_weekday_before_its_date():
+    from datetime import date
+    from backend.domain.action_library import parse_day, weekday_conflict
+    today = date(2026, 11, 11)
+    assert parse_day("Wednesday, Nov 18th 2026", today) == date(2026, 11, 18)
+    assert parse_day("wed nov 18", today) == date(2026, 11, 18)
+    assert parse_day("Thursday, Nov 18th 2026", today) is None
+    assert weekday_conflict("Thu Nov 18 2026", today) == "November 18, 2026 is a Wednesday, not a Thursday."
+    assert weekday_conflict("Wednesday, Nov 18th 2026", today) is None and weekday_conflict("Wednesday", today) is None
+
+
+def test_under_a_task_title_still_names_the_parent(db, nov_11):
+    """"under X" stays a parent when a top-level task has that exact title, even if a project shares it."""
+    create_project(db, "Testing")
+    parent = create_task(db, "Testing")
+    reply = ask(db, FakeProvider(routes=[{"intent": "create_task", "title": "Step 1"}]), 'add a subtask under Testing as "Step 1"')
+    assert reply["kind"] == "proposal", reply["answer"]
+    assert reply["proposals"][0]["arguments"] == {"title": "Step 1", "parent_id": parent.id}
+
+
+def test_assistant_rejects_a_past_deadline_but_keeps_stored_ones(db, nov_11):
+    """A-03 (user decision Nov 11: today is allowed)."""
+    before = rows(db)
+    past = ask(db, FakeProvider(routes=[{"intent": "create_task", "title": "Late", "deadline": "Nov 10 2026"}]),
+               "Create a task called Late due Nov 10 2026")
+    assert past["kind"] == "blocked" and "before today (2026-11-11)" in past["answer"] and rows(db) == before
+    today = propose_action(db, None, "create_task", {"title": "Now", "deadline": "2026-11-11"})
+    assert today["arguments"]["deadline"] == "2026-11-11"
+    stored = create_task(db, "Overdue", deadline="2026-11-01")  # e.g. imported, or entered earlier
+    with pytest.raises(InvalidInput, match="before today"):
+        propose_action(db, None, "update_task", {"task_id": stored.id, "deadline": "2026-11-05"})
+    renamed = propose_action(db, None, "update_task", {"task_id": stored.id, "title": "Overdue essay"})
+    assert renamed["arguments"] == {"task_id": stored.id, "title": "Overdue essay"}
+    moved = propose_action(db, None, "update_task", {"task_id": stored.id, "deadline": "2026-11-20"})
+    op = key()
+    apply_action(db, None, moved, op)
+    undo_action(db, op, key())  # Undo restores the earlier, now past, deadline
+    assert str(get_task(db, stored.id).deadline) == "2026-11-01"

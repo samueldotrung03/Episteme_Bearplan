@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt, StrictStr
 
+from backend.domain.calendar import application_today
 from backend.domain.task_capture import CaptureResult, capture_task
 from backend.domain.tasks import (
     UNSET, CompletionProgress, Task, completion_progress, create_task, list_tasks,
@@ -83,12 +84,13 @@ def post_task(body: TaskCreateRequest, request: Request) -> Task:
         notes=body.notes,
         deadline=body.deadline,
         estimate_minutes=body.estimate_minutes,
+        today=application_today()[0],
     )
 
 
 @router.post("/task-captures", status_code=201)
 def post_task_capture(body: TaskCaptureRequest, request: Request) -> CaptureResult:
-    return capture_task(_db(request), **body.model_dump())
+    return capture_task(_db(request), **body.model_dump(), today=application_today()[0])
 
 
 @router.patch("/tasks/{task_id}")
@@ -101,6 +103,7 @@ def patch_task(task_id: str, body: TaskUpdateRequest, request: Request) -> Task:
         notes=supplied.get("notes", UNSET),
         deadline=supplied.get("deadline", UNSET),
         estimate_minutes=supplied.get("estimate_minutes", UNSET),
+        today=application_today()[0],
     )
 
 

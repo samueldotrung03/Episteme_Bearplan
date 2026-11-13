@@ -38,6 +38,9 @@ class ListArguments(Arguments):
     project_id: str | None = Field(default=None, max_length=100)
     project: str | None = Field(default=None, max_length=100)
     has_deadline: bool | None = None
+    # Inclusive YYYY-MM-DD range for deadlines, e.g. a Monday–Sunday week.
+    due_from: str | None = Field(default=None, max_length=10)
+    due_to: str | None = Field(default=None, max_length=10)
     order: Literal["created", "deadline"] = "created"
     offset: int = Field(default=0, ge=0, le=10000)
     limit: int = Field(default=20, ge=1, le=20)
@@ -51,7 +54,7 @@ TOOL_MODELS: dict[str, tuple[type[Arguments], str]] = {
     "get_day_plan": (PlanArguments, "Read planned work on a date; omit date for service Today. Includes frozen history for a closed week."),
     "get_week_plan": (PlanArguments, "Read a Monday–Sunday plan containing date; omit date for this service week. Includes frozen history if closed."),
     "search_tasks": (SearchArguments, "Find current tasks by literal case-insensitive title or notes. Optional status (incomplete, complete, any; default any). Optional project (exact name) or project_id limits the search. Returns stable IDs and pagination; duplicate names are distinct."),
-    "list_tasks": (ListArguments, "List current tasks by completion and level without a search word. level: subtasks (tasks with a parent), top_level, work_items (tasks without subtasks) or any. Give project (exact name) or project_id only when the user limits it to one project; omit both for all projects. has_deadline=true with order=deadline lists upcoming deadlines earliest first. Returns totals and pagination."),
+    "list_tasks": (ListArguments, "List current tasks by completion and level without a search word. level: subtasks (tasks with a parent), top_level, work_items (tasks without subtasks) or any. Give project (exact name) or project_id only when the user limits it to one project; omit both for all projects. has_deadline=true with order=deadline lists upcoming deadlines earliest first; due_from/due_to (YYYY-MM-DD, inclusive) limit deadlines to a range. Returns totals and pagination."),
     "get_task": (TaskArguments, "Read one current task by its exact stable ID, including notes, deadline and completion."),
     "get_time_summary": (Arguments, "Read exact all-time saved active microseconds, current leaf completion and the latest 31 dated totals. Running/uncertain time is excluded."),
 }
@@ -119,13 +122,19 @@ def read_tool(db: Database, name: str, raw: dict, *, now: datetime | None = None
         level = {"subtasks": lambda t: t.parent_id is not None, "top_level": lambda t: t.parent_id is None,
                  "work_items": lambda t: not t.is_parent, "any": lambda t: True}[args["level"]]
         status = {"incomplete": lambda t: not t.completed, "complete": lambda t: t.completed, "any": lambda t: True}[args["status"]]
+        due_from = _date(args["due_from"], "due_from") if args["due_from"] else None
+        due_to = _date(args["due_to"], "due_to") if args["due_to"] else None
         tasks = [t for t in everything if level(t) and status(t)
-                 and (args["has_deadline"] is None or (t.deadline is not None) == args["has_deadline"])]
+                 and (args["has_deadline"] is None or (t.deadline is not None) == args["has_deadline"])
+                 and (due_from is None or (t.deadline is not None and t.deadline >= due_from))
+                 and (due_to is None or (t.deadline is not None and t.deadline <= due_to))]
         if args["order"] == "deadline":
-            tasks.sort(key=lambda t: (t.deadline is None, t.deadline or date.max))
+            # Earliest deadline first, then title (A-06); undated tasks last.
+            tasks.sort(key=lambda t: (t.deadline is None, t.deadline or date.max, t.title.casefold()))
         page = tasks[args["offset"]:args["offset"] + args["limit"]]
         return {"total": len(tasks), "offset": args["offset"], "status": args["status"], "level": args["level"],
-                "has_deadline": args["has_deadline"], "order": args["order"],
+                "has_deadline": args["has_deadline"], "due_from": args["due_from"], "due_to": args["due_to"],
+                "order": args["order"],
                 "scope_project_id": args["project_id"], "scope_project_name": projects.get(args["project_id"]),
                 "next_offset": args["offset"] + len(page) if args["offset"] + len(page) < len(tasks) else None,
                 "tasks": [_task_data(t, projects, notes=t.notes[:200], notes_truncated=len(t.notes) > 200,

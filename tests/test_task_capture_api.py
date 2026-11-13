@@ -13,7 +13,7 @@ from backend.storage.db import open_database
 
 
 def test_capture_retry_survives_restart_and_conflicting_reuse(client, db):
-    payload = {"operation_id": str(uuid4()), "title": "Study", "notes": "Read first", "deadline": "2026-11-20", "estimate_minutes": 30, "planned_date": "2026-11-11"}
+    payload = {"operation_id": str(uuid4()), "title": "Study", "notes": "Read first", "deadline": "2099-11-20", "estimate_minutes": 30, "planned_date": "2026-11-11"}
     first = client.post("/api/task-captures", json=payload)
     assert first.status_code == 201
     result = first.json()

@@ -5,7 +5,7 @@ import { checkCapture, readPendingCapture, resolveRejectedCapture, startCapture,
 const message = (error: unknown) => error instanceof Error ? error.message : "Could not save. Try again.";
 const notify = (origin: object) => window.dispatchEvent(new CustomEvent("bearplans-capture-change", { detail: origin }));
 
-export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: string; onCancel: (resolvedElsewhere: boolean) => void; onSaved: () => void }) {
+export function TaskCaptureForm({ projectId, onCancel, onSaved, onKeepDraft }: { projectId: string; onCancel: (resolvedElsewhere: boolean) => void; onSaved: () => void; onKeepDraft?: () => void }) {
   const origin = useRef({});
   const [initial] = useState(() => { try { const pending = readPendingCapture(); return pending?.project_id === projectId ? pending : null; } catch { return null; } });
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -105,8 +105,8 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
     } catch (caught) { setRejected(false); setError(`${message(caught)} Your request is kept; check its status again.`); }
     finally { setBusy(false); }
   }
-  return <form ref={form} className="task-form capture-form" onSubmit={submit}>
-    <h3>New task</h3>
+  return <form ref={form} className="task-form capture-form" data-busy={busy} onSubmit={submit}>
+    <h3 id={onKeepDraft ? `capture-heading-${projectId}` : undefined}>New task</h3>
     <div className="field"><label htmlFor={`capture-title-${uid}`}>Title</label><input ref={titleInput} autoFocus id={`capture-title-${uid}`} value={title} disabled={locked} onChange={e => setTitle(e.target.value)} required aria-invalid={titleTooLong || undefined} aria-describedby={titleTooLong ? `capture-title-error-${uid}` : undefined} /></div>
     <div className="field-row">
       <div className="field"><label htmlFor={`capture-deadline-${uid}`}>Deadline</label><input id={`capture-deadline-${uid}`} type="date" value={deadline} disabled={locked} onChange={e => setDeadline(e.target.value)} /></div>
@@ -120,6 +120,7 @@ export function TaskCaptureForm({ projectId, onCancel, onSaved }: { projectId: s
     <div className="form-actions">
       {resolvedElsewhere ? null : pending && !rejected ? <button ref={checkButton} type="button" disabled={busy} onClick={() => void check()}>{busy ? "Checking…" : "Check save status"}</button> : <button type="submit" disabled={busy || !validTitle}>{busy ? "Saving…" : "Add task"}</button>}
       <button ref={cancelButton} type="button" className="link" disabled={busy || (!!pending && !rejected && !resolvedElsewhere)} onClick={() => void cancel()}>Cancel</button>
+      {onKeepDraft ? <button type="button" className="link" disabled={busy} onClick={onKeepDraft}>Keep draft while this page is open</button> : null}
     </div>
   </form>;
 }

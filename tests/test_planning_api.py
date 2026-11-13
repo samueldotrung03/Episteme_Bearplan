@@ -9,7 +9,7 @@ from backend.storage.db import Database
 
 
 def make_task(client: TestClient, title: str = "Work") -> dict:
-    response = client.post("/api/tasks", json={"title": title, "deadline": "2026-10-30", "notes": "Keep"})
+    response = client.post("/api/tasks", json={"title": title, "deadline": "2099-10-30", "notes": "Keep"})
     assert response.status_code == 201
     return response.json()
 

@@ -12,7 +12,7 @@ def test_compact_week_reopen_failure_retry(browser, evidence, tmp_path, width, t
     page = browser.new_page(viewport={"width": width, "height": 900}, color_scheme=theme)
     attempts = []
     try:
-        _, task = http_json("POST", service.url + "/api/tasks", {"title": "Read primary source", "deadline": "2026-12-01", "estimate_minutes": 30})
+        _, task = http_json("POST", service.url + "/api/tasks", {"title": "Read primary source", "deadline": "2099-12-01", "estimate_minutes": 30})
         _, plan = http_json("GET", service.url + "/api/planning")
         http_json("POST", service.url + "/api/placements", {"task_id": task["id"], "planned_date": plan["today"]})
         http_json("PUT", service.url + f"/api/tasks/{task['id']}/completion", {"complete": True})
@@ -31,7 +31,7 @@ def test_compact_week_reopen_failure_retry(browser, evidence, tmp_path, width, t
         expect(checkbox).to_be_checked()
         expect(checkbox).to_have_accessible_description("Inbox")
         expect(card.locator(".planned-card-heading")).to_be_hidden()
-        expect(card.get_by_text("Due Dec 1, 2026")).to_be_hidden()
+        expect(card.get_by_text("Due Dec 1, 2099")).to_be_hidden()
         expect(card.get_by_text("Move or remove")).to_be_hidden()
         assert no_horizontal_overflow(page)
         card.scroll_into_view_if_needed()
@@ -44,11 +44,11 @@ def test_compact_week_reopen_failure_retry(browser, evidence, tmp_path, width, t
         page.keyboard.press("Space")
         expect(checkbox).not_to_be_checked()
         expect(checkbox).to_be_focused()
-        expect(card.get_by_text("Due Dec 1, 2026")).to_be_visible()
+        expect(card.get_by_text("Due Dec 1, 2099")).to_be_visible()
         expect(card.get_by_text("Move or remove")).to_be_visible()
         expect(card.get_by_text("30 min estimated")).to_be_visible()
         if width == 640:
-            assert card.get_by_text("Due Dec 1, 2026").bounding_box()["y"] == card.get_by_text("30 min estimated").bounding_box()["y"]
+            assert card.get_by_text("Due Dec 1, 2099").bounding_box()["y"] == card.get_by_text("30 min estimated").bounding_box()["y"]
         assert no_horizontal_overflow(page)
         page.screenshot(path=str(evidence / f"active-week-{width}-{theme}.png"))
     finally:

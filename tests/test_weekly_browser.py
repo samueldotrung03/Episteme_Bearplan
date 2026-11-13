@@ -24,7 +24,7 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
     try:
         _, parent = http_json("POST", service.url + "/api/tasks", {"title": "Homework", "notes": "Keep parent notes"})
         _, child = http_json("POST", service.url + "/api/tasks", {
-            "title": "Draft proof", "parent_id": parent["id"], "deadline": "2026-11-20", "notes": "Keep proof notes", "estimate_minutes": 45,
+            "title": "Draft proof", "parent_id": parent["id"], "deadline": "2099-11-20", "notes": "Keep proof notes", "estimate_minutes": 45,
         })
         _, other = http_json("POST", service.url + "/api/tasks", {"title": "Review proof", "parent_id": parent["id"]})
         _, backlog = http_json("POST", service.url + "/api/tasks", {"title": "Unscheduled reading"})
@@ -63,7 +63,7 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         assert len(state["tasks"]) == len(initial["tasks"]) == 4
         assert next(task for task in state["tasks"] if task["id"] == child["id"]) == child
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
-        expect(page.locator(".week-board").get_by_text("Due Nov 20, 2026")).to_be_visible()
+        expect(page.locator(".week-board").get_by_text("Due Nov 20, 2099")).to_be_visible()
         expect(page.locator(".week-board").get_by_text("Inbox / Homework")).to_have_count(2)
         assert no_horizontal_overflow(page)
         page.screenshot(path=evidence / "single-day-01-wide.png", full_page=True)

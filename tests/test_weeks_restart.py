@@ -18,7 +18,7 @@ def test_closed_history_carryover_and_retry_survive_service_and_launcher_restart
         assert status == 201
         status, child = http_json("POST", f"{first.url}/api/tasks", {
             "title": "Original proof", "parent_id": parent["id"], "notes": "Original notes",
-            "deadline": "2026-10-30", "estimate_minutes": 45,
+            "deadline": "2099-10-30", "estimate_minutes": 45,
         })
         assert status == 201
         status, placement = http_json("POST", f"{first.url}/api/placements", {"task_id": child["id"], "planned_date": "2026-10-15"})
@@ -47,7 +47,7 @@ def test_closed_history_carryover_and_retry_survive_service_and_launcher_restart
         assert carried["placements"][0]["id"] != placement["id"]
         assert http_json("PATCH", f"{second.url}/api/projects/{project['id']}", {"name": "Current course"})[0] == 200
         assert http_json("PATCH", f"{second.url}/api/tasks/{child['id']}", {
-            "title": "Current proof", "notes": "Current notes", "deadline": "2027-01-01",
+            "title": "Current proof", "notes": "Current notes", "deadline": "2099-01-01",
         })[0] == 200
         assert http_json("PUT", f"{second.url}/api/tasks/{child['id']}/completion", {"complete": True})[0] == 200
         assert second.stop() == 0
@@ -59,11 +59,11 @@ def test_closed_history_carryover_and_retry_survive_service_and_launcher_restart
         assert planning["placements"] == carried["placements"]
         saved = {task["id"]: task for task in planning["tasks"]}
         assert saved[child["id"]]["title"] == "Current proof" and saved[child["id"]]["completed"] is True
-        assert saved[child["id"]]["deadline"] == "2027-01-01"
+        assert saved[child["id"]]["deadline"] == "2099-01-01"
         assert saved[parent["id"]]["completed"] is True
         historical = {task["id"]: task for task in history["tasks"]}
         assert historical[child["id"]]["title"] == "Original proof" and historical[child["id"]]["completed"] is False
-        assert historical[child["id"]]["deadline"] == "2026-10-30"
+        assert historical[child["id"]]["deadline"] == "2099-10-30"
         assert historical[child["id"]]["project_name"] == "Original course"
         assert http_json("POST", f"{third.url}/api/weeks/{week}/carryover", carry_payload) == (200, carried)
         assert http_json("POST", f"{third.url}/api/weeks/{week}/close", close_payload) == (200, history)

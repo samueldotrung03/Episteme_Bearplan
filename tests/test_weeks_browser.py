@@ -19,7 +19,7 @@ def test_closed_week_and_reviewed_carryover_survive_changes_restart_and_lost_res
         _, project = http_json("POST", service.url + "/api/projects", {"name": "Proof seminar"})
         _, parent = http_json("POST", service.url + "/api/tasks", {"title": "Assignment", "project_id": project["id"]})
         _, draft = http_json("POST", service.url + "/api/tasks", {
-            "title": "Draft proof", "parent_id": parent["id"], "notes": "Frozen proof notes", "deadline": "2026-11-20", "estimate_minutes": 45,
+            "title": "Draft proof", "parent_id": parent["id"], "notes": "Frozen proof notes", "deadline": "2099-11-20", "estimate_minutes": 45,
         })
         _, review = http_json("POST", service.url + "/api/tasks", {"title": "Review proof", "parent_id": parent["id"]})
         http_json("PUT", service.url + f"/api/tasks/{review['id']}/completion", {"complete": True})
@@ -68,7 +68,7 @@ def test_closed_week_and_reviewed_carryover_survive_changes_restart_and_lost_res
         assert untouched["placements"] == []  # Preselection alone saves nothing.
 
         # All later edits affect current tasks only, including current completion.
-        http_json("PATCH", service.url + f"/api/tasks/{draft['id']}", {"title": "Revise proof", "notes": "Current notes", "deadline": "2026-12-31"})
+        http_json("PATCH", service.url + f"/api/tasks/{draft['id']}", {"title": "Revise proof", "notes": "Current notes", "deadline": "2099-12-31"})
         http_json("PATCH", service.url + f"/api/tasks/{parent['id']}", {"title": "Current assignment"})
         http_json("PATCH", service.url + f"/api/projects/{project['id']}", {"name": "Current seminar"})
         http_json("PUT", service.url + f"/api/tasks/{later['id']}/completion", {"complete": True})
@@ -81,7 +81,7 @@ def test_closed_week_and_reviewed_carryover_survive_changes_restart_and_lost_res
         expect(board.get_by_text("Draft proof", exact=True)).to_be_visible()
         expect(board.get_by_text("Proof seminar / Assignment", exact=True)).to_have_count(2)
         expect(board.get_by_text("Frozen proof notes", exact=True)).to_be_visible()
-        expect(board.get_by_text("Due Nov 20, 2026", exact=True)).to_be_visible()
+        expect(board.get_by_text("Due Nov 20, 2099", exact=True)).to_be_visible()
         review_card = board.locator(".historical-card").filter(has=page.get_by_text("Review proof", exact=True))
         expect(review_card).to_contain_text("At closure: Complete")
         expect(review_card).to_contain_text("Current task: Unfinished")
@@ -102,7 +102,7 @@ def test_closed_week_and_reviewed_carryover_survive_changes_restart_and_lost_res
             choice.check()
             choices.get_by_label('Carry “Revise proof” to').fill(destination.isoformat())
             choices.get_by_role("button", name="Review carryover", exact=True).click()
-            expect(page.get_by_role("region", name="Carryover preview")).to_contain_text("Due Dec 31, 2026")
+            expect(page.get_by_role("region", name="Carryover preview")).to_contain_text("Due Dec 31, 2099")
 
         select_and_review()
         http_json("PUT", service.url + f"/api/tasks/{draft['id']}/completion", {"complete": True})
@@ -146,7 +146,7 @@ def test_closed_week_and_reviewed_carryover_survive_changes_restart_and_lost_res
         page.get_by_role("button", name="Next week", exact=True).click()
         expect(page.get_by_text("Open week", exact=True)).to_be_visible()
         expect(board.get_by_text("Revise proof", exact=True)).to_be_visible()
-        expect(board.get_by_text("Due Dec 31, 2026", exact=True)).to_be_visible()
+        expect(board.get_by_text("Due Dec 31, 2099", exact=True)).to_be_visible()
         page.set_viewport_size({"width": 1024, "height": 900})
         page.get_by_role("group", name="Selected day").get_by_role("button", name=re.compile("Thu")).click()
         expect(board.locator(".planned-card:visible")).to_have_count(1)

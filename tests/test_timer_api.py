@@ -25,7 +25,7 @@ def start(client: TestClient, task_id: str, *, operation_id: str | None = None):
 
 
 def task(client: TestClient):
-    return client.post("/api/tasks", json={"title": "Unscheduled", "deadline": "2026-10-30"}).json()
+    return client.post("/api/tasks", json={"title": "Unscheduled", "deadline": "2099-10-30"}).json()
 
 
 def test_api_refresh_cross_client_controls_and_saved_result(timer_client, db: Database):

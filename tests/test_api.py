@@ -124,11 +124,11 @@ def test_m1_edit_completion_progress_and_removal(client: TestClient) -> None:
     assert renamed.status_code == 200 and renamed.json()["name"] == "Course renamed"
     parent = client.post("/api/tasks", json={"title": "Assignment", "project_id": project["id"]}).json()
     child = client.post("/api/tasks", json={"title": "Draft", "parent_id": parent["id"]}).json()
-    edited = client.patch(f"/api/tasks/{child['id']}", json={"title": "Final draft", "notes": "Proof", "deadline": "2026-10-20", "estimate_minutes": 45})
+    edited = client.patch(f"/api/tasks/{child['id']}", json={"title": "Final draft", "notes": "Proof", "deadline": "2099-10-20", "estimate_minutes": 45})
     assert edited.status_code == 200
     assert edited.json()["parent_id"] == parent["id"]
     assert edited.json()["notes"] == "Proof"
-    assert edited.json()["deadline"] == "2026-10-20"
+    assert edited.json()["deadline"] == "2099-10-20"
     assert edited.json()["estimate_minutes"] == 45
     url = f"/api/tasks?project_id={project['id']}"
     assert client.get(url).json()["progress"] == {"completed": 0, "total": 1}

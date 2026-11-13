@@ -25,7 +25,8 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, Valida
 from backend.domain.errors import InvalidInput
 from backend.domain.planning import WeekConflict, _create_placement_tx, _remove_placement_tx, week_bounds
 from backend.domain.tasks import (
-    _create_task_tx, _delete_unused_task_tx, _read_task, _require_task, _set_completion_tx, _update_task_tx,
+    _clean_deadline, _create_task_tx, _delete_unused_task_tx, _read_task, _require_task, _set_completion_tx, _update_task_tx,
+    require_deadline_not_past,
 )
 from backend.domain.timer import TimerService
 from backend.storage.db import Database, utc_now
@@ -52,6 +53,8 @@ class CreateTaskArguments(Arguments):
     notes: str | None = Field(default=None, max_length=2000)
     deadline: str | None = Field(default=None, max_length=10)
     estimate_minutes: int | None = Field(default=None, ge=1, le=10080)
+    # Saved with the task in one change, like the app's task form (A-02).
+    planned_date: str | None = Field(default=None, min_length=10, max_length=10)
 
 
 class UpdateTaskArguments(Arguments):
@@ -89,7 +92,7 @@ class CarryOverArguments(Arguments):
 
 
 ACTION_MODELS: dict[str, tuple[type[Arguments], str]] = {
-    "create_task": (CreateTaskArguments, "Propose a new task, or a subtask with parent_id. Omit project_id for the default project. Not applied until the user presses Apply."),
+    "create_task": (CreateTaskArguments, "Propose a new task, or a subtask with parent_id, optionally planned on planned_date (YYYY-MM-DD). Omit project_id for the default project. Not applied until the user presses Apply."),
     "update_task": (UpdateTaskArguments, "Propose editing title, notes, deadline (YYYY-MM-DD) or estimate of one task by exact ID. Include only fields to change; null clears notes/deadline/estimate. Not applied until the user presses Apply."),
     "assign_task_date": (AssignDateArguments, "Propose planning one incomplete leaf task by exact ID on a date (YYYY-MM-DD) in an open week. Not applied until the user presses Apply."),
     "complete_task": (CompleteTaskArguments, "Propose marking one leaf task by exact ID complete (or complete=false to reopen). Parents complete through subtasks. Not applied until the user presses Apply."),
@@ -183,7 +186,8 @@ def _summary(kind: str, args: dict[str, Any], task: dict[str, Any] | None) -> st
         due = f", due {_day(args['deadline'])}" if args.get("deadline") else ""
         estimate = f", estimate {args['estimate_minutes']} min" if args.get("estimate_minutes") else ""
         notes = ", with notes" if args.get("notes") else ""
-        return f'Create task "{args["title"]}"{where}{project}{due}{estimate}{notes}'
+        planned = f", planned {_day(args['planned_date'])}" if args.get("planned_date") else ""
+        return f'Create task "{args["title"]}"{where}{project}{planned}{due}{estimate}{notes}'
     if kind == "update_task":
         changes = ", ".join(f"{name.replace('_', ' ')} → {_day(args[name]) if name == 'deadline' and args[name] else args[name] if args[name] is not None else 'cleared'}"
                             for name in EDITABLE if name in args)
@@ -221,6 +225,12 @@ def _day(value: str) -> str:
         return value
 
 
+def _today() -> date:
+    from backend.domain.calendar import application_today
+
+    return application_today()[0]
+
+
 class _DryRun(Exception):
     def __init__(self, value: Any) -> None:
         self.value = value
@@ -229,13 +239,22 @@ class _DryRun(Exception):
 def _apply_task_kind(conn: sqlite3.Connection, kind: str, args: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
     """Run one task action through shared domain helpers; return its result and Undo record."""
     if kind == "create_task":
+        require_deadline_not_past(_clean_deadline(args.get("deadline")), _today())
         task = _create_task_tx(conn, args["title"], project_id=args.get("project_id"), parent_id=args.get("parent_id"),
                                notes=args.get("notes"), deadline=args.get("deadline"),
                                estimate_minutes=args.get("estimate_minutes"))
-        return {"task": _task_view(conn, task.id)}, {"task_id": task.id, "after_revision": task.revision}
+        undo = {"task_id": task.id, "after_revision": task.revision}
+        if args.get("planned_date") is None:
+            return {"task": _task_view(conn, task.id)}, undo
+        # One change: the task and its planned day are saved, and undone, together.
+        placement = _create_placement_tx(conn, task.id, args["planned_date"])
+        return {"task": _task_view(conn, task.id), "placement": placement.model_dump(mode="json")}, {
+            **undo, "placement_id": placement.id, "placement_after_revision": placement.revision}
     if kind == "update_task":
         before = _task_view(conn, args["task_id"])
         fields = {name: args[name] for name in EDITABLE if name in args}
+        if "deadline" in fields:
+            require_deadline_not_past(_clean_deadline(fields["deadline"]), _today(), current=before["deadline"])
         task = _update_task_tx(conn, args["task_id"], fields)
         restore = {name: before[name] for name in fields}
         return {"task": _task_view(conn, task.id), "before": restore}, {
@@ -503,6 +522,10 @@ def undo_action(db: Database, operation_id: object, undo_operation_id: object) -
         else:
             _require_after(conn, "tasks", undo["task_id"], undo["after_revision"], "task")
             if kind == "create_task":
+                if "placement_id" in undo:
+                    # Both or neither: a moved or removed plan leaves the new task as it is.
+                    _require_after(conn, "planned_items", undo["placement_id"], undo["placement_after_revision"], "planned date")
+                    _remove_placement_tx(conn, undo["placement_id"])
                 _delete_unused_task_tx(conn, undo["task_id"])
             elif kind == "update_task":
                 _update_task_tx(conn, undo["task_id"], undo["before"])

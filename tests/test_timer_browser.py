@@ -25,7 +25,7 @@ def test_countdown_navigation_tabs_pause_retry_and_history(browser, evidence, tm
         _, parent = http_json("POST", service.url + "/api/tasks", {"title": "Seminar"})
         _, child = http_json("POST", service.url + "/api/tasks", {
             "title": "Read the argument", "parent_id": parent["id"],
-            "deadline": "2026-11-18", "notes": "Track existing work",
+            "deadline": "2099-11-18", "notes": "Track existing work",
         })
         _, other = http_json("POST", service.url + "/api/tasks", {"title": "Another unscheduled task"})
         _, original_tasks = http_json("GET", service.url + "/api/tasks")

@@ -134,6 +134,21 @@ def _clean_deadline(deadline: object) -> str | None:
     return text
 
 
+def require_deadline_not_past(deadline: str | None, today: date, *, current: str | None = None) -> None:
+    """A newly entered or changed deadline may be today or later (user decision, Nov 11, A-03).
+
+    Applied where a person enters a deadline (task API, task capture, Assistant),
+    not in the shared write helpers: a stored overdue deadline stays valid when
+    other fields change or the same value is sent again, imported Google Tasks
+    and bCourses deadlines keep their dates, and Undo restores the earlier value.
+    """
+    if deadline is None or deadline == current:
+        return
+    if date.fromisoformat(deadline) < today:
+        raise InvalidInput("deadline", f"The deadline {deadline} is before today ({today.isoformat()}). "
+                                       "Choose today or a later date.")
+
+
 def _clean_estimate(estimate: object) -> int | None:
     if estimate is None:
         return None
@@ -269,12 +284,15 @@ def create_task(
     notes: str | None = None,
     deadline: str | date | None = None,
     estimate_minutes: int | None = None,
+    today: date | None = None,
 ) -> Task:
     """Validate and save a new task or subtask; returns the stored record.
 
     Every value is validated before anything is written, so a rejected field
-    leaves the database untouched.
+    leaves the database untouched. With today, a deadline before it is rejected.
     """
+    if today is not None:
+        require_deadline_not_past(_clean_deadline(deadline), today)
     with db.write() as conn:
         return _create_task_tx(conn, title, project_id=project_id, parent_id=parent_id, notes=notes,
                                deadline=deadline, estimate_minutes=estimate_minutes)
@@ -350,11 +368,13 @@ def update_task(
     notes: Any = UNSET,
     deadline: Any = UNSET,
     estimate_minutes: Any = UNSET,
+    today: date | None = None,
 ) -> Task:
     """Edit a task's planning fields. Only supplied fields change.
 
     Passing None for notes, deadline or estimate_minutes clears that field; leaving
     an argument out leaves it alone. Every field is validated before any is written.
+    With today, a changed deadline before it is rejected; the stored one may stay.
     """
     updates: dict[str, object] = {}
     if title is not UNSET:
@@ -367,6 +387,9 @@ def update_task(
         updates["estimate_minutes"] = _clean_estimate(estimate_minutes)
 
     with db.write() as conn:
+        if today is not None and updates.get("deadline") is not None:
+            stored = _require_task(conn, task_id)["deadline"]
+            require_deadline_not_past(updates["deadline"], today, current=stored)
         return _apply_task_updates(conn, task_id, updates)
 
 

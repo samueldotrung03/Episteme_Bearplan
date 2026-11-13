@@ -60,7 +60,7 @@ def check_context_grip(page, day):
 def check_board_dates(page, *, placements):
     board = page.locator(".week-board")
     expect(board.locator(".planned-meta").filter(has_text=re.compile(r"^Planned "))).to_have_count(0)
-    expect(board.get_by_text("Due Nov 20, 2026", exact=True)).to_have_count(placements)
+    expect(board.get_by_text("Due Nov 20, 2099", exact=True)).to_have_count(placements)
 
 
 def begin_drag(page, source, *, alt=False):
@@ -118,7 +118,7 @@ def test_native_move_alt_move_cancel_controls_keyboard_and_narrow_days(browser, 
     try:
         _, parent = http_json("POST", service.url + "/api/tasks", {"title": "Seminar paper"})
         _, task = http_json("POST", service.url + "/api/tasks", {
-            "title": "Read the primary source", "deadline": "2026-11-20", "notes": "Keep all task fields", "estimate_minutes": 35,
+            "title": "Read the primary source", "deadline": "2099-11-20", "notes": "Keep all task fields", "estimate_minutes": 35,
             "parent_id": parent["id"],
         })
         initial = plan(service)
@@ -308,7 +308,7 @@ def test_native_drag_failures_stale_conflicts_and_closed_source(browser, evidenc
     service = Service(tmp_path / "DragFailureJourney", free_port()).start()
     context = browser.new_context(viewport={"width": 1600, "height": 1100}, locale="en-US")
     try:
-        _, task = http_json("POST", service.url + "/api/tasks", {"title": "Work with save failures", "deadline": "2026-11-20", "notes": "No task cloning"})
+        _, task = http_json("POST", service.url + "/api/tasks", {"title": "Work with save failures", "deadline": "2099-11-20", "notes": "No task cloning"})
         initial = plan(service)
         monday = date.fromisoformat(initial["week_start"])
         tuesday = monday + timedelta(days=1)

@@ -41,7 +41,7 @@ def test_project_edits_and_completion_survive_restart(tmp_path: Path) -> None:
     http_json(
         "PATCH",
         f"{first.url}/api/tasks/{parent['id']}",
-        {"notes": "due Friday", "deadline": "2026-10-20", "estimate_minutes": 90},
+        {"notes": "due Friday", "deadline": "2099-10-20", "estimate_minutes": 90},
     )
     http_json("PUT", f"{first.url}/api/tasks/{child['id']}/completion", {"complete": True})
     _, before = http_json("GET", f"{first.url}/api/tasks?project_id={project['id']}")
@@ -55,7 +55,7 @@ def test_project_edits_and_completion_survive_restart(tmp_path: Path) -> None:
     saved_parent, saved_child = after["tasks"]
     assert (saved_parent["notes"], saved_parent["deadline"], saved_parent["estimate_minutes"]) == (
         "due Friday",
-        "2026-10-20",
+        "2099-10-20",
         90,
     )
     # The parent had one subtask and it was completed, so the parent reads complete.
@@ -185,7 +185,7 @@ def test_multiple_placements_and_move_persist_through_real_service_restart(tmp_p
     data_dir = tmp_path / "DragPlans"
     first = Service(data_dir, free_port()).start()
     _, task = http_json("POST", f"{first.url}/api/tasks", {
-        "title": "Keep task fields", "deadline": "2026-10-30", "notes": "Original notes",
+        "title": "Keep task fields", "deadline": "2099-10-30", "notes": "Original notes",
     })
     status, source = http_json("POST", f"{first.url}/api/placements", {
         "task_id": task["id"], "planned_date": "2026-10-15",
@@ -233,7 +233,7 @@ def test_real_launcher_preserves_m1_records_across_restart(tmp_path: Path) -> No
                 assert status == 201
                 status, task = http_json("POST", f"{service.url}/api/tasks", {
                     "title": "Persist from launcher", "project_id": project["id"],
-                    "notes": "Disposable data", "deadline": "2026-10-20", "estimate_minutes": 25,
+                    "notes": "Disposable data", "deadline": "2099-10-20", "estimate_minutes": 25,
                 })
                 assert status == 201
                 assert http_json("PUT", f"{service.url}/api/tasks/{task['id']}/completion", {"complete": True})[0] == 200
@@ -259,11 +259,11 @@ def test_planning_changes_and_shared_completion_survive_service_restart(tmp_path
         status, project = http_json("POST", f"{first.url}/api/projects", {"name": "Planning check"})
         assert status == 201
         status, parent = http_json("POST", f"{first.url}/api/tasks", {
-            "title": "Assignment", "project_id": project["id"], "deadline": "2026-10-30", "notes": "Parent context",
+            "title": "Assignment", "project_id": project["id"], "deadline": "2099-10-30", "notes": "Parent context",
         })
         assert status == 201
         status, child = http_json("POST", f"{first.url}/api/tasks", {
-            "title": "Proof", "parent_id": parent["id"], "deadline": "2026-10-29", "notes": "Keep proof", "estimate_minutes": 25,
+            "title": "Proof", "parent_id": parent["id"], "deadline": "2099-10-29", "notes": "Keep proof", "estimate_minutes": 25,
         })
         assert status == 201
         status, unscheduled = http_json("POST", f"{first.url}/api/tasks", {"title": "Backlog"})
@@ -294,7 +294,7 @@ def test_planning_changes_and_shared_completion_survive_service_restart(tmp_path
         assert set(tasks) == {parent["id"], child["id"], unscheduled["id"]}
         assert tasks[unscheduled["id"]] == unscheduled
         assert tasks[parent["id"]]["completed"] is tasks[child["id"]]["completed"] is True
-        assert tasks[child["id"]]["deadline"] == "2026-10-29"
+        assert tasks[child["id"]]["deadline"] == "2099-10-29"
         assert tasks[child["id"]]["notes"] == "Keep proof"
         assert tasks[child["id"]]["estimate_minutes"] == 25
         # The placement is still linked to the same child after reopening and completion changes.

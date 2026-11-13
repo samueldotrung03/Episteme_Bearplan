@@ -63,6 +63,7 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         expect(page.get_by_label(task["title"], exact=True)).to_be_visible()
         page.get_by_role("button", name="+ Add task", exact=True).click()
         page.get_by_label("Title", exact=True).fill("Keep this task draft")
+        page.get_by_role("button", name="Keep draft while this page is open").click()
         views.get_by_role("button", name="Week").click()
         page.get_by_role("button", name="Next week").click()
         expect(page.get_by_role("button", name="Next week")).to_be_enabled()
@@ -72,6 +73,9 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         expect(day).to_have_attribute("aria-pressed", "true")
 
         views.get_by_role("button", name="Projects").click()
+        # The closed dialog no longer supplies page height; create scrollable
+        # space to exercise returning to a scrolled work view.
+        page.evaluate("document.body.style.minHeight = '1800px'")
         # Trigger the shared link while scrolled without Playwright moving it into view.
         page.evaluate("window.scrollTo(0, 300)")
         offset = page.evaluate("window.scrollY")
@@ -85,7 +89,9 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         page.keyboard.press("Enter")
         expect(settings).to_be_focused()
         expect(selected_project).to_have_attribute("aria-current", "true")
+        page.get_by_role("button", name="Continue task draft").click()
         expect(page.get_by_label("Title", exact=True)).to_have_value("Keep this task draft")
+        page.get_by_role("button", name="Keep draft while this page is open").click()
         views.get_by_role("button", name="Week").click()
         expect(page.locator(".planner-heading p")).to_have_text(week)
         expect(day).to_have_attribute("aria-pressed", "true")

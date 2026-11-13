@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from backend.domain.action_library import (
     LIBRARY, MAX_CLARIFICATION_ROUNDS, Choice, Gate, Pending, Slots, apply_choice, correct_intent, evaluate, ground, merge,
 )
-from backend.domain.assistant_answers import answer as direct_answer
+from backend.domain.assistant_answers import answer as direct_answer, correct_topic
 from backend.domain.assistant_tools import TOOL_MODELS, read_tool, tool_schemas
 from backend.domain.calendar import application_today
 from backend.domain.errors import InvalidInput
@@ -37,7 +37,7 @@ MAX_ROUNDS = 5
 MAX_CALLS = 10
 MAX_CONTEXT_BYTES = 24000
 REQUEST_SECONDS = 120
-PROMPT_VERSION = "router-v8"
+PROMPT_VERSION = "router-v9"
 SYSTEM = """You are BearPlans' local read-only question agent. You can read plans, tasks and saved time only.
 Changes are prepared by a separate BearPlans step, never by you. Never claim to have changed anything.
 If the user asks for a change, tell them to ask for it directly, for example "Plan Essay on Tuesday".
@@ -56,7 +56,7 @@ When a lookup is needed, call its tool directly. Do not narrate tool selection. 
 ROUTER = """You are the request router for BearPlans, a local planner. Classify the user's latest message and copy only details they stated. Reply with JSON only.
 Intents:
 - question: asks to see, find, count or summarize plans, tasks or saved time, without changing anything.
-- create_task: add a new task, or a subtask under an existing task.
+- create_task: add a new task, or a subtask under an existing task, optionally with the day to plan it and a deadline.
 - update_task: change an existing task's title, notes, deadline or estimate.
 - assign_task_date: plan or schedule an existing task on a day.
 - complete_task: mark an existing task done (complete true) or reopen it (complete false).
@@ -75,11 +75,13 @@ Fields are null unless the user stated them; never invent or guess values:
 Task titles may contain "Notes", "Complete" or other field/action words. Choose the intent from the requested action, not words within a title. "Mark complete" means complete_task; it does not edit notes. Copy notes only when the user explicitly asks to change note content.
 - deadline: due date words. date: the words for the day to plan it. Copy the user's words exactly ("Tuesday", "next Friday", "November 12", "tomorrow"); never convert them.
 - estimate_minutes, duration_minutes: whole minutes (1 hour = 60). notes: note text. complete: true or false.
-- topic (questions only): plan = what is planned on a day or week; tasks = find, list or count tasks, subtasks or their completion; time = saved or tracked work time; other = anything else.
+- topic (questions only): plan = what is planned on a day or week; tasks = find, list or count tasks, subtasks, their completion or what is due (deadlines); time = saved or tracked work time; other = anything else.
   For questions also copy task (search words), project and date words when stated.
 Examples:
 "Plan Essay for Tuesday" -> {"intent": "assign_task_date", "task": "Essay", "date": "Tuesday"}
-"Create Outline and plan it on Friday" -> {"intent": "multiple"}
+"Create Outline and plan it on Friday" -> {"intent": "create_task", "title": "Outline", "date": "Friday"}
+"Add Lab report on Monday, Nov 16 due Nov 20 in Biology" -> {"intent": "create_task", "title": "Lab report", "date": "Monday, Nov 16", "deadline": "Nov 20", "project": "Biology"}
+"Complete Essay and start Math for 30 minutes" -> {"intent": "multiple"}
 "Add a task Read chapter 4 due Nov 12 in History" -> {"intent": "create_task", "title": "Read chapter 4", "deadline": "Nov 12", "project": "History"}
 "Mark complete the review notes under draft seminar notes complete in planner check" -> {"intent": "complete_task", "task": "review notes", "project": "planner check", "complete": true}
 "Start Math for 45 minutes" -> {"intent": "start_timer", "task": "Math", "duration_minutes": 45}
@@ -207,7 +209,7 @@ class AssistantService:
                                     message=prompt, ignored=ignored)
         keep = {"clarification": {"questions": [], "choices": None, "pending": pending.model_dump()}} if pending else {}
         if intent == "question":
-            topic = route.topic if route.topic in SPECIALISTS else None
+            topic = correct_topic(route.topic if route.topic in SPECIALISTS else None, prompt)
             stated, _ = ground("question", extracted, prompt)
             direct = await asyncio.to_thread(direct_answer, self.db, topic, prompt, task=stated.task, project=stated.project,
                                              day_words=stated.date, now=datetime.now(UTC))

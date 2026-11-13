@@ -61,6 +61,23 @@ function readScreen() {
   }
 }
 
+function TaskDraftDialog({ projectId, open, onKeep, children }: { projectId: string; open: boolean; onKeep: () => void; children: ReactNode }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useLayoutEffect(() => {
+    const node = dialog.current;
+    if (!node) return;
+    if (open && !node.open) {
+      node.showModal();
+      node.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus();
+    } else if (!open && node.open) node.close();
+    return () => { if (node.open) node.close(); };
+  }, [open]);
+  return <dialog ref={dialog} className="task-capture-dialog" aria-labelledby={`capture-heading-${projectId}`} onCancel={(event) => {
+    event.preventDefault();
+    if (!dialog.current?.querySelector('[data-busy="true"]')) onKeep();
+  }}>{children}</dialog>;
+}
+
 export default function App() {
   const planning = usePlanning();
   const timer = useCountdown();
@@ -85,6 +102,7 @@ export default function App() {
   const [status, setStatus] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [taskDraftProjects, setTaskDraftProjects] = useState<string[]>([]);
+  const [openTaskDraft, setOpenTaskDraft] = useState<string | null>(null);
   const addTaskTrigger = useRef<HTMLButtonElement>(null);
   const tasksHeading = useRef<HTMLHeadingElement>(null);
   const [pendingCapture, setPendingCapture] = useState(() => { try { return readPendingCapture(); } catch { return null; } });
@@ -402,14 +420,20 @@ export default function App() {
               <h2 ref={tasksHeading} tabIndex={-1} id="tasks-heading">{selected.name}</h2>
               {progress ? <p className="muted">{progress.completed} of {progress.total} work items complete</p> : null}
 
-              {!taskDraftProjects.includes(selected.id) ? (
-                <button ref={addTaskTrigger} type="button" aria-expanded="false" disabled={tasks === null || Boolean(loadError)} onClick={() => setTaskDraftProjects((ids) => [...ids, selected.id])}>+ Add task</button>
-              ) : null}
+              <button ref={addTaskTrigger} type="button" aria-haspopup="dialog" disabled={tasks === null || Boolean(loadError)} onClick={() => {
+                setTaskDraftProjects((ids) => ids.includes(selected.id) ? ids : [...ids, selected.id]);
+                setOpenTaskDraft(selected.id);
+              }}>{taskDraftProjects.includes(selected.id) ? "Continue task draft" : "+ Add task"}</button>
               {taskDraftProjects.map((projectId) => (
-                <div key={projectId} hidden={selected.id !== projectId}>
+                <TaskDraftDialog key={projectId} projectId={projectId} open={openTaskDraft === projectId && selected.id === projectId && planView === "projects" && screen === "plan"} onKeep={() => {
+                  setOpenTaskDraft(null);
+                  requestAnimationFrame(() => addTaskTrigger.current?.focus());
+                }}>
                   <TaskCaptureForm
                     projectId={projectId}
+                    onKeepDraft={() => { setOpenTaskDraft(null); requestAnimationFrame(() => addTaskTrigger.current?.focus()); }}
                     onCancel={(resolvedElsewhere) => {
+                      setOpenTaskDraft(null);
                       setTaskDraftProjects((ids) => ids.filter((id) => id !== projectId));
                       if (resolvedElsewhere && selectedIdRef.current === projectId) {
                         setTasks(null);
@@ -424,12 +448,13 @@ export default function App() {
                       });
                     }}
                     onSaved={() => {
+                      setOpenTaskDraft(null);
                       setTaskDraftProjects((ids) => ids.filter((id) => id !== projectId));
                       if (selectedIdRef.current === projectId) requestAnimationFrame(() => addTaskTrigger.current?.focus());
                       void run(async () => {}, "Task added.").catch(() => setStatus("Task saved. Refresh your views to see it."));
                     }}
                   />
-                </div>
+                </TaskDraftDialog>
               ))}
 
               {tasks === null && !loadError ? <p className="muted">Loading…</p> : null}
