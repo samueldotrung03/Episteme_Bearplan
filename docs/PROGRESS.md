@@ -4,7 +4,31 @@ Updated November 12, 2026. Read [AGENTS.md](../AGENTS.md) before resuming.
 Finished work and evidence are in [COMPLETED.md](COMPLETED.md); this file is the
 single current handoff.
 
-## Active work: Atelier redesign A3 Week (started Nov 14, user override)
+## Active work: Atelier redesign A4 Projects + Task editor (started Nov 14, user override)
+
+**Authorization:** six user-owned gates were open (G-14, G-15, G-16, G-04, G-05,
+G-06), above the limit of three. After the Today wiring was committed
+(`5fd1476`), the user chose "Override, start Projects" in chat on Nov 14. All six
+gates stay open.
+
+**Goal:** restyle the existing Projects view and task editor to the Atelier Figma
+S3 Projects and S4 Task editor sections, frontend only, no API change; list
+domain gaps separately.
+
+**Decision (user, Nov 14, chat):** "Restyle in place first". Projects stays its
+own plan view; it takes the S3 panel's look and controls (project dropdown,
+Active/Done, ⋯ menu for Rename/Add, Atelier task rows, S4 editor styling). Moving
+Projects into a slide-in side panel over Today/Week is a later, separate step.
+
+**State (Nov 14):** implemented, not committed (staged for the user). Full check
+passed (219 frontend; 1180 backend/browser passed, 1 skipped).
+[Review](reviews/2026-11-14-atelier-projects.md). Awaiting gate G-17.
+User-owned gates open: seven (G-14, G-15, G-16, G-17, G-04, G-05, G-06).
+
+**Next concrete step:** the user checks G-14, G-15, G-16 and G-17 together (about
+50 minutes). Any further Atelier screen (Done, Track, …) needs another override.
+
+## Awaiting acceptance: Atelier redesign A3 Week (started Nov 14, user override)
 
 **Authorization:** four user-owned gates were open (G-14, G-04, G-05, G-06),
 above the limit of three. The user chose "Override, start Week" in chat on

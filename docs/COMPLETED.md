@@ -1,5 +1,17 @@
 # BearPlans — completed work log
 
+## 2026-11-14 — Atelier A4: Projects + Task editor (user override)
+
+Restyled Projects in place from Figma S3/S4 (user: "Override, start Projects",
+then "Restyle in place first"). Details in the [review](reviews/2026-11-14-atelier-projects.md).
+Changed: `frontend/src/App.tsx` (Projects header, picker order, button classes,
+task-row parent class, editor action order), `frontend/src/styles.css` (A4 block),
+new gate G-17 in `docs/GATES.md`, evidence screenshots. No test changes.
+Checks: first full check failed the 375 px long-name overflow test (fixed);
+rerun `python3 tools/check.py` all 4 steps passed (219 frontend; 1180
+backend/browser passed, 1 skipped; 318 s). Commit: not yet (user commits).
+Open: G-17 user acceptance.
+
 ## 2026-11-14 — Today: Earlier unfinished and week dots (B1 frontend)
 
 Wired B1 into Today from Figma `32:1888`, as work that lets G-16 pass (user
