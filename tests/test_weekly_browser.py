@@ -38,7 +38,7 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(service.url)
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Week", exact=True).click()
-        expect(page.get_by_role("heading", name="Weekly plan")).to_be_visible()
+        expect(page.get_by_role("region", name="Weekly plan")).to_be_visible()
         expect(page.get_by_text("America/Los_Angeles", exact=False)).to_be_visible()
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         expect(page.get_by_label("Homework", exact=True)).to_be_disabled()
@@ -113,7 +113,7 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         page.get_by_role("button", name="Next week", exact=True).click()
         # The previous week also has one checked card while navigation is in
         # flight. Wait for the destination before opening its date controls.
-        expect(page.locator(".planner-heading")).to_contain_text(display(next_monday))
+        expect(page.locator(f'.day-column[aria-label$="{display(next_monday)}"]')).to_have_count(1)
         moved_card = page.locator(".week-board .planned-card")
         expect(moved_card).to_have_count(1)
         expect(moved_card.get_by_role("checkbox")).not_to_be_checked()
@@ -157,8 +157,8 @@ def test_weekly_assignment_movement_completion_and_recovery(browser, evidence, t
         assert no_horizontal_overflow(page)
         page.screenshot(path=evidence / "single-day-03-laptop.png", full_page=True)
         page.get_by_role("button", name="Previous week", exact=True).click()
-        page.get_by_role("region", name="Weekly plan").get_by_role("button", name="Today", exact=True).click()
-        expect(page.locator(".planner-heading")).to_contain_text(display(monday))
+        page.get_by_role("region", name="Weekly plan").get_by_role("button", name="Back to this week", exact=True).click()
+        expect(page.locator(f'.day-column[aria-label$="{display(monday)}"]')).to_have_count(1)
         expect(page.get_by_role("group", name="Selected day").get_by_role("button", pressed=True)).to_contain_text("Today")
 
         # A stopped service must retain the intended date; retry succeeds after restart.

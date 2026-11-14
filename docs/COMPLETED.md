@@ -1,5 +1,31 @@
 # BearPlans — completed work log
 
+## 2026-11-14 — B1 Earlier unfinished, backend (user override; merge into main pending)
+
+Built by Codex in the backend worktree under the user's override for B1 only
+(four user-owned gates open). Branch `a2-today-data`, commit `61aa614`: changed
+`backend/domain/planning.py`, added `tests/test_earlier_unfinished.py` and the
+[review](reviews/2026-11-14-b1-earlier-unfinished.md). `GET /api/planning` adds
+`earlier_unfinished`; no migration or saved-data change. Checks (from the review):
+focused tests 39 passed; full `python3 tools/check.py` passed on the branch
+(217 frontend tests; 1178 backend/browser tests passed, 1 skipped). A first
+sandboxed run failed on process/socket permissions and was rerun unrestricted.
+Not done: merge into `main`, the Today frontend, and user acceptance (G-16). B2
+needed no backend change (`GET /api/streaks` already serves the week dots).
+
+## 2026-11-14 — Atelier redesign A3: Week screen
+
+Restyled Week from Figma S2 Week (`Sxhit2hudslGGvwqkxpX8G`, frame `43:8441`);
+frontend only, on the user's gate-limit override. Details, deliberate differences
+and unverified items in the [review](reviews/2026-11-14-atelier-week.md).
+Changed: `frontend/src/WeeklyPlanner.tsx`, `frontend/src/App.tsx`,
+`frontend/src/styles.css`, `frontend/src/App.test.tsx`, two new icons in
+`frontend/src/assets/atelier/`, browser tests `test_weekly_browser.py`,
+`test_settings_browser.py`, `test_today_browser.py`, `test_google_browser.py`.
+Checks: `python3 tools/check.py` all 4 steps passed (217 frontend tests; 1175
+backend/browser tests passed, 1 skipped; 313 s). Screenshots at 1440/800/640 px,
+light and dark. Commit: not yet (user commits). Open: G-15 user acceptance.
+
 ## 2026-11-14 — Guidance for two agents working in parallel (documentation only)
 
 The user asked to organize the repository so Codex can take the backend and tests

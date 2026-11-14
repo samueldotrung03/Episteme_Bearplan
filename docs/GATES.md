@@ -20,6 +20,8 @@ no new build while more than three user-owned gates block the trial or the alpha
 | ID | What must be checked | Owner | What to do, roughly how long | Blocks | Evidence | Opened |
 | --- | --- | --- | --- | --- | --- | --- |
 | G-14 | You accept the Atelier Today dashboard and new app bar (A0 + A1) | User | Open the app on disposable data, add two or three tasks for today (one with a start time), then look at Today in light and dark mode: use ↑/↓, Enter, X, N, W, P, open Completed, and check bCourses/Google are reachable from Settings. Say "accept" or what is wrong; about 15 minutes | Closing the Atelier A0 + A1 slice and the RF-04 trial candidate; the next Atelier slice (A2) | [Review](reviews/2026-11-14-atelier-today.md) | Nov 14 |
+| G-15 | You accept the Atelier Week screen (A3) | User | Open the app on disposable data with a few tasks across the week (one with a start time, one completed), open Week in light and dark mode, use previous/next and "Back to this week", open a day's calendar events if Google is set up, complete a task and use Move or remove; check a narrow window too. Say "accept" or what is wrong; about 10 minutes | Closing the Atelier A3 Week slice | [Review](reviews/2026-11-14-atelier-week.md) | Nov 14 |
+| G-16 | You accept Earlier unfinished on Today (B1 backend + Today frontend) | User | After the Today frontend shows it: on disposable data, plan tasks in the past, today/future and a closed week, then check the Earlier unfinished list and its controls; about 10 minutes. Cannot be checked until the frontend is connected | Acceptance of the integrated Today slice with Earlier unfinished | [B1 review](reviews/2026-11-14-b1-earlier-unfinished.md); future frontend review | Nov 14 |
 
 ## Gates that block the alpha
 

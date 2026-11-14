@@ -81,6 +81,22 @@ export default function App() {
   const timer = useCountdown();
   const [screen, setScreen] = useState(readScreen);
   const [planView, setPlanView] = useState<"today" | "week" | "projects">("today");
+  // Today and Week each carry their own copy of the plan view controls, so a
+  // view switch can hide the focused button. Keep keyboard focus on the
+  // matching control in the view that is now visible.
+  const planNavFocused = useRef(false);
+  function showPlanView(view: "today" | "week" | "projects") {
+    planNavFocused.current = document.activeElement instanceof HTMLElement && document.activeElement.closest(".plan-navigation") !== null;
+    setPlanView(view);
+  }
+  useLayoutEffect(() => {
+    if (!planNavFocused.current) return;
+    planNavFocused.current = false;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active !== document.body && !active.closest("[hidden]")) return;
+    const pressed = [...document.querySelectorAll<HTMLElement>(".plan-navigation button[aria-pressed=\"true\"]")].find((button) => !button.closest("[hidden]"));
+    pressed?.focus();
+  }, [planView]);
   const [setup, setSetup] = useState<{ provider: SetupProvider } | null>(null);
   const [setupNotice, setSetupNotice] = useState("");
   const [credentialVersion, setCredentialVersion] = useState(0);
@@ -274,10 +290,10 @@ export default function App() {
   const planControls = <>
     <nav className="plan-navigation" aria-label="Plan views">
       <div className="segmented">
-        <button type="button" aria-pressed={planView === "today"} onClick={() => setPlanView("today")}>Today</button>
-        <button type="button" aria-pressed={planView === "week"} onClick={() => setPlanView("week")}>Week</button>
+        <button type="button" aria-pressed={planView === "today"} onClick={() => showPlanView("today")}>Today</button>
+        <button type="button" aria-pressed={planView === "week"} onClick={() => showPlanView("week")}>Week</button>
       </div>
-      <button type="button" className="button-secondary" aria-pressed={planView === "projects"} onClick={() => setPlanView("projects")}>
+      <button type="button" className="button-secondary" aria-pressed={planView === "projects"} onClick={() => showPlanView("projects")}>
         <span className="icon icon-folder" aria-hidden="true" />Projects
       </button>
     </nav>
@@ -343,7 +359,7 @@ export default function App() {
         </p>
       ) : null}
 
-      {planView !== "today" ? <div className="plan-header plan-header-controls">{planControls}</div> : null}
+      {planView === "projects" ? <div className="plan-header plan-header-controls">{planControls}</div> : null}
       {pendingCapture ? <section aria-label="Pending task save"><p role="status">A task save needs confirmation: {pendingCapture.title}.</p>
         <button type="button" onClick={() => setReviewPendingCapture(value => !value)} aria-expanded={reviewPendingCapture}>Review pending task save</button>
         {reviewPendingCapture ? <div>
@@ -563,7 +579,7 @@ export default function App() {
             </section>
           ) : null}
         </div>
-      <div hidden={planView !== "week"}><WeeklyPlanner state={planning} projects={projects ?? []} onRun={run} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onTrack={openTrack} /></div>
+      <div hidden={planView !== "week"}><WeeklyPlanner headerActions={planControls} state={planning} projects={projects ?? []} onRun={run} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onTrack={openTrack} /></div>
       </div>
 
       </div>

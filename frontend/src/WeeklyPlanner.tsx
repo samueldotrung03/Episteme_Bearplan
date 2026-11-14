@@ -1,12 +1,23 @@
-import { useCallback, useEffect, useId, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { ApiError, addGoogleEvent, assignTask, getPlanning, movePlacement, removePlacement, setPlacementTime, setTaskCompletion, type GoogleEvent, type Placement, type Planning, type Project, type Task } from "./api";
 import { WeekActions, WeekTaskDetails, historicalContext } from "./WeekActions";
 import { StartTrackingButton } from "./Countdown";
+import { formatPlanned } from "./Today";
 
 const fullDate = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" });
 const dayName = new Intl.DateTimeFormat(undefined, { weekday: "long", timeZone: "UTC" });
+const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: "short", timeZone: "UTC" });
 const shortDate = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+const shortDateYear = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 const plainDate = (date: string) => new Date(`${date}T00:00:00Z`);
+const dayOfMonth = (date: string) => String(plainDate(date).getUTCDate());
+
+/** Atelier week title: "Nov 2 – 8", "Oct 26 – Nov 1", or with years across a year boundary. */
+export function weekRange(start: string, end: string): string {
+  if (start.slice(0, 4) !== end.slice(0, 4)) return `${shortDateYear.format(plainDate(start))} – ${shortDateYear.format(plainDate(end))}`;
+  if (start.slice(0, 7) === end.slice(0, 7)) return `${shortDate.format(plainDate(start))} – ${dayOfMonth(end)}`;
+  return `${shortDate.format(plainDate(start))} – ${shortDate.format(plainDate(end))}`;
+}
 export const showDate = (date: string) => fullDate.format(plainDate(date));
 const clock = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
 export const showTime = (time: string) => clock.format(new Date(`1970-01-01T${time}:00Z`));
@@ -198,13 +209,14 @@ export function CalendarEvents({ events, date, onRun, locked }: { events: Google
   const [error, setError] = useState<string | null>(null);
   if (!events.length) return null;
   // Closed by default: a busy week has about 28 events (user decision, 2026-11-03).
+  // Events use the wood bar, never the calendar's own colour (Atelier event row).
   return <details className="day-events">
     <summary>From your calendar ({events.length})</summary>
     <ul aria-label={`Calendar events, ${showDate(date)}`}>
       {events.map((event) => {
         const when = event.all_day ? "All day" : `${eventClock.format(new Date(event.start_at ?? ""))} – ${eventClock.format(new Date(event.end_at ?? event.start_at ?? ""))}`;
         const key = `${event.calendar_id}/${event.event_id}`;
-        return <li key={key} className="day-event" style={event.color ? { borderLeftColor: event.color } : undefined}>
+        return <li key={key} className="day-event">
           <p className="day-event-title">{event.summary}</p>
           <p className="planned-meta muted">{when} · {event.calendar_summary}{event.location ? ` · ${event.location}` : ""}</p>
           {event.task_id ? <p className="planned-meta">Added as a task</p>
@@ -238,6 +250,7 @@ function PlannedCard({ task, placement, context, onRun, locked, onTrack, drag }:
         <span className="placement-drag-handle" draggable={!busy && !locked} role="img" aria-label={`Move “${task.title}” from ${showDate(placement.planned_date)}`} title="Move planned task. Date controls are available below." onDragStart={(event) => drag.start(event, placement, task)} onDragEnd={drag.end}>
           <svg width="12" height="18" viewBox="0 0 12 18" fill="currentColor" aria-hidden="true"><circle cx="3" cy="3" r="1.5" /><circle cx="9" cy="3" r="1.5" /><circle cx="3" cy="9" r="1.5" /><circle cx="9" cy="9" r="1.5" /><circle cx="3" cy="15" r="1.5" /><circle cx="9" cy="15" r="1.5" /></svg>
         </span>
+        {placement.start_time ? <span className="planned-start">{showTime(placement.start_time)}</span> : null}
         <p id={`${id}-context`} className="planned-context muted">{context}</p>
       </div>
       <div className="planned-title">
@@ -258,23 +271,25 @@ function PlannedCard({ task, placement, context, onRun, locked, onTrack, drag }:
         <label htmlFor={id}>{task.title}</label>
       </div>
       <div hidden={task.completed}>
-      {placement.start_time || task.deadline || task.estimate_minutes ? <div className="planned-details">
-        {placement.start_time ? <p className="planned-meta">At {showTime(placement.start_time)}</p> : null}
-        {task.deadline ? <p className="planned-meta muted">Due {showDate(task.deadline)}</p> : null}
-        {task.estimate_minutes ? <p className="planned-meta muted">{task.estimate_minutes} min estimated</p> : null}
-      </div> : null}
-      {onTrack ? <StartTrackingButton task={task} onTrack={() => onTrack(task.id)} disabled={busy || locked} /> : null}
-      <details>
-        <summary>Move or remove</summary>
-        <PlacementActions key={`${placement.id}-${placement.planned_date}-${placement.start_time ?? ""}`} task={task} placement={placement} onRun={onRun} />
-      </details>
+      {task.deadline || task.estimate_minutes ? <p className="planned-details planned-meta muted">
+        {task.estimate_minutes ? <span>{task.estimate_minutes} min estimated</span> : null}
+        {task.estimate_minutes && task.deadline ? <span aria-hidden="true"> · </span> : null}
+        {task.deadline ? <span>Due {showDate(task.deadline)}</span> : null}
+      </p> : null}
+      <div className="planned-actions">
+        {onTrack ? <StartTrackingButton task={task} onTrack={() => onTrack(task.id)} disabled={busy || locked} /> : null}
+        <details className="planned-move">
+          <summary>Move or remove</summary>
+          <PlacementActions key={`${placement.id}-${placement.planned_date}-${placement.start_time ?? ""}`} task={task} placement={placement} onRun={onRun} />
+        </details>
+      </div>
       </div>
       {error ? <p role="alert" className="error">{error}</p> : null}
     </li>
   );
 }
 
-export function WeeklyPlanner({ state, projects, onRun, locked, onTrack }: { state: ReturnType<typeof usePlanning>; projects: Project[]; onRun: Run; locked: boolean; onTrack?: (taskId: string) => void }) {
+export function WeeklyPlanner({ state, projects, onRun, locked, onTrack, headerActions }: { state: ReturnType<typeof usePlanning>; projects: Project[]; onRun: Run; locked: boolean; onTrack?: (taskId: string) => void; headerActions?: ReactNode }) {
   const { plan, selectedDay, setSelectedDay, loading, error, navigate, refresh } = state;
   const [dragged, setDragged] = useState<DraggedPlacement | null>(null);
   const draggedRef = useRef<DraggedPlacement | null>(null);
@@ -355,17 +370,17 @@ export function WeeklyPlanner({ state, projects, onRun, locked, onTrack }: { sta
     end: endDrag,
   };
   return (
-    <section className={`weekly-planner${closed ? " weekly-planner-closed" : ""}`} aria-labelledby="planning-heading" aria-busy={loading}>
-      <div className="planner-heading">
-        <div>
-          <h2 id="planning-heading">Weekly plan</h2>
-          <p className="muted">{plan ? `${showDate(plan.week_start)} – ${showDate(plan.week_end)}` : "Loading week…"}</p>
-        </div>
+    <section className={`weekly-planner${closed ? " weekly-planner-closed" : ""}`} aria-label="Weekly plan" aria-busy={loading}>
+      <div className="plan-header">
+        <h2 id="planning-heading" className="plan-title">
+          {plan ? <><span className="week-range">{weekRange(plan.week_start, plan.week_end)}</span><span className="plan-title-note"> {completed} of {total} done</span></> : "Loading week…"}
+        </h2>
         <nav className="week-navigation" aria-label="Week navigation">
-          <button type="button" className="secondary" aria-label="Previous week" disabled={!plan || loading} onClick={() => void navigate(addDays(plan!.week_start, -7))}>← Previous</button>
-          <button type="button" className="secondary" disabled={loading} onClick={() => void navigate(undefined)}>Today</button>
-          <button type="button" className="secondary" aria-label="Next week" disabled={!plan || loading} onClick={() => void navigate(addDays(plan!.week_start, 7))}>Next →</button>
+          <button type="button" className="icon-button" aria-label="Previous week" title="Previous week" disabled={!plan || loading} onClick={() => void navigate(addDays(plan!.week_start, -7))}><span className="icon icon-chevron-left" aria-hidden="true" /></button>
+          <button type="button" className="button-secondary" disabled={loading} onClick={() => void navigate(undefined)}>Back to this week</button>
+          <button type="button" className="icon-button" aria-label="Next week" title="Next week" disabled={!plan || loading} onClick={() => void navigate(addDays(plan!.week_start, 7))}><span className="icon icon-chevron-right" aria-hidden="true" /></button>
         </nav>
+        {headerActions}
       </div>
       {plan ? <p className="timezone-note muted">Today is {showDate(plan.today)} · {plan.timezone}</p> : null}
       {plan ? <>
@@ -397,9 +412,15 @@ export function WeeklyPlanner({ state, projects, onRun, locked, onTrack }: { sta
           <div className="week-board">
             {days.map((date) => {
               const placements = visiblePlacements.filter((placement) => placement.planned_date === date);
+              const dayTasks = placements.map((placement) => closed ? historicalTasks.get(placement.task_id) : tasksById.get(placement.task_id)).filter((task): task is Task => !!task);
+              const dayMinutes = dayTasks.reduce((sum, task) => sum + (task.estimate_minutes ?? 0), 0);
               return (
                 <section key={date} className={`day-column${selectedDay === date ? " day-selected" : ""}${date === plan.today ? " day-today" : ""}${destinationClass(date)}`} onDragOver={(event) => dragOver(event, date)} onDrop={(event) => void drop(event, date)} aria-label={`${dayName.format(plainDate(date))}, ${showDate(date)}`}>
-                  <h3>{dayName.format(plainDate(date))}<span>{shortDate.format(plainDate(date))}{date === plan.today ? " · Today" : ""}</span></h3>
+                  <h3 className="week-day-head">
+                    <span className="week-day-label">{weekdayShort.format(plainDate(date))} {dayOfMonth(date)}{date === plan.today ? <span className="visually-hidden">, Today</span> : null}</span>
+                    <span className="week-day-load">{dayTasks.length ? `${dayTasks.length} · ${formatPlanned(dayMinutes)}` : "0"}</span>
+                  </h3>
+                  <CalendarEvents events={events.filter((event) => event.first_day <= date && event.last_day >= date)} date={date} onRun={onRun} locked={locked || loading} />
                   {placements.length ? (
                     <ul className="day-placements">
                       {placements.map((placement) => {
@@ -420,8 +441,7 @@ export function WeeklyPlanner({ state, projects, onRun, locked, onTrack }: { sta
                         return <PlannedCard key={placement.id} task={task} placement={placement} context={context} onRun={onRun} locked={locked || loading || dragBusy} onTrack={onTrack} drag={dragControls} />;
                       })}
                     </ul>
-                  ) : <p className="empty-day muted">Nothing planned</p>}
-                  <CalendarEvents events={events.filter((event) => event.first_day <= date && event.last_day >= date)} date={date} onRun={onRun} locked={locked || loading} />
+                  ) : <p className="empty-day muted"><span aria-hidden="true">—</span><span className="visually-hidden">Nothing planned</span></p>}
                 </section>
               );
             })}

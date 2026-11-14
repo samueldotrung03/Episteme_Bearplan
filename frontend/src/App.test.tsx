@@ -542,7 +542,7 @@ test("the server defines Today and the board spans Monday through Sunday across 
   expect(await screen.findByRole("region", { name: "Monday, Oct 19, 2026" })).toBeInTheDocument();
   await user.click(board().getByRole("button", { name: "Previous week" }));
   await board().findByRole("region", { name: "Monday, Oct 12, 2026" });
-  await user.click(board().getByRole("button", { name: "Today" }));
+  await user.click(board().getByRole("button", { name: "Back to this week" }));
   expect(calls.filter((call) => call.url === "/api/planning")).toHaveLength(2);
   expect(addDays("2026-12-28", 6)).toBe("2027-01-03");
   expect(addDays("2027-01-04", -7)).toBe("2026-12-28");
@@ -794,7 +794,7 @@ test("retrying a failed Today navigation asks the service for current Today agai
   await screen.findByRole("region", { name: "Monday, Oct 12, 2026" });
   await user.click(board().getByRole("button", { name: "Next week" }));
   await screen.findByRole("region", { name: "Monday, Oct 19, 2026" });
-  await user.click(board().getByRole("button", { name: "Today" }));
+  await user.click(board().getByRole("button", { name: "Back to this week" }));
   await screen.findByRole("alert");
   await user.click(board().getByRole("button", { name: "Retry weekly plan" }));
   expect(await board().findByRole("region", { name: "Monday, Oct 12, 2026" })).toBeInTheDocument();

@@ -67,7 +67,7 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         views.get_by_role("button", name="Week").click()
         page.get_by_role("button", name="Next week").click()
         expect(page.get_by_role("button", name="Next week")).to_be_enabled()
-        week = page.locator(".planner-heading p").inner_text()
+        week = page.locator(".week-range").inner_text()
         day = page.get_by_role("group", name="Selected day").get_by_role("button").last
         day.click()
         expect(day).to_have_attribute("aria-pressed", "true")
@@ -93,7 +93,7 @@ def test_settings_returns_to_work_and_preserves_countdown(browser, evidence, set
         expect(page.get_by_label("Title", exact=True)).to_have_value("Keep this task draft")
         page.get_by_role("button", name="Keep draft while this page is open").click()
         views.get_by_role("button", name="Week").click()
-        expect(page.locator(".planner-heading p")).to_have_text(week)
+        expect(page.locator(".week-range")).to_have_text(week)
         expect(day).to_have_attribute("aria-pressed", "true")
         views.get_by_role("button", name="Projects").click()
 

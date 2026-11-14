@@ -108,7 +108,7 @@ def test_plan_views_preserve_draft_and_week(browser, evidence, tmp_path, width, 
         page.get_by_role("button", name="Keep draft while this page is open").click()
         week.click()
         expect(page.get_by_role("region", name="Weekly plan")).to_be_visible()
-        heading = page.locator(".planner-heading p")
+        heading = page.locator(".week-range")
         previous_week = heading.inner_text()
         page.get_by_role("button", name="Next week").click()
         expect(heading).not_to_have_text(previous_week)

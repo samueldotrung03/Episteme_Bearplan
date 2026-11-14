@@ -111,7 +111,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         card.get_by_text("Move or remove").click()
         card.get_by_label("Start time on", exact=False).fill("23:15")
         card.get_by_role("button", name="Save time").click()
-        expect(page.locator(".planned-card", has_text="Office hours")).to_contain_text("At 11:15 PM")
+        expect(page.locator(".planned-card", has_text="Office hours")).to_contain_text("11:15 PM")
 
         page.evaluate("window.location.hash = '#google'")  # Google moved into Settings (Atelier app bar)
         tab.get_by_role("button", name="Sync now").click()
