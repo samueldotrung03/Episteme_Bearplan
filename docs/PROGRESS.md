@@ -176,6 +176,14 @@ The bullets below are kept as context while the task-entry slice edits this file
   `AGENTS.md`; [decision sheet](plans/refinement/DECISIONS_FOR_USER.md)). The
   wide-layout width is to be set after a browser layout test; that test is open.
 
+- **Atelier redesign (Nov 14, plan only).** The user asked to bring the new
+  Atelier Figma dashboard into the app. The [plan](../frontend/plans/atelier-redesign/PLAN.md)
+  maps tokens, compares S1 Today with the current app and proposes slices A0–A3.
+  Not started: four user-owned gates are open (G-03 to G-06), so it needs a gate
+  closed or deferred, or the user's override. User decisions, Nov 14: "Close G-03
+  first" (review the task-entry form, then start A0+A1); "Switch to Geist" for the
+  app font, replacing the Nov 11 system-font decision.
+
 ## Refinement plan (tracking and release readiness)
 
 Separate from the active UX slice. Entry point:

@@ -62,6 +62,8 @@ dates; use their contents and commit history to determine which evidence is curr
   shows current incomplete leaf work with a past saved planned date and no plan for
   today or later, once per task, including archived membership, never rescheduling;
   Inter is the Figma-only fallback and the app keeps the system font.
+  Superseded 2026-11-14 for the Atelier redesign: the user chose "Switch to Geist";
+  bundle Geist locally (no network font loading) when the Atelier slices are built.
 - The accepted future drag design includes both within-day ordering and date
   moves. Current same-day drops remain no-ops until a separately scoped build
   implements persisted ordering. Cancellation/outside drops and unchanged-position
