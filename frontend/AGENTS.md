@@ -14,6 +14,15 @@ Explicit user instructions and current authorization remain authoritative.
 - Read [package.json](package.json) before choosing commands or dependencies.
   Extend the existing React/TypeScript/Vite application and its tests.
 
+## Frontend lane limits (when a backend agent is also working)
+
+See "Parallel work" in the [root guide](../AGENTS.md). The frontend lane works in
+the main folder on `main` and edits `frontend/` and `tests/test_*_browser.py`.
+It does not edit `backend/`, other tests, migrations or Python dependencies; it
+writes what it needs from the backend in the handoff. It owns `src/api.ts` and
+builds against the route contract recorded in the backend slice's review file.
+It is also the one writer of the shared progress, completed and gate records.
+
 ## Find the relevant material
 
 | Area | Entry point |

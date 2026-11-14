@@ -187,8 +187,11 @@ The bullets below are kept as context while the task-entry slice edits this file
 - The [seven-day local-core trial](CORE_TRIAL_CHECKLIST.md) has not been reported.
   Distinct Standby type 5 remains unverified; do not certify combined M2/M3 hardware
   or release readiness without its applicable evidence.
-- The requested frontend/backend/shared-test ownership and documentation map is
-  not started. Codex project registration still points at the old nested folder;
+- The frontend/backend/test ownership map was written on Nov 14 as "Parallel
+  work" in `AGENTS.md`, with lane guides in `frontend/`, `backend/` and `tests/`
+  (Claude: frontend in the main folder; Codex: backend and non-browser tests in a
+  separate worktree). The backend worktree has not been created and no backend
+  slice has started; A2 still needs a gate closed or the user's override. Codex project registration still points at the old nested folder;
   reopen/select `/Users/hiberkeley/Desktop/Projects/Episteme_Bearplan` if needed.
 - Assistant defaults 2–6 and the UX row height, cross-month filing, Earlier
   selection and Figma font were decided by the user on 2026-11-11 (rules in

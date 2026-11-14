@@ -12,7 +12,8 @@ Paths below are from the repository root.
 | What is active now, and what is next? | [docs/PROGRESS.md](PROGRESS.md) |
 | What is waiting on me (the user)? | [docs/GATES.md](GATES.md) |
 | What was finished, and how was it checked? | [docs/COMPLETED.md](COMPLETED.md) (newest first; links the review for each item) |
-| What are the rules for every agent? | [AGENTS.md](../AGENTS.md); frontend additions in [frontend/AGENTS.md](../frontend/AGENTS.md) |
+| What are the rules for every agent? | [AGENTS.md](../AGENTS.md); additions in [frontend/AGENTS.md](../frontend/AGENTS.md), [backend/AGENTS.md](../backend/AGENTS.md) and [tests/AGENTS.md](../tests/AGENTS.md) |
+| Who edits what when two agents work at once? | "Parallel work" in [AGENTS.md](../AGENTS.md) |
 | How does Claude resume or hand off? | [CLAUDE.md](../CLAUDE.md) |
 | What is the plan and when is each part due? | [BearPlans_Dated_Roadmap.md](../BearPlans_Dated_Roadmap.md) (dates are targets) |
 | What is the full product and build design? | [BearPlans_Build_Plan.md](../BearPlans_Build_Plan.md) |

@@ -27,6 +27,57 @@ requirements. Record discrepancies in progress instead of silently weakening a
 gate or rewriting historical evidence. Review filenames may use future target
 dates; use their contents and commit history to determine which evidence is current.
 
+## Parallel work: two agents, two folders
+
+User request, November 14, 2026. Two agents may work at the same time only when
+each has its own Git worktree (a second folder checked out from this repository
+on its own branch) and its own lane. This whole repository, including this file,
+is present in every worktree; guidance files are not moved or copied by hand.
+
+| Lane | Agent | Folder and branch | May edit |
+| --- | --- | --- | --- |
+| Frontend | Claude | Main folder, `main` | `frontend/`, `tests/test_*_browser.py`, the shared records below |
+| Backend | Codex | `../Episteme_Bearplan-backend`, one branch per slice | `backend/`, the rest of `tests/`, `tools/`, `pyproject.toml` and the Python locks |
+
+Lane guides: [frontend/AGENTS.md](frontend/AGENTS.md), [backend/AGENTS.md](backend/AGENTS.md)
+and [tests/AGENTS.md](tests/AGENTS.md).
+
+- **Stay in the lane.** Do not edit the other lane's files, even for a small fix.
+  Write what is needed in the handoff and let the owning agent make the change.
+  `frontend/src/api.ts` and the browser tests belong to the frontend lane;
+  migrations belong to the backend lane.
+- **API changes are agreed in writing first.** The backend lane records the route,
+  request, response and error codes in its review file; the frontend lane then
+  updates `api.ts` and the interface against that record.
+- **One writer for the shared records.** `docs/PROGRESS.md`, `docs/COMPLETED.md`,
+  `docs/GATES.md`, this file and the roadmap/plan files are edited only in the
+  main folder on `main`. On a lane branch, put the handoff (state, checks run,
+  open checks, next step, proposed gate rows without IDs) in that slice's
+  `docs/reviews/YYYY-MM-DD-<feature>.md`; the shared records and `G-NN` IDs are
+  written when the branch is merged.
+- **Merge one branch at a time.** Run the full `python3 tools/check.py` on the
+  branch, merge into `main`, run it again on `main`, then bring `main` into the
+  other worktree before it continues. The user writes the commits and merges
+  unless they say otherwise.
+- **Each worktree has its own `.venv`, `frontend/node_modules` and `frontend/dist`.**
+  Never point one worktree at another's. Checks and disposable instances already
+  use temporary data folders and free ports, so both lanes may run them at once.
+- The gate limit below applies to each lane: a second lane is not a way around it.
+  "One active slice" means one per lane. Figma still has one writer in total.
+- Without a second worktree, the single-agent rules apply unchanged and one agent
+  may work across the whole repository.
+
+To create the backend worktree, from the main folder:
+
+```sh
+git worktree add ../Episteme_Bearplan-backend -b <branch-name>
+cd ../Episteme_Bearplan-backend
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.lock
+npm --prefix frontend ci
+python3 tools/check.py --fast
+```
+
 ## UX redesign and Figma handoff
 
 - Read the [frontend UX plan](frontend/BEARPLANS_UX_PLAN.md) for design work and use

@@ -1,5 +1,16 @@
 # BearPlans — completed work log
 
+## 2026-11-14 — Guidance for two agents working in parallel (documentation only)
+
+The user asked to organize the repository so Codex can take the backend and tests
+in a separate worktree while Claude continues the interface. Added "Parallel work:
+two agents, two folders" to `AGENTS.md` (lanes, one writer for the shared records,
+merge order, worktree setup commands), new `backend/AGENTS.md` and
+`tests/AGENTS.md`, a lane section in `frontend/AGENTS.md`, and two rows in the
+`docs/README.md` map. No files were moved and no application code changed. Checks:
+diff and link review only; no test run (documentation-only change). Not done: the
+backend worktree is not created, and no backend slice is started or authorized.
+
 ## 2026-11-14 — Atelier redesign A0 + A1: tokens, Geist, app bar and Today dashboard
 
 Implemented from Figma S1 Today (`Sxhit2hudslGGvwqkxpX8G`, frame `18:5`); frontend
