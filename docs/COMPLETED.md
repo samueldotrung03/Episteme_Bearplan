@@ -1,5 +1,21 @@
 # BearPlans — completed work log
 
+## 2026-11-14 — B3 within-day order, backend (user override)
+
+Built in the backend lane under the user's override (six gates open, B3 only).
+Saved positions for active placements (migration 0026), `position` in the
+planning read, and `PUT /api/placements/{id}/order` with full-list revision
+checks. Details and the route contract in the [review](reviews/2026-11-14-b3-placement-order.md).
+Changed: `backend/app.py`, `backend/domain/planning.py`, `backend/domain/weeks.py`,
+`backend/routes/planning.py`, `backend/storage/migrations/0026_placement_order.sql`,
+`tests/test_placement_order.py` (new), `tests/test_migrations.py`,
+`tests/test_task_capture.py`. Commits: `62d7893` (branch `day-order`), merged
+into main as `f724857`. Checks on the branch (from the review): first full check
+failed one schema-23 assertion (fixed); a second run was interrupted to add
+carryover positions; final `python3 tools/check.py` passed (217 frontend; 1184
+backend/browser passed, 1 skipped). Check on merged main: `python3 tools/check.py` passed all 4 steps (219 frontend; 1186 backend/browser passed, 1 skipped; 318 s).
+Open: frontend drag wiring (on hold by the user until the gate review) and G-18.
+
 ## 2026-11-14 — Atelier A4: Projects + Task editor (user override)
 
 Restyled Projects in place from Figma S3/S4 (user: "Override, start Projects",
@@ -9,7 +25,7 @@ task-row parent class, editor action order), `frontend/src/styles.css` (A4 block
 new gate G-17 in `docs/GATES.md`, evidence screenshots. No test changes.
 Checks: first full check failed the 375 px long-name overflow test (fixed);
 rerun `python3 tools/check.py` all 4 steps passed (219 frontend; 1180
-backend/browser passed, 1 skipped; 318 s). Commit: not yet (user commits).
+backend/browser passed, 1 skipped; 318 s). Commit: `2f56124` (by the user).
 Open: G-17 user acceptance.
 
 ## 2026-11-14 — Today: Earlier unfinished and week dots (B1 frontend)
@@ -21,7 +37,7 @@ Changed: `frontend/src/api.ts`, `frontend/src/Today.tsx`, `frontend/src/styles.c
 `tests/test_today_browser.py` (new Earlier unfinished test), evidence screenshots.
 Week dots: no change needed (already from `/api/streaks`). Checks:
 `python3 tools/check.py` all 4 steps passed (219 frontend tests; 1180
-backend/browser tests passed, 1 skipped; 319 s). Commit: not yet (user commits).
+backend/browser tests passed, 1 skipped; 319 s). Commit: `5fd1476`.
 Open: G-16 user acceptance.
 
 ## 2026-11-14 — B1 Earlier unfinished, backend (user override; merged as 2a5aaa8)
@@ -48,7 +64,7 @@ Changed: `frontend/src/WeeklyPlanner.tsx`, `frontend/src/App.tsx`,
 `test_settings_browser.py`, `test_today_browser.py`, `test_google_browser.py`.
 Checks: `python3 tools/check.py` all 4 steps passed (217 frontend tests; 1175
 backend/browser tests passed, 1 skipped; 313 s). Screenshots at 1440/800/640 px,
-light and dark. Commit: not yet (user commits). Open: G-15 user acceptance.
+light and dark. Commit: `c13a50a`. Open: G-15 user acceptance.
 
 ## 2026-11-14 — Guidance for two agents working in parallel (documentation only)
 

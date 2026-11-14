@@ -4,6 +4,32 @@ Updated November 12, 2026. Read [AGENTS.md](../AGENTS.md) before resuming.
 Finished work and evidence are in [COMPLETED.md](COMPLETED.md); this file is the
 single current handoff.
 
+## Backend lane: B3 within-day order (built Nov 14, user override; merged into main)
+
+**Authorization:** built under the user's override with six user-owned gates
+open (G-14, G-15, G-16, G-04, G-05, G-06), for B3 only: "My override still
+applies to B3 only." Backend lane (Codex). The user also confirmed that timed
+tasks can be reordered freely and keep their start time, and that date moves
+carry that time.
+
+**Contract:** migration 0026 adds saved positions for active placements;
+`GET /api/planning` placements gain `position` (nullable in old snapshots) and
+come ordered by date and position; new `PUT /api/placements/{id}/order` with
+`planned_date`, `position`, and the full `source_order` / `destination_order`
+lists (id + revision) the client read; 409 `placement_order_conflict` means
+refresh and retry. Existing `PATCH` date moves still work and append.
+[Review](reviews/2026-11-14-b3-placement-order.md): pass with follow-ups.
+
+**Merged:** `62d7893` on branch `day-order`, merged into main as `f724857`
+(merge commit reusing the B3 message); the merge adds only B3's 9 files on top
+of `2f56124`. Check on merged main: `python3 tools/check.py` passed all 4 steps (219 frontend; 1186 backend/browser passed, 1 skipped; 318 s).
+
+**Gate:** G-18 (accept within-day ordering), open on integrated delivery; it
+cannot be checked until the frontend uses the new route.
+
+**Hold (user, Nov 14):** "Do not start the drag wiring yet. Wait until I have
+reviewed the open gates." No frontend work on ordering until the user says so.
+
 ## Active work: Atelier redesign A4 Projects + Task editor (started Nov 14, user override)
 
 **Authorization:** six user-owned gates were open (G-14, G-15, G-16, G-04, G-05,
@@ -20,13 +46,15 @@ own plan view; it takes the S3 panel's look and controls (project dropdown,
 Active/Done, ⋯ menu for Rename/Add, Atelier task rows, S4 editor styling). Moving
 Projects into a slide-in side panel over Today/Week is a later, separate step.
 
-**State (Nov 14):** implemented, not committed (staged for the user). Full check
+**State (Nov 14):** implemented and committed by the user as `2f56124`. Full check
 passed (219 frontend; 1180 backend/browser passed, 1 skipped).
 [Review](reviews/2026-11-14-atelier-projects.md). Awaiting gate G-17.
-User-owned gates open: seven (G-14, G-15, G-16, G-17, G-04, G-05, G-06).
+User-owned gates open: eight (G-14, G-15, G-16, G-17, G-18, G-04, G-05, G-06);
+G-18 cannot be checked until the ordering frontend exists.
 
-**Next concrete step:** the user checks G-14, G-15, G-16 and G-17 together (about
-50 minutes). Any further Atelier screen (Done, Track, …) needs another override.
+**Next concrete step:** the user reviews the open gates; G-14, G-15, G-16 and
+G-17 take about 50 minutes together. No new build (B3 drag wiring or another
+Atelier screen) until the user says so after that review.
 
 ## Awaiting acceptance: Atelier redesign A3 Week (started Nov 14, user override)
 
@@ -74,7 +102,7 @@ days ending today).
 "Earlier unfinished · N" with completion and "Move … to today"; the seven dots
 already come from `/api/streaks`, and Figma's dot labels match the last seven
 days. [Review](reviews/2026-11-14-today-earlier-unfinished.md); full check passed.
-Not committed: staged for the user.
+Committed as `5fd1476`.
 
 **Next concrete step:** the user does G-16 (about 10 minutes), with G-14 and G-15.
 
