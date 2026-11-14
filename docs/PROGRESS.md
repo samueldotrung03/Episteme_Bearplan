@@ -25,7 +25,7 @@ commit.
 user-owned gates are now open (G-14, G-15, G-04, G-05, G-06), so the next Atelier
 screen (Projects/Task editor) needs a gate closed or another override.
 
-## Backend lane: B1 Earlier unfinished (built Nov 14, user override; merge pending)
+## Backend lane: B1 Earlier unfinished (built Nov 14, user override; merged into main)
 
 **Authorization:** built under the user's override for B1 only, with four
 user-owned gates open (G-14, G-04, G-05, G-06): "I am overriding the limit for
@@ -38,16 +38,15 @@ and adds `earlier_unfinished` (current incomplete leaf tasks with a saved
 placement and none on or after today; read-only; sorted by latest planned date).
 Contract and checks: [B1 review](reviews/2026-11-14-b1-earlier-unfinished.md);
 full `tools/check.py` passed on the branch (1178 backend/browser tests, 1 skipped).
-**Not yet merged into `main`** as of this entry, although the user's handoff
-message said it was; `main` is at `375e9ee` and the review file reaches `main`
-only with the merge. User acceptance: G-16.
+Merged into `main` on Nov 14 as `2a5aaa8` (after the A3 Week commit `c13a50a`),
+at the user's request. User acceptance: G-16.
 
 **B2 (week dots): no backend change needed.** `GET /api/streaks` already returns
 `today`, `timezone` and `days[]` (`date`, `qualified`, `active_microseconds`),
 enough for the seven dots. Today already draws seven dots from it (A1, last seven
 days ending today).
 
-**Next (frontend lane, when Today is next worked on, after the merge):** add
+**Next (frontend lane, when Today is next worked on):** add
 `earlier_unfinished` to `api.ts` and show "Earlier unfinished · N" on Today; check
 whether the Figma dots mean the last seven days (built) or the calendar week.
 
