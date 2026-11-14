@@ -4,6 +4,31 @@ Updated November 12, 2026. Read [AGENTS.md](../AGENTS.md) before resuming.
 Finished work and evidence are in [COMPLETED.md](COMPLETED.md); this file is the
 single current handoff.
 
+## Real data: upgraded to schema 26 on Nov 14 (record only)
+
+On Nov 14 the app was launched on the user's real data folder
+(`~/Library/Application Support/BearPlans/`) at Claude's offer, after B3 merged,
+and the launcher upgraded the real database to **schema 26** (14:33 local). An
+earlier launch the same day (11:41) had already upgraded it from schema 19. The
+pre-upgrade backups made automatically by the service are in that folder's
+`backups/` directory:
+
+- `pre-upgrade-v19-20261114T114118-6cd5f71931ec4957bddc9d8fd5be3d09.sqlite3`
+  (before the 11:41 upgrade from schema 19)
+- `pre-upgrade-v25-20261114T143325-f6140569a7404433a7079cdd31892593.sqlite3`
+  (before the 14:33 upgrade from schema 25 to 26)
+- also `daily-2026-11-14.sqlite3` and `weekly-2026-W46.sqlite3` (11:41)
+
+Per AGENTS.md, personal data must not be used for testing. The user asked for
+that instance to be stopped; it was stopped gracefully (SIGTERM to the launcher,
+"BearPlans stopped."). Gate reviews now use a disposable instance:
+`http://127.0.0.1:8766/`, data folder
+`/var/folders/wk/3yfnwgrx2qdbvr75y1kcqrx00000gn/T/bearplans-gates.Fm2G3uVwHt`
+(seeded for G-14 to G-17: today's tasks with a start time and a completed one,
+plans across this week and next, four Earlier unfinished tasks, projects with
+parent tasks and subtasks, and one very long project name). Do not launch on the
+real folder again without the user asking.
+
 ## Backend lane: B3 within-day order (built Nov 14, user override; merged into main)
 
 **Authorization:** built under the user's override with six user-owned gates
