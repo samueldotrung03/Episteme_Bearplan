@@ -46,9 +46,13 @@ at the user's request. User acceptance: G-16.
 enough for the seven dots. Today already draws seven dots from it (A1, last seven
 days ending today).
 
-**Next (frontend lane, when Today is next worked on):** add
-`earlier_unfinished` to `api.ts` and show "Earlier unfinished · N" on Today; check
-whether the Figma dots mean the last seven days (built) or the calendar week.
+**Frontend wired (Nov 14, user: "Yes, do the Today wiring now"):** Today shows
+"Earlier unfinished · N" with completion and "Move … to today"; the seven dots
+already come from `/api/streaks`, and Figma's dot labels match the last seven
+days. [Review](reviews/2026-11-14-today-earlier-unfinished.md); full check passed.
+Not committed: staged for the user.
+
+**Next concrete step:** the user does G-16 (about 10 minutes), with G-14 and G-15.
 
 ## Awaiting acceptance: Atelier redesign A0 + A1 (started Nov 14)
 

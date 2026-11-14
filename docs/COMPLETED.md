@@ -1,5 +1,17 @@
 # BearPlans — completed work log
 
+## 2026-11-14 — Today: Earlier unfinished and week dots (B1 frontend)
+
+Wired B1 into Today from Figma `32:1888`, as work that lets G-16 pass (user
+authorized, Nov 14). Details in the [review](reviews/2026-11-14-today-earlier-unfinished.md).
+Changed: `frontend/src/api.ts`, `frontend/src/Today.tsx`, `frontend/src/styles.css`,
+`frontend/src/Today.test.tsx`, new `frontend/src/assets/atelier/arrow-up.svg`,
+`tests/test_today_browser.py` (new Earlier unfinished test), evidence screenshots.
+Week dots: no change needed (already from `/api/streaks`). Checks:
+`python3 tools/check.py` all 4 steps passed (219 frontend tests; 1180
+backend/browser tests passed, 1 skipped; 319 s). Commit: not yet (user commits).
+Open: G-16 user acceptance.
+
 ## 2026-11-14 — B1 Earlier unfinished, backend (user override; merged as 2a5aaa8)
 
 Built by Codex in the backend worktree under the user's override for B1 only

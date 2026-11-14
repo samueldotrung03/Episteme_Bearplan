@@ -1,8 +1,10 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ApiError, setTaskCompletion, type GoogleEvent, type Planning, type Project, type Task } from "./api";
+import { ApiError, assignTask, setTaskCompletion, type EarlierUnfinishedTask, type GoogleEvent, type Planning, type Project, type Task } from "./api";
 import { DailyStreak } from "./DailyStreak";
 
 const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+const weekdayLabel = new Intl.DateTimeFormat(undefined, { weekday: "long", timeZone: "UTC" });
+const monthDayLabel = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 const eventClock = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 type Props = {
@@ -75,6 +77,68 @@ function TodayRow({ task, context, startTime, focused, locked, onFocusRow, onRun
       </button>
     </div> : null}
   </li>;
+}
+
+/** "from Thursday" within the last six days, otherwise "from Nov 3". */
+export function earlierFrom(date: string, today: string): string {
+  const days = (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`)) / 86_400_000;
+  const when = new Date(`${date}T00:00:00Z`);
+  return `from ${days >= 1 && days <= 6 ? weekdayLabel.format(when) : monthDayLabel.format(when)}`;
+}
+
+function EarlierRow({ task, today, locked, onRun }: { task: EarlierUnfinishedTask; today: string; locked: boolean; onRun: Props["onRun"] }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const context = [task.project_name, task.parent_title, earlierFrom(task.last_planned_date, today)].filter(Boolean).join(" · ");
+  return <li className="today-task" data-task-id={task.id}>
+    <span className="today-check">
+      <input type="checkbox" checked={false} disabled={busy || locked} aria-label={`${task.title} — ${context}`} onChange={async () => {
+        setBusy(true); setError("");
+        try { await onRun(() => setTaskCompletion(task.id, true), "Task marked complete."); }
+        catch (caught) { setError(caught instanceof ApiError ? caught.message : "Could not save this task. Try again."); }
+        finally { setBusy(false); }
+      }} />
+    </span>
+    <div className="today-task-content">
+      <span className="today-task-title">{task.title}</span>
+      <span className="today-task-context">{context}</span>
+      {error ? <p role="alert" className="error">{error}</p> : null}
+    </div>
+    {task.estimate_minutes ? <div className="today-task-trailing"><span className="today-task-estimate">{task.estimate_minutes} min</span></div> : null}
+  </li>;
+}
+
+function EarlierUnfinished({ items, today, locked, onRun }: { items: EarlierUnfinishedTask[]; today: string; locked: boolean; onRun: Props["onRun"] }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const listId = useId();
+  if (!items.length) return null;
+  const label = items.length === 1 ? "Move to today" : items.length === 2 ? "Move both to today" : `Move all ${items.length} to today`;
+  // Adds a placement for today to each task; earlier placements stay as history.
+  const moveAll = async () => {
+    setBusy(true); setError("");
+    try {
+      await onRun(async () => { for (const task of items) await assignTask(task.id, today); },
+        items.length === 1 ? `Planned “${items[0].title}” for today.` : `Planned ${items.length} earlier tasks for today.`);
+    } catch (caught) {
+      setError(`${caught instanceof ApiError ? caught.message : "Could not plan these tasks."} Any that were planned now show in today's list.`);
+    } finally { setBusy(false); }
+  };
+  return <div className="today-earlier">
+    <button type="button" className="disclosure" aria-expanded={open} aria-controls={listId} onClick={() => setOpen((value) => !value)}>
+      <span className="icon icon-chevron" aria-hidden="true" />Earlier unfinished · {items.length}
+    </button>
+    {open ? <div id={listId}>
+      <ul className="today-tasks" aria-label="Earlier unfinished tasks">{items.map((task) => <EarlierRow key={task.id} task={task} today={today} locked={locked} onRun={onRun} />)}</ul>
+      <div className="today-earlier-actions">
+        <button type="button" className="button-tertiary" disabled={busy || locked} onClick={() => void moveAll()}>
+          <span className="icon icon-arrow-up" aria-hidden="true" />{busy ? "Planning…" : label}
+        </button>
+      </div>
+      {error ? <p role="alert" className="error">{error}</p> : null}
+    </div> : null}
+  </div>;
 }
 
 function isTyping(target: EventTarget | null): boolean {
@@ -172,6 +236,7 @@ export function Today({ plan, projects, loading, error, onRun, onTrack, locked, 
         </button>
         {showCompleted ? <ul className="today-tasks today-tasks-completed">{completed.map(row)}</ul> : null}
       </div> : null}
+      <EarlierUnfinished items={plan.earlier_unfinished ?? []} today={plan.today} locked={locked} onRun={onRun} />
       <p className="today-shortcuts" aria-label="Keyboard shortcuts">
         <span><kbd>Enter</kbd> start focused task</span><span><kbd>X</kbd> complete</span>
         {onAddTask ? <span><kbd>N</kbd> new task</span> : null}{onShowWeek ? <span><kbd>W</kbd> week</span> : null}{onShowProjects ? <span><kbd>P</kbd> projects</span> : null}

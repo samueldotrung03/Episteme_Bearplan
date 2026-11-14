@@ -100,3 +100,34 @@ test("shortcuts are ignored while typing or when Today is hidden", async () => {
   await user.keyboard("w");
   expect(onShowWeek).not.toHaveBeenCalled();
 });
+
+test("Earlier unfinished lists past-planned tasks, completes one and moves all to today", async () => {
+  const user = userEvent.setup();
+  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(JSON.stringify({}), { status: 200, headers: { "Content-Type": "application/json" } }));
+  const onRun = vi.fn(async (work: () => Promise<unknown>, _done: string) => { await work(); });
+  const earlier = [
+    { id: "lab", title: "Finish the lab write-up", project_id: "p", project_name: "CS 61A", parent_id: "x", parent_title: "Lab 9", last_planned_date: "2026-11-05", deadline: null, estimate_minutes: 40 },
+    { id: "mail", title: "Email the group", project_id: "p", project_name: "History seminar", parent_id: null, parent_title: null, last_planned_date: "2026-10-30", deadline: null, estimate_minutes: null },
+  ];
+  render(<Today visible={false} lastSessionId={null} plan={{ ...plan, earlier_unfinished: earlier }} projects={[project]} loading={false} error={null} locked={false} onRun={onRun} onTrack={vi.fn()} onRetry={vi.fn()} />);
+  const toggle = screen.getByRole("button", { name: "Earlier unfinished · 2" });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByText("Finish the lab write-up")).not.toBeInTheDocument();
+  await user.click(toggle);
+  const list = within(screen.getByRole("list", { name: "Earlier unfinished tasks" }));
+  expect(list.getByText("CS 61A · Lab 9 · from Thursday")).toBeVisible();
+  expect(list.getByText("History seminar · from Oct 30")).toBeVisible();
+  expect(list.getByText("40 min")).toBeVisible();
+  await user.click(list.getByRole("checkbox", { name: "Email the group — History seminar · from Oct 30" }));
+  expect(fetch).toHaveBeenLastCalledWith("/api/tasks/mail/completion", expect.objectContaining({ method: "PUT", body: JSON.stringify({ complete: true }) }));
+  await user.click(screen.getByRole("button", { name: "Move both to today" }));
+  const assigned = fetch.mock.calls.filter(([url]) => url === "/api/placements").map(([, init]) => (init as RequestInit).body);
+  expect(assigned).toEqual([JSON.stringify({ task_id: "lab", planned_date: "2026-11-11" }), JSON.stringify({ task_id: "mail", planned_date: "2026-11-11" })]);
+  expect(onRun).toHaveBeenLastCalledWith(expect.any(Function), "Planned 2 earlier tasks for today.");
+  fetch.mockRestore();
+});
+
+test("Earlier unfinished is absent when the list is empty or missing", () => {
+  renderToday();
+  expect(screen.queryByRole("button", { name: /Earlier unfinished/ })).not.toBeInTheDocument();
+});
