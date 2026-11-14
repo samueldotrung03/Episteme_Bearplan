@@ -73,5 +73,5 @@ def test_upgrade_from_schema_23_preserves_task_and_plan(tmp_path):
     upgraded = open_database(path)
     assert current_version(upgraded) == len(load_migrations())
     assert list_tasks(upgraded) == [task]
-    assert list_placements(upgraded) == [placement]
+    assert list_placements(upgraded) == [placement.model_copy(update={"position": 0})]
     assert capture_task(upgraded, str(uuid4()), "New task").task.title == "New task"

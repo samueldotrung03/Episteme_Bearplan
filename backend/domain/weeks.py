@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from backend.domain.errors import InvalidInput
 from backend.domain.planning import (
     ClosedWeek, ClosedWeekSummary, HistoricalTask, Placement, WeekConflict,
-    _list_placements, _planned_date, _require_open_week, application_today, week_bounds,
+    _append_position, _list_placements, _planned_date, _require_open_week, application_today, week_bounds,
 )
 from backend.domain.tasks import Task, _list_tasks
 from backend.storage.db import Database, utc_now
@@ -288,6 +288,7 @@ def _apply_carryover_tx(conn: sqlite3.Connection, monday: date, normalized: list
             "INSERT INTO planned_items (id, task_id, planned_date, created_at, updated_at, revision) VALUES (?, ?, ?, ?, ?, ?)",
             (placement.id, placement.task_id, placement.planned_date.isoformat(), now, now, 1),
         )
+        placement = placement.model_copy(update={"position": _append_position(conn, placement.id, placement.planned_date.isoformat())})
         if item.start_time:
             conn.execute("INSERT INTO placement_times (placement_id, start_time) VALUES (?, ?)", (placement.id, item.start_time))
         placements.append(placement)

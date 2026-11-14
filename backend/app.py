@@ -22,7 +22,7 @@ from backend.domain.google_tasks import GoogleSyncService
 from backend.platform.ollama import OllamaProvider
 from backend.domain.corrections import CorrectionConflict
 from backend.domain.errors import InvalidInput
-from backend.domain.planning import PlacementConflict, WeekConflict
+from backend.domain.planning import PlacementConflict, PlacementOrderConflict, WeekConflict
 from backend.domain.rewards import RewardConfig, ShopConflict, ShopService
 from backend.domain.streaks import StreakDataError
 from backend.domain.timer import Clock, TimerConflict, TimerService
@@ -185,6 +185,13 @@ def create_app(
     async def placement_conflict(_: Request, exc: PlacementConflict) -> JSONResponse:
         return JSONResponse(
             {"error": {"code": "placement_conflict", "field": exc.field, "message": exc.message}},
+            status_code=409,
+        )
+
+    @app.exception_handler(PlacementOrderConflict)
+    async def placement_order_conflict(_: Request, exc: PlacementOrderConflict) -> JSONResponse:
+        return JSONResponse(
+            {"error": {"code": "placement_order_conflict", "field": exc.field, "message": exc.message}},
             status_code=409,
         )
 

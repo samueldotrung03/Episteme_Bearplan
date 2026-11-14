@@ -3,10 +3,10 @@ from __future__ import annotations
 import sqlite3
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel, ConfigDict, StrictStr
+from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
 
 from backend.domain.planning import (
-    Placement, PlanningSnapshot, create_placement, get_planning, move_placement, remove_placement, set_placement_time,
+    Placement, PlanningSnapshot, create_placement, get_planning, move_placement, remove_placement, reorder_placement, set_placement_time,
 )
 
 from backend.domain.google_reading import SourceEvent
@@ -37,6 +37,20 @@ class PlacementTimeRequest(BaseModel):
     start_time: StrictStr | None
 
 
+class OrderEntry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: StrictStr
+    revision: StrictInt
+
+
+class PlacementOrderRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    planned_date: StrictStr
+    position: StrictInt
+    source_order: list[OrderEntry]
+    destination_order: list[OrderEntry]
+
+
 @router.get("/planning")
 def planning(request: Request, week: str | None = None) -> PlanningView:
     snapshot = get_planning(request.app.state.db, week)
@@ -57,6 +71,13 @@ def post_placement(body: PlacementCreateRequest, request: Request) -> Placement:
 @router.patch("/placements/{placement_id}")
 def patch_placement(placement_id: str, body: PlacementMoveRequest, request: Request) -> Placement:
     return move_placement(request.app.state.db, placement_id, body.planned_date)
+
+
+@router.put("/placements/{placement_id}/order")
+def put_placement_order(placement_id: str, body: PlacementOrderRequest, request: Request) -> Placement:
+    return reorder_placement(request.app.state.db, placement_id, body.planned_date, body.position,
+                             [(item.id, item.revision) for item in body.source_order],
+                             [(item.id, item.revision) for item in body.destination_order])
 
 
 @router.delete("/placements/{placement_id}")

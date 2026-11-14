@@ -455,7 +455,7 @@ def test_v6_multi_day_upgrade_preserves_tasks_history_timer_rows_and_retries_aft
     assert after["schema_migrations"][:6] == before["schema_migrations"]
     added = create_placement(db, task.id, "2026-10-23", source_placement_id=current.id)
     reopened = open_database(db.path)
-    assert list_placements(reopened) == [current, added]
+    assert list_placements(reopened) == [current.model_copy(update={"position": 0}), added]
     with reopened.read() as conn:
         assert conn.execute("SELECT id FROM closed_placements").fetchone()[0] == historical.id
         assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"

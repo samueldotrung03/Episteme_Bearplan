@@ -31,6 +31,7 @@ class Placement(BaseModel):
     planned_date: date
     # Optional local start time "HH:MM"; a timed placement becomes a Google Calendar event.
     start_time: str | None = None
+    position: int | None = None
     created_at: datetime
     updated_at: datetime
     revision: int
@@ -100,6 +101,11 @@ class PlacementConflict(InvalidInput):
         )
 
 
+class PlacementOrderConflict(InvalidInput):
+    def __init__(self) -> None:
+        super().__init__("order", "This day's plan changed. Refresh the plan and try again; nothing was changed.")
+
+
 def _date(value: object, field: str = "planned_date") -> date:
     if isinstance(value, date) and not isinstance(value, datetime):
         return value
@@ -124,9 +130,12 @@ def week_bounds(value: str | date) -> tuple[date, date]:
 def _select(conn: sqlite3.Connection) -> str:
     """Placements with their optional start time. Before migration 18 (legacy-upgrade
     paths run current code on older schemas) there are no start times."""
-    if conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'placement_times'").fetchone():
-        return "SELECT p.*, t.start_time FROM planned_items p LEFT JOIN placement_times t ON t.placement_id = p.id"
-    return "SELECT p.*, NULL AS start_time FROM planned_items p"
+    has_times = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'placement_times'").fetchone()
+    has_positions = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'placement_positions'").fetchone()
+    return ("SELECT p.*, " + ("t.start_time" if has_times else "NULL AS start_time")
+            + ", " + ("pos.position" if has_positions else "NULL AS position") + " FROM planned_items p"
+            + (" LEFT JOIN placement_times t ON t.placement_id = p.id" if has_times else "")
+            + (" LEFT JOIN placement_positions pos ON pos.placement_id = p.id" if has_positions else ""))
 
 
 def _placement(row: sqlite3.Row) -> Placement:
@@ -150,7 +159,7 @@ def _require_placement(conn: sqlite3.Connection, placement_id: object) -> sqlite
 
 def _list_placements(conn: sqlite3.Connection) -> list[Placement]:
     return [_placement(row) for row in conn.execute(
-        _select(conn) + " ORDER BY p.planned_date, p.created_at, p.rowid"
+        _select(conn) + " ORDER BY p.planned_date, position, p.created_at, p.rowid"
     ).fetchall()]
 
 
@@ -261,9 +270,22 @@ def _create_placement_tx(conn: sqlite3.Connection, task_id: str, planned_date: s
         "VALUES (?, ?, ?, ?, ?, 1)",
         (placement_id, task_id, day, now, now),
     )
+    if _append_position(conn, placement_id, day) is not None:
+        return _placement(_require_placement(conn, placement_id))
     # Built from what was written (a new placement has no start time), so this also
     # works on older schemas that legacy-upgrade tests build with current code.
     return Placement(id=placement_id, task_id=task_id, planned_date=day, created_at=now, updated_at=now, revision=1)
+
+
+def _append_position(conn: sqlite3.Connection, placement_id: str, day: str) -> int | None:
+    if not conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'placement_positions'").fetchone():
+        return None
+    position = conn.execute(
+        "SELECT COALESCE(MAX(pos.position), -1) + 1 FROM planned_items p "
+        "JOIN placement_positions pos ON pos.placement_id = p.id WHERE p.planned_date = ?", (day,),
+    ).fetchone()[0]
+    conn.execute("INSERT INTO placement_positions VALUES (?, ?)", (placement_id, position))
+    return position
 
 
 def move_placement(db: Database, placement_id: str, planned_date: str | date) -> Placement:
@@ -275,10 +297,57 @@ def move_placement(db: Database, placement_id: str, planned_date: str | date) ->
         _require_leaf(conn, row["task_id"])
         _check_already_planned(conn, row["task_id"], day, except_id=placement_id)
         if row["planned_date"] != day:
+            old_day = row["planned_date"]
             conn.execute(
                 "UPDATE planned_items SET planned_date = ?, updated_at = ?, revision = revision + 1 WHERE id = ?",
                 (day, utc_now(), placement_id),
             )
+            if row["position"] is not None:
+                source = [r["id"] for r in _day_order(conn, old_day)]
+                destination = [r["id"] for r in _day_order(conn, day) if r["id"] != placement_id]
+                _save_order(conn, source)
+                _save_order(conn, [*destination, placement_id])
+        return _placement(_require_placement(conn, placement_id))
+
+
+def _day_order(conn: sqlite3.Connection, day: str) -> list[sqlite3.Row]:
+    return conn.execute(_select(conn) + " WHERE p.planned_date = ? ORDER BY position, p.created_at, p.rowid", (day,)).fetchall()
+
+
+def _save_order(conn: sqlite3.Connection, ids: list[str]) -> None:
+    conn.executemany("UPDATE placement_positions SET position = ? WHERE placement_id = ?",
+                     [(position, placement_id) for position, placement_id in enumerate(ids)])
+
+
+def reorder_placement(db: Database, placement_id: str, planned_date: str | date, position: int,
+                      source_order: list[tuple[str, int]], destination_order: list[tuple[str, int]]) -> Placement:
+    """Move within or between days only if both reviewed day orders still match."""
+    day = _planned_date(planned_date)
+    if isinstance(position, bool) or not isinstance(position, int) or position < 0:
+        raise InvalidInput("position", "Choose a non-negative position in the destination day.")
+    with db.write() as conn:
+        row = _require_placement(conn, placement_id)
+        source_day = row["planned_date"]
+        _require_open_week(conn, source_day)
+        _require_open_week(conn, day)
+        source = _day_order(conn, source_day)
+        destination = source if day == source_day else _day_order(conn, day)
+        def signature(items: list[sqlite3.Row]) -> list[tuple[str, int]]:
+            return [(item["id"], item["revision"]) for item in items]
+        if signature(source) != source_order or signature(destination) != destination_order:
+            raise PlacementOrderConflict()
+        _check_already_planned(conn, row["task_id"], day, except_id=placement_id)
+        remaining = [item["id"] for item in destination if item["id"] != placement_id]
+        if position > len(remaining):
+            raise InvalidInput("position", "Choose a position within the destination day.")
+        remaining.insert(position, placement_id)
+        if day == source_day and remaining == [item["id"] for item in source]:
+            return _placement(row)
+        conn.execute("UPDATE planned_items SET planned_date = ?, updated_at = ?, revision = revision + 1 WHERE id = ?",
+                     (day, utc_now(), placement_id))
+        if day != source_day:
+            _save_order(conn, [item["id"] for item in source if item["id"] != placement_id])
+        _save_order(conn, remaining)
         return _placement(_require_placement(conn, placement_id))
 
 
@@ -319,4 +388,6 @@ def _remove_placement_tx(conn: sqlite3.Connection, placement_id: str) -> sqlite3
     row = _require_placement(conn, placement_id)
     _require_open_week(conn, row["planned_date"])
     conn.execute("DELETE FROM planned_items WHERE id = ?", (placement_id,))
+    if row["position"] is not None:
+        _save_order(conn, [item["id"] for item in _day_order(conn, row["planned_date"])])
     return row
