@@ -63,6 +63,18 @@ class ClosedWeekSummary(BaseModel):
     total: int
 
 
+class EarlierUnfinishedTask(BaseModel):
+    id: str
+    title: str
+    project_id: str
+    project_name: str
+    parent_id: str | None
+    parent_title: str | None
+    last_planned_date: date
+    deadline: date | None
+    estimate_minutes: int | None
+
+
 class PlanningSnapshot(BaseModel):
     today: date
     timezone: str
@@ -70,6 +82,7 @@ class PlanningSnapshot(BaseModel):
     week_end: date
     tasks: list[Task]
     placements: list[Placement]
+    earlier_unfinished: list[EarlierUnfinishedTask] = []
     closed_week: ClosedWeek | None = None
     closed_weeks: list[ClosedWeekSummary] = []
 
@@ -146,6 +159,36 @@ def list_placements(db: Database) -> list[Placement]:
         return _list_placements(conn)
 
 
+def _earlier_unfinished(conn: sqlite3.Connection, today: date) -> list[EarlierUnfinishedTask]:
+    rows = conn.execute(
+        """WITH membership AS (
+               SELECT task_id, planned_date FROM planned_items
+               UNION ALL
+               SELECT task_id, planned_date FROM closed_placements
+           ), latest AS (
+               SELECT task_id, MAX(planned_date) AS last_planned_date
+               FROM membership GROUP BY task_id
+           )
+           SELECT t.id, t.title, t.project_id, p.name AS project_name,
+                  t.parent_id, parent.title AS parent_title, latest.last_planned_date,
+                  t.deadline, t.estimate_minutes
+           FROM latest JOIN tasks t ON t.id = latest.task_id
+           JOIN projects p ON p.id = t.project_id
+           LEFT JOIN tasks parent ON parent.id = t.parent_id
+           WHERE latest.last_planned_date < ? AND t.completed_at IS NULL
+             AND NOT EXISTS (SELECT 1 FROM tasks child WHERE child.parent_id = t.id)
+           ORDER BY latest.last_planned_date DESC, t.title COLLATE NOCASE, t.id""",
+        (today.isoformat(),),
+    ).fetchall()
+    return [EarlierUnfinishedTask(**dict(row)) for row in rows]
+
+
+def list_earlier_unfinished(db: Database, today: date) -> list[EarlierUnfinishedTask]:
+    """Current incomplete leaves whose latest saved placement predates today."""
+    with db.read() as conn:
+        return _earlier_unfinished(conn, _date(today, "today"))
+
+
 def get_planning(db: Database, week: str | date | None = None, *, now: datetime | None = None) -> PlanningSnapshot:
     from backend.domain.weeks import _closed_week, _closed_week_summaries
 
@@ -156,6 +199,7 @@ def get_planning(db: Database, week: str | date | None = None, *, now: datetime 
         return PlanningSnapshot(
             today=today, timezone=timezone, week_start=monday, week_end=sunday,
             tasks=_list_tasks(conn), placements=_list_placements(conn),
+            earlier_unfinished=_earlier_unfinished(conn, today),
             closed_week=_closed_week(conn, monday.isoformat()),
             closed_weeks=_closed_week_summaries(conn),
         )
