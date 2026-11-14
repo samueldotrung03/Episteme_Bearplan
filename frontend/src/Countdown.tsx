@@ -145,6 +145,21 @@ export function StartTrackingButton({ task, onTrack, disabled = false, label = "
   </div>;
 }
 
+const stampFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+/** A saved moment, to the minute: "Nov 14, 2026, 2:50 PM". */
+export function formatStamp(iso: string): string {
+  return stampFormat.format(new Date(iso));
+}
+
+/** Saved active time in whole minutes: "0 min", "25 min", "1 h 5 min". */
+export function formatActive(seconds: number): string {
+  const minutes = Math.floor(Math.max(0, seconds) / 60);
+  const hours = Math.floor(minutes / 60);
+  return hours ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
+}
+
+/** The live countdown keeps seconds. */
 export function formatRemaining(seconds: number): string {
   const total = Math.max(0, Math.ceil(seconds));
   const hours = Math.floor(total / 3600);
@@ -163,9 +178,9 @@ function TimerControls({ timer, compact = false }: { timer: Countdown; compact?:
   if (active.state === "needs_review") return compact ? null : <>
     <div className="timer-recovery" role="status" aria-label="Session recovery">
       <p>{active.recovery?.reason ?? active.review_reason ?? "This session was interrupted."}</p>
-      <p>Confirmed active time: <strong>{formatRemaining(Math.floor(active.active_seconds))}</strong></p>
+      <p>Confirmed active time: <strong>{formatActive(active.active_seconds)}</strong></p>
       <p className="muted">Time since the last saved checkpoint is excluded. Continue this countdown with the confirmed time, or save it and finish.</p>
-      <p className="muted">Last confirmed: {new Date(active.recovery?.checkpoint_at ?? active.checkpoint_at).toLocaleString()}</p>
+      <p className="muted">Last confirmed: {formatStamp(active.recovery?.checkpoint_at ?? active.checkpoint_at)}</p>
     </div>
     <div className="form-actions">
       <button type="button" disabled={timer.busy} onClick={() => void timer.recover("resume")}>Continue with confirmed time</button>
@@ -202,7 +217,14 @@ export function TrackScreen({ timer, plan, projects, requestedTaskId, requestTok
   const shop = useShop(visible, timer.state?.last_session?.id ?? null);
   const heading = useRef<HTMLHeadingElement>(null);
   const eligibleTasks = plan?.tasks.filter((task) => task.subtask_count === 0 && !task.completed) ?? [];
-  useEffect(() => { if (requestedTaskId) setTaskId(requestedTaskId); }, [requestedTaskId, requestToken]);
+  const chooseTask = (id: string) => {
+    setTaskId(id);
+    // A task with an estimate sets the duration; otherwise the current duration stays.
+    const estimate = plan?.tasks.find((task) => task.id === id)?.estimate_minutes;
+    if (estimate) setMinutes(String(Math.min(180, Math.max(1, estimate))));
+  };
+  // Start from Plan: the countdown defaults to the task's estimate.
+  useEffect(() => { if (requestedTaskId) chooseTask(requestedTaskId); }, [requestedTaskId, requestToken]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (visible) heading.current?.focus({ preventScroll: true }); }, [visible]);
   const selectedTask = eligibleTasks.find((task) => task.id === taskId);
   const validDuration = /^\d+$/.test(minutes) && Number(minutes) >= 1 && Number(minutes) <= 180;
@@ -233,7 +255,7 @@ export function TrackScreen({ timer, plan, projects, requestedTaskId, requestTok
     </section> : <form className="countdown-form" onSubmit={submit} aria-busy={timer.busy}>
       <div className="field">
         <label htmlFor="tracking-task">Task to track</label>
-        <select id="tracking-task" value={taskId} disabled={timer.busy || !plan || eligibleTasks.length === 0} onChange={(event) => setTaskId(event.target.value)} required>
+        <select id="tracking-task" value={taskId} disabled={timer.busy || !plan || eligibleTasks.length === 0} onChange={(event) => chooseTask(event.target.value)} required>
           <option value="">Choose a task or subtask</option>
           {eligibleTasks.map((task) => {
             const project = projects.find((item) => item.id === task.project_id);
@@ -272,9 +294,9 @@ function SavedSession({ session }: { session: TimerSession }) {
   return <section className="saved-session" aria-label="Saved session outcome">
     <h3>Session saved</h3>
     <p><strong>{session.task_title}</strong> · {sessionContext(session)}</p>
-    <p>{outcome} · {formatRemaining(Math.floor(session.active_seconds))} active time of {session.duration_minutes} {session.duration_minutes === 1 ? "minute" : "minutes"}.</p>
+    <p>{outcome} · {formatActive(session.active_seconds)} active time of {session.duration_minutes} {session.duration_minutes === 1 ? "minute" : "minutes"}.</p>
     {session.coin_award !== null && session.coin_award !== undefined ? <p className="session-coins">Earned {session.coin_award} {session.coin_award === 1 ? "coin" : "coins"} from confirmed active time.</p> : null}
-    <p className="muted">Started {new Date(session.started_at).toLocaleString()}{session.finished_at ? ` · Finished ${new Date(session.finished_at).toLocaleString()}` : ""}. Session history stays attached to when this work occurred.</p>
+    <p className="muted">Started {formatStamp(session.started_at)}{session.finished_at ? ` · Finished ${formatStamp(session.finished_at)}` : ""}. Session history stays attached to when this work occurred.</p>
     {session.tree ? <SessionTree tree={session.tree} state={session.state} /> : null}
   </section>;
 }

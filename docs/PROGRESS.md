@@ -4,6 +4,23 @@ Updated November 12, 2026. Read [AGENTS.md](../AGENTS.md) before resuming.
 Finished work and evidence are in [COMPLETED.md](COMPLETED.md); this file is the
 single current handoff.
 
+## Active work: gate review fixes for G-14 and G-16 (Nov 14)
+
+The user reviewed G-14 to G-17 on the disposable instance. **G-15 and G-17
+passed** ("This week look good for all", "THIS WORK GOOD"). G-14 and G-16 had
+findings; fixes are implemented (not committed; staged for the user) and listed
+in the [review](reviews/2026-11-14-g14-g16-fixes.md). Shortcut decision (user,
+Nov 14): "Both": plain keys work after clicking a button, plus Ctrl+N/T/W/P from
+any screen. Open: the Assistant narrow → wide layout finding was not reproduced;
+waiting for the user's screenshot. Saved-time seconds remain in Stats,
+Corrections and Assistant sources pending the user's say.
+
+Note: during the Week review the user closed the current week on the disposable
+instance, so its Today shows no plans now; restart or reseed it for the recheck.
+
+**Next:** the user rechecks G-14 and G-16. Open user-owned gates: six (G-14,
+G-16, G-18, G-04, G-05, G-06).
+
 ## Real data: upgraded to schema 26 on Nov 14 (record only)
 
 On Nov 14 the app was launched on the user's real data folder
@@ -55,7 +72,7 @@ cannot be checked until the frontend uses the new route.
 **Hold (user, Nov 14):** "Do not start the drag wiring yet. Wait until I have
 reviewed the open gates." No frontend work on ordering until the user says so.
 
-## Active work: Atelier redesign A4 Projects + Task editor (started Nov 14, user override)
+## Accepted: Atelier redesign A4 Projects + Task editor (G-17 passed Nov 14)
 
 **Authorization:** six user-owned gates were open (G-14, G-15, G-16, G-04, G-05,
 G-06), above the limit of three. After the Today wiring was committed
@@ -81,7 +98,7 @@ G-18 cannot be checked until the ordering frontend exists.
 G-17 take about 50 minutes together. No new build (B3 drag wiring or another
 Atelier screen) until the user says so after that review.
 
-## Awaiting acceptance: Atelier redesign A3 Week (started Nov 14, user override)
+## Accepted: Atelier redesign A3 Week (G-15 passed Nov 14)
 
 **Authorization:** four user-owned gates were open (G-14, G-04, G-05, G-06),
 above the limit of three. The user chose "Override, start Week" in chat on

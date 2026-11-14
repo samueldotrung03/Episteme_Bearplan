@@ -1,5 +1,19 @@
 # BearPlans — completed work log
 
+## 2026-11-14 — Gates G-15 and G-17 passed; G-14/G-16 fixes
+
+The user reviewed G-14 to G-17 on a disposable instance (port 8766).
+**G-15 passed** (Week: "This week look good for all") and **G-17 passed**
+(Projects and task editor: "THIS WORK GOOD"); their rows were removed from
+`docs/GATES.md`. G-14 and G-16 findings were fixed: Track duration from the task
+estimate, shortcuts after clicking a button plus Ctrl+N/T/W/P, hidden status
+line, wider Track, minute-only saved times on Track. Details:
+[review](reviews/2026-11-14-g14-g16-fixes.md). Changed: `frontend/src/App.tsx`,
+`Today.tsx`, `Countdown.tsx`, `Forest.tsx`, `DailyStreak.tsx`, `Corrections.tsx`,
+`styles.css`, tests `Countdown.test.tsx`, `Today.test.tsx`, `DailyStreak.test.tsx`,
+`Forest.test.tsx`, evidence screenshots. Checks: all 4 steps passed (typecheck; 222 frontend tests; build; 1186 backend/browser tests passed, 1 skipped). Commit: not yet
+(user commits). Open: G-14 and G-16 recheck; Assistant layout finding not reproduced.
+
 ## 2026-11-14 — B3 within-day order, backend (user override)
 
 Built in the backend lane under the user's override (six gates open, B3 only).

@@ -287,6 +287,27 @@ export default function App() {
     } else requestAnimationFrame(() => addProjectTrigger.current?.focus());
   }
 
+  // App-wide Ctrl shortcuts (user, Nov 14): Ctrl+N new task, Ctrl+T today, Ctrl+W week,
+  // Ctrl+P projects, from any screen and while typing. On macOS Chrome these are free
+  // (the browser uses Cmd); on Windows/Linux the browser keeps Ctrl+N/Ctrl+W, and the
+  // plain-letter shortcuts on Today remain.
+  const shortcutActions = useRef({ addTaskFromPlan, setPlanView });
+  shortcutActions.current = { addTaskFromPlan, setPlanView };
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.defaultPrevented) return;
+      const view = ({ n: "projects", t: "today", w: "week", p: "projects" } as const)[event.key.toLowerCase() as "n" | "t" | "w" | "p"];
+      if (!view || document.querySelector("dialog[open]")) return;
+      event.preventDefault();
+      if (window.location.hash !== "#plan") window.location.hash = "plan";
+      setScreen("plan");
+      if (event.key.toLowerCase() === "n") shortcutActions.current.addTaskFromPlan();
+      else shortcutActions.current.setPlanView(view);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const planControls = <>
     <nav className="plan-navigation" aria-label="Plan views">
       <div className="segmented">

@@ -28,7 +28,7 @@ test("saved progress uses the service day and preserves yesterday's streak while
   const section = screen.getByRole("region", { name: "Daily streak" });
   expect(await within(section).findByText(currentStreak(2))).toBeVisible();
   expect(within(section).getByText(/Today can still qualify/)).toHaveTextContent("your streak through yesterday stays intact");
-  const progress = within(section).getByRole("progressbar", { name: /Today · Oct 21: 30 min 00 s of 60 min saved/ });
+  const progress = within(section).getByRole("progressbar", { name: /Today · Oct 21: 30 min of 60 min saved/ });
   expect(progress).toHaveAttribute("value", String(HOUR / 2));
   const days = within(section).getByRole("list", { name: "Last seven days" });
   expect(within(days).getAllByRole("listitem")).toHaveLength(7);
@@ -40,9 +40,9 @@ test("saved progress uses the service day and preserves yesterday's streak while
 });
 
 test.each([
-  { active: HOUR - 1, qualified: false, label: "59 min 59 s", current: 0 },
-  { active: HOUR, qualified: true, label: "60 min 00 s", current: 1 },
-  { active: HOUR * 1.5, qualified: true, label: "90 min 00 s", current: 1 },
+  { active: HOUR - 1, qualified: false, label: "59 min", current: 0 },
+  { active: HOUR, qualified: true, label: "60 min", current: 1 },
+  { active: HOUR * 1.5, qualified: true, label: "90 min", current: 1 },
 ])("$active microseconds display without rounding across the hour goal", async ({ active, qualified, label, current }) => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(json(streak({ current_streak: current, streak_through: qualified ? "2026-10-21" : null, days: [{ date: "2026-10-21", active_microseconds: active, qualified }] })));
   render(<DailyStreak visible lastSessionId={null} />);
@@ -88,7 +88,7 @@ test("the service calendar and timezone replace stale browser-day assumptions on
   render(<DailyStreak visible lastSessionId={null} />);
   await screen.findByRole("progressbar");
   fireEvent.focus(window);
-  expect(await screen.findByRole("progressbar", { name: "Today · Oct 22: 0 min 00 s of 60 min saved" })).toBeVisible();
+  expect(await screen.findByRole("progressbar", { name: "Today · Oct 22: 0 min of 60 min saved" })).toBeVisible();
   expect(screen.getByText(/Dates use Pacific\/Auckland/)).toBeVisible();
   expect(screen.getByText(/Save 60 active minutes in a day to begin a streak/)).toBeVisible();
   expect(fetcher).toHaveBeenCalledTimes(2);

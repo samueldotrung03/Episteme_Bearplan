@@ -131,3 +131,16 @@ test("Earlier unfinished is absent when the list is empty or missing", () => {
   renderToday();
   expect(screen.queryByRole("button", { name: /Earlier unfinished/ })).not.toBeInTheDocument();
 });
+
+test("plain shortcuts still work after a button was clicked, but not Enter on that button", async () => {
+  const user = userEvent.setup();
+  const onShowWeek = vi.fn(); const onTrack = vi.fn();
+  render(<Today visible lastSessionId={null} plan={plan} projects={[project]} loading={false} error={null} locked={false} onRun={vi.fn()} onTrack={onTrack} onRetry={vi.fn()} onShowWeek={onShowWeek} />);
+  const completed = screen.getByRole("button", { name: "Completed · 1" });
+  completed.focus();
+  await user.keyboard("w");
+  expect(onShowWeek).toHaveBeenCalledTimes(1);
+  await user.keyboard("{Enter}");
+  expect(onTrack).not.toHaveBeenCalled();
+  expect(completed).toHaveAttribute("aria-expanded", "true");
+});

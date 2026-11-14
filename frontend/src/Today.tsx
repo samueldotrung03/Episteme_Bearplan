@@ -141,9 +141,14 @@ function EarlierUnfinished({ items, today, locked, onRun }: { items: EarlierUnfi
   </div>;
 }
 
-function isTyping(target: EventTarget | null): boolean {
+/** Text entry keeps every key. A focused checkbox, button or link still lets
+ * shortcuts through, except keys it uses itself (Enter, Space). */
+function isTyping(target: EventTarget | null, key: string): boolean {
   if (!(target instanceof HTMLElement)) return false;
-  return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(target.tagName);
+  if (target.isContentEditable || ["TEXTAREA", "SELECT"].includes(target.tagName)) return true;
+  if (target instanceof HTMLInputElement) return !["checkbox", "radio", "button", "submit", "reset"].includes(target.type) || key === " " || key === "Enter";
+  if (["BUTTON", "A", "SUMMARY"].includes(target.tagName)) return key === "Enter" || key === " ";
+  return false;
 }
 
 /** A projection of existing active placements, never a copy of task state. */
@@ -180,7 +185,7 @@ export function Today({ plan, projects, loading, error, onRun, onTrack, locked, 
   useEffect(() => {
     if (!visible) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || isTyping(event.target)) return;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || isTyping(event.target, event.key)) return;
       if (document.querySelector("dialog[open]")) return;
       const current = latest.current;
       const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
@@ -241,6 +246,7 @@ export function Today({ plan, projects, loading, error, onRun, onTrack, locked, 
         <span><kbd>Enter</kbd> start focused task</span><span><kbd>X</kbd> complete</span>
         {onAddTask ? <span><kbd>N</kbd> new task</span> : null}{onShowWeek ? <span><kbd>W</kbd> week</span> : null}{onShowProjects ? <span><kbd>P</kbd> projects</span> : null}
         <span><kbd>↑</kbd><kbd>↓</kbd> choose</span>
+        <span><kbd>Ctrl</kbd> + <kbd>N</kbd> <kbd>T</kbd> <kbd>W</kbd> <kbd>P</kbd> from any screen</span>
       </p>
     </> : null}
   </section>;

@@ -20,7 +20,7 @@ test("the forest shows saved mature and unfinished outcomes with historical sess
   expect(within(forest).getByText("Unfinished Pine")).toBeVisible();
   expect(within(forest).getByText("Reading at session start")).toBeVisible();
   expect(within(forest).getAllByText("Original seminar / Original chapter")).toHaveLength(2);
-  expect(within(forest).getByText(/00:15 confirmed active time/)).toBeVisible();
+  expect(within(forest).getByText(/0 min confirmed active time/)).toBeVisible();
   expect(within(forest).getByRole("img", { name: "Pine mature" })).toBeVisible();
   expect(fetcher).toHaveBeenCalledWith("/api/forest", expect.objectContaining({ signal: expect.any(AbortSignal) }));
 });

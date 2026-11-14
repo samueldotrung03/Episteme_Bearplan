@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, getForest, type ForestTree } from "./api";
-import { formatRemaining } from "./Countdown";
+import { formatActive, formatStamp } from "./Countdown";
 import { speciesName, TreeArtwork } from "./Tree";
 
 export function ForestCollection({ visible, lastSessionId }: { visible: boolean; lastSessionId: string | null }) {
@@ -41,8 +41,8 @@ export function ForestCollection({ visible, lastSessionId }: { visible: boolean;
         <p className="tree-outcome">{tree.outcome === "mature" ? "Mature" : "Unfinished"} {speciesName(tree.species)}</p>
         <h4>{tree.task_title}</h4>
         <p className="muted">{[tree.project_name, tree.parent_title].filter(Boolean).join(" / ")}</p>
-        <p>{formatRemaining(Math.floor(tree.active_seconds))} confirmed active time · {tree.duration_minutes} minute countdown</p>
-        <p className="muted">Started <time dateTime={tree.started_at}>{new Date(tree.started_at).toLocaleString()}</time><br />Saved <time dateTime={tree.finished_at}>{new Date(tree.finished_at).toLocaleString()}</time></p>
+        <p>{formatActive(tree.active_seconds)} confirmed active time · {tree.duration_minutes} minute countdown</p>
+        <p className="muted">Started <time dateTime={tree.started_at}>{formatStamp(tree.started_at)}</time><br />Saved <time dateTime={tree.finished_at}>{formatStamp(tree.finished_at)}</time></p>
       </li>)}
     </ul> : null}
   </section>;

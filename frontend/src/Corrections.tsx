@@ -1,3 +1,4 @@
+import { formatStamp } from "./Countdown";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, applyCorrection, getSavedSessions, previewCorrection, type CorrectionDraft, type CorrectionPreview, type PendingCorrection, type SavedSession } from "./api";
 import { savedDuration } from "./savedTime";
@@ -172,14 +173,14 @@ export function Corrections({ visible, onApplied }: { visible: boolean; onApplie
     {sessions?.length === 0 ? <p>No saved sessions yet.</p> : null}
     <ul className="stats-task-list" aria-label="Saved sessions">{sessions?.map((session) => <li key={session.id}>
       <span className="muted">{session.project_name}{session.parent_title ? ` / ${session.parent_title}` : ""}</span>
-      <strong>{session.task_title}</strong><time dateTime={session.finished_at}>{new Date(session.finished_at).toLocaleString()}</time>
+      <strong>{session.task_title}</strong><time dateTime={session.finished_at}>{formatStamp(session.finished_at)}</time>
       <span>{savedDuration(session.active_microseconds)} · Original outcome: {session.outcome.replaceAll("_", " ")}</span>
       <span>{session.coin_contribution === null ? "Not enrolled for coins" : `${session.coin_contribution} coins after adjustments`}</span>
       {session.blocked_reason ? <p className="muted">{session.blocked_reason}</p> : null}
       <button type="button" disabled={busy || Boolean(pending) || Boolean(selected) || Boolean(session.blocked_reason)} onClick={() => edit(session)}>Correct saved time</button>
       {session.history.length ? <details><summary>Correction history ({session.history.length})</summary>
         <ul>{session.history.map((entry) => <li key={entry.operation_id}><p>{entry.reason}</p>
-          <time dateTime={entry.created_at}>{new Date(entry.created_at).toLocaleString()}</time>
+          <time dateTime={entry.created_at}>{formatStamp(entry.created_at)}</time>
           <p>{savedDuration(entry.before.reduce((total, row) => total + row.active_microseconds, 0))} → {savedDuration(entry.after.reduce((total, row) => total + row.active_microseconds, 0))}</p>
         </li>)}</ul>
         <button type="button" disabled={busy || Boolean(pending) || Boolean(selected) || Boolean(session.blocked_reason)} onClick={() => edit(session, true)}>Prepare reversal of latest correction</button>

@@ -263,7 +263,7 @@ test("pause and resume use backend state and revisions; finish saves the outcome
   expect(screen.getByText(/paused time is excluded/)).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Resume" }));
   await user.click(screen.getByRole("button", { name: "Finish early" }));
-  expect(await screen.findByRole("region", { name: "Saved session outcome" })).toHaveTextContent("Finished early · 00:15 active time");
+  expect(await screen.findByRole("region", { name: "Saved session outcome" })).toHaveTextContent("Finished early · 0 min active time");
   expect(calls.filter((call) => call.method === "POST").map((call) => call.body.expected_revision)).toEqual([1, 2, 3]);
   expect(calls.some((call) => call.url.startsWith("/api/tasks") && call.method !== "GET")).toBe(false);
   expect(task.completed).toBe(false);
@@ -407,7 +407,7 @@ test("interruption review explains confirmed time and continues the same session
   const user = userEvent.setup();
   render(<Harness />);
   const review = await screen.findByRole("status", { name: "Session recovery" });
-  expect(review).toHaveTextContent("Confirmed active time: 00:15");
+  expect(review).toHaveTextContent("Confirmed active time: 0 min");
   expect(review).toHaveTextContent("Time since the last saved checkpoint is excluded");
   expect(review).toHaveTextContent("Last confirmed:");
   expect(screen.getByRole("timer", { name: "Time remaining" })).toHaveTextContent("00:45");
@@ -484,7 +484,7 @@ test("an uncommitted recovery choice survives a page reload and retries its orig
   first.unmount();
   render(<Harness />);
   await user.click(await screen.findByRole("button", { name: "Save confirmed time and finish" }));
-  expect(await screen.findByRole("region", { name: "Saved session outcome" })).toHaveTextContent("00:15 active time");
+  expect(await screen.findByRole("region", { name: "Saved session outcome" })).toHaveTextContent("0 min active time");
   expect(attempts).toHaveLength(2);
   expect(attempts[1]).toEqual(attempts[0]);
 });
@@ -521,7 +521,7 @@ test("recovery disables both choices while saving and keeps the review if saving
   expect(await screen.findByRole("alert")).toHaveTextContent("Your inputs are kept");
   expect(resume).toBeEnabled();
   expect(finish).toBeEnabled();
-  expect(screen.getByRole("status", { name: "Session recovery" })).toHaveTextContent("00:15");
+  expect(screen.getByRole("status", { name: "Session recovery" })).toHaveTextContent("Confirmed active time: 0 min");
 });
 
 test("display ticks interpolate service remaining time, stop while paused, and never save expiry locally", async () => {
@@ -673,4 +673,28 @@ test("an older running service explains how to enable the shop while Pine tracki
   expect(await screen.findByRole("region", { name: "Current session" })).toBeVisible();
   expect(starts).toHaveLength(1);
   expect(starts[0]).toEqual({ operation_id: expect.any(String), task_id: LEAF, duration_minutes: 25 });
+});
+
+test("Start from Plan sets the countdown to the task's estimate", async () => {
+  const estimated = { ...task, estimate_minutes: 40 };
+  service(empty(), { ...plan, tasks: [estimated], placements: [{ id: "placement", task_id: LEAF, planned_date: plan.today, created_at: NOW, updated_at: NOW, revision: 1 }] });
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(await screen.findByRole("button", { name: `Start ${estimated.title}` }));
+  expect(screen.getByLabelText("Task to track")).toHaveValue(LEAF);
+  expect(screen.getByLabelText("Duration (minutes)")).toHaveValue(40);
+});
+
+test("Ctrl+W, Ctrl+T and Ctrl+P open plan views from another screen", async () => {
+  service(empty(), plan);
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(screen.getByRole("link", { name: "Track" }));
+  await user.keyboard("{Control>}w{/Control}");
+  expect(screen.getByRole("link", { name: "Plan" })).toHaveAttribute("aria-current", "page");
+  expect(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Week" })).toHaveAttribute("aria-pressed", "true");
+  await user.keyboard("{Control>}p{/Control}");
+  expect(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Projects" })).toHaveAttribute("aria-pressed", "true");
+  await user.keyboard("{Control>}t{/Control}");
+  expect(within(screen.getByRole("navigation", { name: "Plan views" })).getByRole("button", { name: "Today" })).toHaveAttribute("aria-pressed", "true");
 });

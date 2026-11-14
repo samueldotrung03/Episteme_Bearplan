@@ -8,8 +8,7 @@ const weekdayLabel = new Intl.DateTimeFormat(undefined, { weekday: "short", time
 const asDate = (date: string) => new Date(`${date}T00:00:00Z`);
 
 function savedTime(microseconds: number): string {
-  const seconds = Math.floor(microseconds / 1_000_000);
-  return `${Math.floor(seconds / 60)} min ${String(seconds % 60).padStart(2, "0")} s`;
+  return `${Math.floor(microseconds / 60_000_000)} min`;
 }
 
 export function DailyStreak({ visible, lastSessionId, compact = false }: { visible: boolean; lastSessionId: string | null; compact?: boolean }) {

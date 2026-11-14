@@ -1666,3 +1666,19 @@ button.link.button-danger-text:hover:not(:disabled) { background: color-mix(in s
 .work-list .task-planning summary::marker { color: var(--color-ink-muted); }
 .project-list { min-width: 0; }
 .project-list > li { display: flex; min-width: 0; max-width: 100%; }
+
+/* Gate G-14 feedback (Nov 14): no visible status line; screen readers still hear it. */
+main > .status { position: absolute; width: 1px; height: 1px; min-height: 0; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Track uses the wide plan column (G-14 feedback): forest and shop fill the width. */
+.track-screen { max-width: 880px; padding: var(--space-8); border-color: var(--color-line); border-radius: var(--radius-md); background: var(--color-surface); }
+.track-screen .countdown-form { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0 var(--space-4); align-items: start; }
+.track-screen .countdown-form > :not(.field) { grid-column: 1 / -1; }
+.track-screen .countdown-form > button[type="submit"] { justify-self: start; }
+.shop-grid { grid-template-columns: repeat(auto-fill, minmax(min(11rem, 100%), 1fr)); }
+.forest-grid { grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr)); }
+@media (max-width: 40rem) {
+  .track-screen { padding: var(--space-4); }
+  .track-screen .countdown-form { grid-template-columns: minmax(0, 1fr); }
+}
+.shop-species button { max-width: 100%; white-space: normal; text-align: left; }
