@@ -1553,3 +1553,116 @@ details > summary:focus-visible {
   .day-choice { border: 1px solid var(--color-line); border-radius: var(--radius-sm); background: var(--color-surface-raised); color: var(--color-ink); }
   .day-choice-on { border-color: var(--color-ink); background: var(--color-ink); color: var(--color-ink-inverse); }
 }
+
+/* Today: Earlier unfinished (B1), Figma S1 "partial · earlier unfinished" 32:1888. */
+.icon-arrow-up { --icon: url("./assets/atelier/arrow-up.svg"); }
+.today-earlier { display: flex; flex-direction: column; gap: var(--space-2); }
+.today-earlier-actions { display: flex; padding-top: var(--space-2); }
+.button-tertiary { display: inline-flex; align-items: center; gap: var(--space-2); height: var(--size-control); padding: 0 var(--space-3); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--color-ink); font-size: 14px; font-weight: 500; }
+.button-tertiary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-ink) 6%, transparent); }
+
+/* Atelier Projects + Task editor (A4), Figma S3 18:191 / 141:30701 and S4 41:3809.
+   Restyled in place (user, Nov 14): Projects stays its own plan view. */
+.button-ink, .button-primary { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: var(--size-control); padding: 0 var(--space-4); border: 0; border-radius: var(--radius-pill); font-size: 14px; font-weight: 500; line-height: 1.3; }
+.button-ink { background: var(--color-ink); color: var(--color-ink-inverse); }
+.button-primary { background: var(--color-accent); color: var(--color-on-accent); }
+.button-ink:hover:not(:disabled) { background: color-mix(in srgb, var(--color-ink) 88%, var(--color-ink-inverse)); }
+.button-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 88%, var(--color-ink)); }
+.button-ink .icon, .button-secondary .icon, .button-tertiary .icon { width: 20px; height: 20px; }
+button.link.button-secondary { color: var(--color-ink); text-decoration: none; padding: 0 var(--space-4); border-color: var(--color-line-strong); }
+button.link.button-danger-text { display: inline-flex; align-items: center; height: var(--size-control); padding: 0 var(--space-3); border-radius: var(--radius-pill); color: var(--error); text-decoration: none; font-size: 14px; font-weight: 500; }
+button.link.button-danger-text:hover:not(:disabled) { background: color-mix(in srgb, var(--error) 8%, transparent); }
+
+.work-list { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+.plan-workspace > .work-list:not([hidden]) { display: flex; }
+.plan-header-controls:has(#projects-heading) { max-width: 880px; margin: 0 auto var(--space-6); padding-top: 28px; justify-content: flex-start; }
+.work-list .projects, .work-list .tasks-section { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
+
+/* Project picker strip: Sm pill tabs on a sunken track; selected = ink. */
+.work-list .project-actions { display: flex; flex-flow: row wrap; align-items: center; gap: var(--space-2); }
+.work-list .project-actions > .text-form { flex: 1 1 100%; }
+.project-list { display: flex; flex-wrap: wrap; gap: var(--space-1); margin: 0 0 var(--space-3); padding: var(--space-1); width: fit-content; max-width: 100%; border-radius: var(--radius-md); background: var(--color-surface-sunken); }
+.chip { height: var(--size-control-sm); padding: 0 var(--space-3); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--color-ink); font-size: 14px; font-weight: 500; line-height: 1.3; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.chip:hover:not(.chip-on) { background: color-mix(in srgb, var(--color-ink) 6%, transparent); }
+.chip-on { background: var(--color-ink); color: var(--color-ink-inverse); }
+.work-list .projects { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.work-list .project-list { margin: 0; }
+.work-list .project-actions { flex: 1 1 auto; }
+
+/* One-field form (new project, rename). */
+.work-list .text-form { margin: 0; padding: var(--space-4); border: 1px solid var(--color-line); border-radius: var(--radius-md); background: var(--color-surface-raised); }
+.text-form > label { display: block; margin-bottom: var(--space-2); color: var(--color-ink); font-size: 13px; font-weight: 500; }
+.text-form .field-row { align-items: center; gap: var(--space-2); }
+.text-form .field-row input { flex: 1 1 12rem; min-width: 0; }
+
+/* Project heading and task list card. */
+.tasks-header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
+.tasks-heading-text { flex: 1 1 14rem; min-width: 0; }
+.work-list .tasks-section h2 { margin: 0; font-size: 20px; font-weight: 500; line-height: 1.3; letter-spacing: -0.01em; }
+.tasks-heading-text p { margin: var(--space-1) 0 0; font-size: 13px; }
+.work-list .tasks { padding: var(--space-2); border-radius: var(--radius-md); background: var(--color-surface); }
+.work-list .tasks > .task, .work-list .subtasks > .task + .task { border: 0; margin: 0; padding: 0; }
+.work-list .subtasks { margin: 0; padding: 0 0 0 var(--space-8); border: 0; }
+.work-list .task-row { flex-wrap: nowrap; align-items: flex-start; gap: var(--space-3); min-height: 56px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); }
+.work-list .task-row:hover { background: color-mix(in srgb, var(--color-ink) 3%, transparent); }
+
+/* Round 20px check in a 32px target (as on Today); completion is ink, not the accent. */
+.task-row > input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; display: grid; place-content: center; width: 20px; height: 20px; margin: 6px; border: var(--stroke-control) solid var(--color-line-strong); border-radius: var(--radius-pill); background: var(--color-surface-raised); cursor: pointer; }
+.task-row > input[type="checkbox"]:hover:not(:disabled) { border-color: var(--color-ink-muted); box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-ink) 6%, transparent); }
+.task-row > input[type="checkbox"]:checked { background: var(--color-ink); border-color: var(--color-ink); }
+.task-row > input[type="checkbox"]:checked::after { content: ""; width: 9px; height: 5px; margin-top: -2px; border: solid var(--color-ink-inverse); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+.task-row > input[type="checkbox"]:disabled { cursor: not-allowed; opacity: 0.6; }
+.task-parent > input[type="checkbox"]:disabled { opacity: 1; border-style: dashed; }
+
+.work-list .task-main { padding-top: 2px; }
+.work-list .task-title { font-size: 16px; line-height: 1.5; color: var(--color-ink); }
+.work-list .task-parent .task-title { font-size: 14px; font-weight: 500; line-height: 1.6; }
+.work-list .task-done .task-title { color: var(--color-ink-muted); }
+.work-list .task-meta { gap: 0; margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-ink-muted); }
+.work-list .task-meta > span + span::before { content: " · "; white-space: pre; }
+.work-list .task-notes { margin-top: var(--space-1); font-size: 13px; color: var(--color-ink-muted); }
+.work-list .task-planning, .work-list .planning-hint { margin-top: var(--space-1); font-size: 13px; }
+.work-list .planning-summary, .work-list .planning-hint { margin: var(--space-1) 0 0; }
+.work-list .task-done { min-height: 40px; }
+
+/* Row actions: quiet text actions on the right; the one strong action stays Start. */
+.work-list .task-actions { width: auto; padding: 0; flex: none; align-items: center; gap: var(--space-1); }
+.work-list .task-actions button.link { display: inline-flex; align-items: center; height: var(--size-control-sm); padding: 0 var(--space-3); border-radius: var(--radius-pill); color: var(--color-ink); font-size: 13px; font-weight: 500; text-decoration: none; }
+.work-list .task-actions button.link:hover:not(:disabled) { background: color-mix(in srgb, var(--color-ink) 6%, transparent); }
+.work-list .task-actions .tracking-entry button { height: var(--size-control-sm); padding: 0 var(--space-3); border: 1px solid var(--color-line-strong); border-radius: var(--radius-pill); background: var(--color-surface-raised); color: var(--color-ink); font-size: 13px; font-weight: 500; text-decoration: none; }
+
+/* Task editor (S4): raised card, 13px medium labels, 40px fields, actions on the right. */
+.task-form { margin: var(--space-2) 0 var(--space-3); padding: var(--space-6); border: 1px solid var(--color-line); border-radius: var(--radius-md); background: var(--color-surface-raised); }
+.work-list .subtasks .task-form, .work-list .tasks > .task > .task-form { margin-left: var(--space-3); margin-right: var(--space-3); }
+.task-form .field { gap: var(--space-2); margin-bottom: var(--space-4); }
+.task-form .field-row { gap: var(--space-3); }
+.task-form label, .planning-form label { color: var(--color-ink); font-size: 13px; font-weight: 500; }
+.task-form input:not([type="checkbox"]), .task-form textarea, .text-form input { height: var(--size-control); padding: 0 var(--space-3); border: 1px solid var(--color-line-strong); border-radius: var(--radius-sm); background: var(--color-surface-raised); color: var(--color-ink); font: inherit; font-size: 14px; }
+.task-form textarea { height: auto; min-height: 64px; padding: var(--space-2) var(--space-3); resize: vertical; }
+.task-form input:focus-visible, .task-form textarea:focus-visible, .text-form input:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 0; border-color: var(--color-ink); }
+.task-form .form-actions { justify-content: flex-end; gap: var(--space-2); }
+.task-form .form-actions .button-danger-text { margin-right: auto; }
+.task-form .confirm-removal { margin-top: var(--space-4); padding: var(--space-4); border-radius: var(--radius-sm); background: var(--color-surface-sunken); }
+.task-form .confirm-removal p { margin: 0 0 var(--space-3); }
+
+/* Capture form (TaskCaptureForm) shares the editor: style its buttons by role. */
+.capture-form h3 { margin: 0 0 var(--space-4); font-size: 20px; font-weight: 500; letter-spacing: -0.01em; }
+.capture-form .form-actions { justify-content: flex-end; }
+.capture-form .form-actions > button:not(.link) { height: var(--size-control); padding: 0 var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--color-accent); color: var(--color-on-accent); font-size: 14px; font-weight: 500; order: 3; }
+.capture-form .form-actions > button.link { height: var(--size-control); padding: 0 var(--space-4); border: 1px solid var(--color-line-strong); border-radius: var(--radius-pill); background: var(--color-surface-raised); color: var(--color-ink); font-size: 14px; font-weight: 500; text-decoration: none; }
+.capture-form .form-actions > button.link + button.link { border-color: transparent; background: transparent; order: -1; margin-right: auto; }
+.task-capture-dialog { width: min(560px, calc(100% - 2rem)); border: 1px solid var(--color-line); border-radius: 24px; background: var(--color-surface-raised); box-shadow: 0 8px 32px rgb(42 36 32 / 8%); }
+.task-capture-dialog::backdrop { background: rgb(42 36 32 / 28%); }
+.task-capture-dialog .capture-form { padding: var(--space-6); border: 0; background: transparent; }
+
+@media (max-width: 40rem) {
+  .work-list .task-row { flex-wrap: wrap; }
+  .work-list .task-actions { width: 100%; padding-left: 44px; flex-wrap: wrap; }
+  .work-list .subtasks { padding-left: var(--space-4); }
+  .task-form { padding: var(--space-4); }
+  .project-list { width: auto; }
+}
+.work-list .task-planning summary, .work-list .placement-list summary { color: var(--color-ink); font-size: 13px; font-weight: 500; cursor: pointer; }
+.work-list .task-planning summary::marker { color: var(--color-ink-muted); }
+.project-list { min-width: 0; }
+.project-list > li { display: flex; min-width: 0; max-width: 100%; }

@@ -128,3 +128,38 @@ def test_plan_views_preserve_draft_and_week(browser, evidence, tmp_path, width, 
     finally:
         page.close()
         service.stop()
+
+
+@pytest.mark.parametrize("width,theme", [(375, "dark"), (1440, "light")])
+def test_today_earlier_unfinished_move_to_today(browser, evidence, tmp_path, width, theme):
+    """B1 on Today: past-planned unfinished work is listed and can be planned for today."""
+    import datetime as dt
+    expect = playwright_sync.expect
+    service = Service(tmp_path / f"earlier-{width}", free_port()).start()
+    page = browser.new_page(viewport={"width": width, "height": 900}, color_scheme=theme)
+    try:
+        _, project = http_json("POST", service.url + "/api/projects", {"name": "CS 61A"})
+        _, planning = http_json("GET", service.url + "/api/planning")
+        today = dt.date.fromisoformat(planning["today"])
+        for title, offset in (("Finish the lab write-up", 2), ("Email the TA", 9)):
+            _, task = http_json("POST", service.url + "/api/tasks", {"title": title, "project_id": project["id"], "estimate_minutes": 30})
+            code, _ = http_json("POST", service.url + "/api/placements", {"task_id": task["id"], "planned_date": (today - dt.timedelta(days=offset)).isoformat()})
+            assert code < 300
+        page.goto(service.url)
+        today_view = page.get_by_role("region", name="Today")
+        toggle = today_view.get_by_role("button", name="Earlier unfinished · 2")
+        expect(toggle).to_be_visible()
+        toggle.click()
+        earlier = today_view.get_by_role("list", name="Earlier unfinished tasks")
+        expect(earlier.get_by_text("Finish the lab write-up")).to_be_visible()
+        expect(earlier).to_contain_text("CS 61A · from")
+        assert no_horizontal_overflow(page)
+        page.screenshot(path=str(evidence / f"today-earlier-{width}-{theme}.png"), full_page=True)
+        today_view.get_by_role("button", name="Move both to today").click()
+        expect(toggle).to_have_count(0)
+        expect(today_view.locator(".today-tasks").first).to_contain_text("Finish the lab write-up")
+        expect(today_view.locator(".today-tasks").first).to_contain_text("Email the TA")
+        expect(today_view.get_by_text("2 unfinished · 0 complete · 1h planned", exact=True)).to_be_visible()
+    finally:
+        page.close()
+        service.stop()

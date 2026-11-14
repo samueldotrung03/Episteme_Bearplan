@@ -244,6 +244,21 @@ export interface Planning {
   closed_weeks?: ClosedWeekSummary[];
   /** Events from followed Google calendars in this week (read-only). */
   calendar_events?: GoogleEvent[];
+  /** Unfinished leaf tasks whose latest plan is before today (B1; independent of the displayed week). */
+  earlier_unfinished?: EarlierUnfinishedTask[];
+}
+
+export interface EarlierUnfinishedTask {
+  id: string;
+  title: string;
+  project_id: string;
+  project_name: string;
+  parent_id: string | null;
+  parent_title: string | null;
+  /** YYYY-MM-DD, the latest saved placement before today. */
+  last_planned_date: string;
+  deadline: string | null;
+  estimate_minutes: number | null;
 }
 
 export interface HistoricalTask extends Task {

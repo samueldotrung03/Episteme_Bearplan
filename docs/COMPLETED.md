@@ -1,6 +1,30 @@
 # BearPlans — completed work log
 
-## 2026-11-14 — B1 Earlier unfinished, backend (user override; merge into main pending)
+## 2026-11-14 — Atelier A4: Projects + Task editor (user override)
+
+Restyled Projects in place from Figma S3/S4 (user: "Override, start Projects",
+then "Restyle in place first"). Details in the [review](reviews/2026-11-14-atelier-projects.md).
+Changed: `frontend/src/App.tsx` (Projects header, picker order, button classes,
+task-row parent class, editor action order), `frontend/src/styles.css` (A4 block),
+new gate G-17 in `docs/GATES.md`, evidence screenshots. No test changes.
+Checks: first full check failed the 375 px long-name overflow test (fixed);
+rerun `python3 tools/check.py` all 4 steps passed (219 frontend; 1180
+backend/browser passed, 1 skipped; 318 s). Commit: not yet (user commits).
+Open: G-17 user acceptance.
+
+## 2026-11-14 — Today: Earlier unfinished and week dots (B1 frontend)
+
+Wired B1 into Today from Figma `32:1888`, as work that lets G-16 pass (user
+authorized, Nov 14). Details in the [review](reviews/2026-11-14-today-earlier-unfinished.md).
+Changed: `frontend/src/api.ts`, `frontend/src/Today.tsx`, `frontend/src/styles.css`,
+`frontend/src/Today.test.tsx`, new `frontend/src/assets/atelier/arrow-up.svg`,
+`tests/test_today_browser.py` (new Earlier unfinished test), evidence screenshots.
+Week dots: no change needed (already from `/api/streaks`). Checks:
+`python3 tools/check.py` all 4 steps passed (219 frontend tests; 1180
+backend/browser tests passed, 1 skipped; 319 s). Commit: not yet (user commits).
+Open: G-16 user acceptance.
+
+## 2026-11-14 — B1 Earlier unfinished, backend (user override; merged as 2a5aaa8)
 
 Built by Codex in the backend worktree under the user's override for B1 only
 (four user-owned gates open). Branch `a2-today-data`, commit `61aa614`: changed
@@ -10,7 +34,7 @@ Built by Codex in the backend worktree under the user's override for B1 only
 focused tests 39 passed; full `python3 tools/check.py` passed on the branch
 (217 frontend tests; 1178 backend/browser tests passed, 1 skipped). A first
 sandboxed run failed on process/socket permissions and was rerun unrestricted.
-Not done: merge into `main`, the Today frontend, and user acceptance (G-16). B2
+Merged into `main` as `2a5aaa8`; on `main` the first full check had one failure (`test_compact_week_reopen_failure_retry[375-dark]`, checkbox focus; passed 3 of 3 alone) and the rerun passed all 4 steps (217 frontend; 1178 backend/browser passed, 1 skipped; 312 s). Not done: the Today frontend, and user acceptance (G-16). B2
 needed no backend change (`GET /api/streaks` already serves the week dots).
 
 ## 2026-11-14 — Atelier redesign A3: Week screen

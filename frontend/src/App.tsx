@@ -359,7 +359,7 @@ export default function App() {
         </p>
       ) : null}
 
-      {planView === "projects" ? <div className="plan-header plan-header-controls">{planControls}</div> : null}
+      {planView === "projects" ? <div className="plan-header plan-header-controls"><h2 id="projects-heading" className="plan-title">Projects</h2>{planControls}</div> : null}
       {pendingCapture ? <section aria-label="Pending task save"><p role="status">A task save needs confirmation: {pendingCapture.title}.</p>
         <button type="button" onClick={() => setReviewPendingCapture(value => !value)} aria-expanded={reviewPendingCapture}>Review pending task save</button>
         {reviewPendingCapture ? <div>
@@ -377,10 +377,23 @@ export default function App() {
       <div className="workspace plan-workspace" hidden={planView === "today"}>
         <div className="work-list" hidden={planView !== "projects"}>
           <section className="projects" aria-labelledby="projects-heading">
-            <h2 id="projects-heading">Projects</h2>
             {projects === null && !loadError ? <p className="muted">Loading…</p> : null}
             {projects !== null ? (
               <>
+                <ul className="project-list">
+                  {projects.map((project) => (
+                    <li key={project.id}>
+                      <button
+                        type="button"
+                        className={project.id === selectedId ? "chip chip-on" : "chip"}
+                        aria-current={project.id === selectedId ? "true" : undefined}
+                        onClick={() => setSelectedId(project.id)}
+                      >
+                        {project.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
                 <div className="project-actions">
                   {selected ? (
                     renaming ? (
@@ -401,13 +414,13 @@ export default function App() {
                         }}
                       />
                     ) : (
-                      <button ref={renameProjectTrigger} type="button" className="link" onClick={() => setRenaming(true)}>
-                        Rename “{selected.name}”
+                      <button ref={renameProjectTrigger} type="button" className="button-tertiary" onClick={() => setRenaming(true)}>
+                        Rename<span className="visually-hidden"> “{selected.name}”</span>
                       </button>
                     )
                   ) : null}
-                  <button ref={addProjectTrigger} type="button" className="link" aria-expanded={addingProject} disabled={savingProject} onClick={() => setAddingProject((open) => !open)}>
-                    + Add project
+                  <button ref={addProjectTrigger} type="button" className="button-secondary" aria-expanded={addingProject} disabled={savingProject} onClick={() => setAddingProject((open) => !open)}>
+                    <span className="icon icon-plus" aria-hidden="true" /><span className="visually-hidden">+</span>{" "}Add project
                   </button>
                   {addingProject ? <TextForm
                     label="New project"
@@ -430,33 +443,22 @@ export default function App() {
                     }}
                   /> : null}
                 </div>
-                <ul className="project-list">
-                  {projects.map((project) => (
-                    <li key={project.id}>
-                      <button
-                        type="button"
-                        className={project.id === selectedId ? "chip chip-on" : "chip"}
-                        aria-current={project.id === selectedId ? "true" : undefined}
-                        onClick={() => setSelectedId(project.id)}
-                      >
-                        {project.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
               </>
             ) : null}
           </section>
 
           {selected ? (
             <section className="tasks-section" aria-labelledby="tasks-heading">
+              <div className="tasks-header">
+              <div className="tasks-heading-text">
               <h2 ref={tasksHeading} tabIndex={-1} id="tasks-heading">{selected.name}</h2>
               {progress ? <p className="muted">{progress.completed} of {progress.total} work items complete</p> : null}
-
-              <button ref={addTaskTrigger} type="button" aria-haspopup="dialog" disabled={tasks === null || Boolean(loadError)} onClick={() => {
+              </div>
+              <button ref={addTaskTrigger} type="button" className="button-ink" aria-haspopup="dialog" disabled={tasks === null || Boolean(loadError)} onClick={() => {
                 setTaskDraftProjects((ids) => ids.includes(selected.id) ? ids : [...ids, selected.id]);
                 setOpenTaskDraft(selected.id);
-              }}>{taskDraftProjects.includes(selected.id) ? "Continue task draft" : "+ Add task"}</button>
+              }}><span className="icon icon-plus" aria-hidden="true" />{taskDraftProjects.includes(selected.id) ? "Continue task draft" : <><span className="visually-hidden">+</span>{" "}Add task</>}</button>
+              </div>
               {taskDraftProjects.map((projectId) => (
                 <TaskDraftDialog key={projectId} projectId={projectId} open={openTaskDraft === projectId && selected.id === projectId && planView === "projects" && screen === "plan"} onKeep={() => {
                   setOpenTaskDraft(null);
@@ -509,7 +511,7 @@ export default function App() {
                         planning={<TaskPlanning task={task} plan={planning.plan} selectedDay={planning.selectedDay} onRun={run} />}
                         onTrack={() => openTrack(task.id)}
                         extra={
-                          <button type="button" className="link" onClick={() => setAddingSubtaskTo(addingSubtaskTo === task.id ? null : task.id)}>
+                          <button type="button" className="link task-action" onClick={() => setAddingSubtaskTo(addingSubtaskTo === task.id ? null : task.id)}>
                             {addingSubtaskTo === task.id ? "Cancel subtask" : "Add subtask"}
                           </button>
                         }
@@ -618,7 +620,7 @@ function TaskRow({
     : undefined;
 
   return (
-    <div className={task.completed ? "task-row task-done" : "task-row"}>
+    <div className={["task-row", task.completed ? "task-done" : "", derived ? "task-parent" : ""].filter(Boolean).join(" ")}>
       <input
         type="checkbox"
         ref={checkboxRef}
@@ -658,7 +660,7 @@ function TaskRow({
       </div>
       {!compact ? <div className="task-actions">
         <StartTrackingButton task={task} onTrack={onTrack} disabled={busy || locked} />
-        <button type="button" className="link" onClick={onEdit}>{editing ? "Cancel" : "Edit"}</button>
+        <button type="button" className="link task-action" onClick={onEdit}>{editing ? "Cancel" : "Edit"}</button>
         {extra}
       </div> : null}
     </div>
@@ -781,16 +783,16 @@ function TaskForm({
       {tooLong ? <p className="error">Keep the title to {TITLE_MAX_LENGTH} characters or fewer.</p> : null}
       {error ? <p className="error" role="alert">{error}</p> : null}
       <div className="form-actions">
-        <button type="submit" disabled={!trimmed || tooLong || busy}>{busy ? "Saving…" : submitLabel}</button>
-        {onCancel ? <button type="button" className="link" disabled={busy} onClick={onCancel}>Cancel</button> : null}
         {onRemove ? (
-          <button type="button" className="link" disabled={busy} onClick={() => setConfirmRemoval(true)}>
+          <button type="button" className="link button-danger-text" disabled={busy} onClick={() => setConfirmRemoval(true)}>
             Remove subtask
           </button>
         ) : null}
+        {onCancel ? <button type="button" className="link button-secondary" disabled={busy} onClick={onCancel}>Cancel</button> : null}
+        <button type="submit" className="button-primary" disabled={!trimmed || tooLong || busy}>{busy ? "Saving…" : submitLabel}</button>
       </div>
       {confirmRemoval && onRemove ? (
-        <div>
+        <div className="confirm-removal">
           <p>Remove this subtask permanently? Removing the last subtask leaves its parent incomplete.</p>
           <button type="button" disabled={busy} onClick={async () => {
             setBusy(true);
@@ -852,8 +854,8 @@ function TextForm({
       <label htmlFor={id}>{label}</label>
       <div className="field-row">
         <input autoFocus id={id} value={value} placeholder={placeholder} maxLength={maxLength * 2} onChange={(event) => setValue(event.target.value)} />
-        <button type="submit" disabled={!trimmed || tooLong || busy}>{submitLabel}</button>
-        {onCancel ? <button type="button" className="link" disabled={busy} onClick={onCancel}>Cancel</button> : null}
+        <button type="submit" className="button-ink" disabled={!trimmed || tooLong || busy}>{submitLabel}</button>
+        {onCancel ? <button type="button" className="link button-secondary" disabled={busy} onClick={onCancel}>Cancel</button> : null}
       </div>
       {tooLong ? <p className="error">Keep this to {maxLength} characters or fewer.</p> : null}
       {error ? <p className="error" role="alert">{error}</p> : null}
