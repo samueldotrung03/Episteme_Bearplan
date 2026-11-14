@@ -20,20 +20,25 @@ def test_today_completion_reopen_and_focus(browser, evidence, tmp_path, width, t
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(service.url)
         nav = page.get_by_role("navigation", name="Main navigation")
-        for name in ("Plan", "Track", "Stats", "Assistant", "bCourses", "Google", "Settings"):
+        # Atelier app bar: four destinations plus Settings; bCourses and Google live in Settings.
+        for name in ("Plan", "Track", "Stats", "Assistant", "Settings"):
             expect(nav.get_by_role("link", name=name, exact=True)).to_be_visible()
-        for icon in (page.locator(".app-brand img"), nav.get_by_role("link", name="Settings").locator("img")):
-            assert icon.evaluate("image => image.complete && image.naturalWidth === 20 && image.naturalHeight === 20")
-            assert icon.bounding_box()["width"] == 20 and icon.bounding_box()["height"] == 20
+        for name in ("bCourses", "Google"):
+            expect(nav.get_by_role("link", name=name, exact=True)).to_have_count(0)
+        for icon in (page.locator(".app-brand .icon"), nav.get_by_role("link", name="Settings").locator(".icon")):
+            box = icon.bounding_box()
+            assert box and round(box["width"]) == 20 and round(box["height"]) == 20
         today = page.get_by_role("region", name="Today")
         checkbox = today.get_by_role("checkbox", name="Read the primary source — Seminar")
         expect(checkbox).to_be_visible()
         expect(today.get_by_text("Seminar", exact=True)).to_be_visible()
         streak = today.get_by_role("region", name="Saved focus streak")
         expect(streak.get_by_text("0-day streak")).to_be_visible()
-        icon = streak.locator("img")
-        assert icon.evaluate("image => image.complete && image.naturalWidth === 24 && image.naturalHeight === 24")
-        assert icon.bounding_box()["width"] == 24 and icon.bounding_box()["height"] == 24
+        # Atelier quiet streak: no icon, seven 12 px day dots with today shown as a ring.
+        dots = streak.locator(".today-streak-dot")
+        expect(dots).to_have_count(7)
+        assert all(round(dots.nth(i).bounding_box()["width"]) == 12 for i in range(7))
+        expect(streak.locator(".today-streak-dot.today")).to_have_count(1)
         assert no_horizontal_overflow(page)
         page.screenshot(path=str(evidence / f"today-{width}-{theme}.png"), full_page=True)
         checkbox.focus()
@@ -69,7 +74,10 @@ def test_today_many_tasks_remain_reachable_and_start_correct_task(browser, tmp_p
         today = page.get_by_role("region", name="Today")
         expect(today.get_by_text("7 unfinished · 0 complete")).to_be_visible()
         start = today.get_by_role("button", name="Start Sample task 7")
-        start.scroll_into_view_if_needed()
+        # Start is quiet on rows other than the focused one and appears on hover.
+        row = today.locator(".today-task", has_text="Sample task 7")
+        row.scroll_into_view_if_needed()
+        row.hover()
         expect(start).to_be_visible()
         start.click()
         expect(page.get_by_label("Task to track", exact=True)).to_have_value(last["id"])

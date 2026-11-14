@@ -1,5 +1,31 @@
 # BearPlans — completed work log
 
+## 2026-11-14 — Atelier redesign A0 + A1: tokens, Geist, app bar and Today dashboard
+
+Implemented from Figma S1 Today (`Sxhit2hudslGGvwqkxpX8G`, frame `18:5`); frontend
+only. Details, deliberate differences and unverified items in the
+[review](reviews/2026-11-14-atelier-today.md). Changed `frontend/src/{App,Today,
+DailyStreak}.tsx`, `frontend/src/{Today,DailyStreak}.test.tsx`, `frontend/src/
+styles.css`, `frontend/src/main.tsx`, new `frontend/src/assets/atelier/*.svg`,
+`frontend/package{,-lock}.json` (adds `@fontsource-variable/geist` 5.3.0),
+`tests/test_{today,bcourses,google}_browser.py` (removed top-bar links, quiet
+streak, Start on hover), docs. Checks on Linux (cloud container): full
+`python3 tools/check.py` exit 0 — typecheck, 217 frontend tests, build, 1175
+backend/browser tests, 1 skipped. An earlier run failed 4 Today browser tests
+that asserted the old top bar, streak icon and always-visible Start; updated.
+Playwright screenshots at 1440 light/dark and 640 light. User acceptance open
+as G-14.
+
+## 2026-11-14 — G-03 passed: user accepted the task-entry form
+
+The user replied "accept" in chat on November 14, 2026 after being asked to follow
+the G-03 action (add a task with and without a planned day, reload) on a disposable
+schema-25 instance started from commit `e8aa86e` (plus plan-only docs, `fd00b0f`),
+port 18993, data in a session scratch folder. The user's report
+is the evidence; the agent did not observe the walkthrough. The task-entry slice
+is accepted and closed. Open user-owned gates blocking the trial/alpha: three
+(G-04, G-05, G-06), so a new build may start.
+
 ## 2026-11-12 — Assistant: create and plan in one change, no past deadlines, week to-dos, deadline order (A-02, A-03, A-01, A-06)
 
 Found in [G-06 user testing](reviews/2026-11-11-assistant-user-testing.md); details,

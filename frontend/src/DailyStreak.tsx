@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { ApiError, getStreaks, type StreakState } from "./api";
-import streakIcon from "./assets/streak.svg?no-inline";
 
 // Service dates are calendar dates. UTC formatting prevents the browser's zone
 // from shifting them, including when the browser and service are on different days.
@@ -71,13 +70,12 @@ export function DailyStreak({ visible, lastSessionId, compact = false }: { visib
   const active = today?.active_microseconds ?? 0;
 
   if (compact) return <section className="today-streak" aria-label="Saved focus streak" aria-busy={loading}>
-    <img src={streakIcon} alt="" />
     <div className="today-streak-copy">
-      {state ? <><strong>{state.current_streak}-day streak</strong><span>{Math.floor(active / 60_000_000)} / {Math.floor(state.threshold_microseconds / 60_000_000)} min saved today</span></> : <span>{loading ? "Loading streak…" : "Streak unavailable"}</span>}
+      {state ? <><strong>{state.current_streak}-day streak</strong><span>{Math.floor(active / 60_000_000)} of {Math.floor(state.threshold_microseconds / 60_000_000)} min focused today</span></> : <span>{loading ? "Loading streak…" : "Streak unavailable"}</span>}
       {error ? <p className="error" role="alert">{error} <button type="button" className="link" disabled={loading} onClick={() => void refresh()}>Refresh streak</button></p> : null}
     </div>
     {state ? <ul className="today-streak-days" aria-label="Last seven days">{state.days.map((day) => <li key={day.date} aria-label={`${weekdayLabel.format(asDate(day.date))}, ${dayLabel.format(asDate(day.date))}: ${day.qualified ? "qualified" : "not qualified"}${day.date === state.today ? ", today" : ""}`} aria-current={day.date === state.today ? "date" : undefined}>
-      <span aria-hidden="true">{weekdayLabel.format(asDate(day.date)).slice(0, 1)}</span><span aria-hidden="true" className={`today-streak-dot${day.qualified ? " qualified" : ""}${day.date === state.today ? " today" : ""}`} />
+      <span aria-hidden="true">{weekdayLabel.format(asDate(day.date)).slice(0, 1)}</span><span aria-hidden="true" className={`today-streak-dot${day.qualified ? " qualified" : day.date < state.today ? " missed" : ""}${day.date === state.today ? " today" : ""}`} />
     </li>)}</ul> : null}
   </section>;
 

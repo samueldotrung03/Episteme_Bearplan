@@ -21,8 +21,6 @@ import { TaskPlanning, WeeklyPlanner, usePlanning } from "./WeeklyPlanner";
 import { CompactTimer, StartTrackingButton, TrackScreen, useCountdown } from "./Countdown";
 import { Statistics } from "./Statistics";
 import { Today } from "./Today";
-import navigationTree from "./assets/navigation-tree.svg?no-inline";
-import navigationSettings from "./assets/navigation-settings.svg?no-inline";
 import { Assistant } from "./Assistant";
 import { ConnectionPanels } from "./ConnectionPanels";
 import { ConnectionSetup, type SetupProvider } from "./ConnectionSetup";
@@ -263,18 +261,41 @@ export default function App() {
   const parents = tasks?.filter((task) => task.parent_id === null) ?? [];
   const subtasksOf = (id: string) => tasks?.filter((task) => task.parent_id === id) ?? [];
 
+  // Add task opens the existing project-scoped form for the selected project.
+  // With no project chosen yet, it shows Projects so one can be chosen or added.
+  function addTaskFromPlan() {
+    setPlanView("projects");
+    if (selected && tasks !== null && !loadError) {
+      setTaskDraftProjects((ids) => ids.includes(selected.id) ? ids : [...ids, selected.id]);
+      setOpenTaskDraft(selected.id);
+    } else requestAnimationFrame(() => addProjectTrigger.current?.focus());
+  }
+
+  const planControls = <>
+    <nav className="plan-navigation" aria-label="Plan views">
+      <div className="segmented">
+        <button type="button" aria-pressed={planView === "today"} onClick={() => setPlanView("today")}>Today</button>
+        <button type="button" aria-pressed={planView === "week"} onClick={() => setPlanView("week")}>Week</button>
+      </div>
+      <button type="button" className="button-secondary" aria-pressed={planView === "projects"} onClick={() => setPlanView("projects")}>
+        <span className="icon icon-folder" aria-hidden="true" />Projects
+      </button>
+    </nav>
+    {planView !== "projects" ? <button type="button" className="button-secondary" aria-haspopup="dialog" onClick={addTaskFromPlan}>
+      <span className="icon icon-plus" aria-hidden="true" />Add task
+    </button> : null}
+  </>;
+
   return (
     <main className="page">
       <header className="page-head">
-        <div className="app-brand"><img src={navigationTree} alt="" /><h1>BearPlans</h1></div>
+        <div className="app-brand"><span className="icon icon-tree" aria-hidden="true" /><h1>BearPlans</h1></div>
         <nav className="main-navigation" aria-label="Main navigation">
           <a href="#plan" aria-current={screen === "plan" ? "page" : undefined} onClick={() => setScreen("plan")}>Plan</a>
           <a href="#track" aria-current={screen === "track" ? "page" : undefined} onClick={() => openTrack()}>Track</a>
           <a href="#stats" aria-current={screen === "stats" ? "page" : undefined} onClick={() => setScreen("stats")}>Stats</a>
           <a href="#assistant" aria-current={screen === "assistant" ? "page" : undefined} onClick={() => setScreen("assistant")}>Assistant</a>
-          <a href="#bcourses" aria-current={screen === "bcourses" ? "page" : undefined} onClick={() => setScreen("bcourses")}>bCourses</a>
-          <a href="#google" aria-current={screen === "google" ? "page" : undefined} onClick={() => setScreen("google")}>Google</a>
-          <a ref={settingsEntry} className="settings-entry" href="#settings" aria-current={screen === "settings" ? "page" : undefined} onClick={openSettings} aria-label="Settings"><img src={navigationSettings} alt="" /></a>
+          <a ref={settingsEntry} className="settings-entry" href="#settings" aria-current={screen === "settings" || screen === "bcourses" || screen === "google" ? "page" : undefined} onClick={openSettings} aria-label="Settings" title="Settings"><span className="icon icon-settings" aria-hidden="true" /></a>
         </nav>
       </header>
 
@@ -322,11 +343,7 @@ export default function App() {
         </p>
       ) : null}
 
-      <nav className="plan-navigation" aria-label="Plan views">
-        <button type="button" aria-pressed={planView === "today"} onClick={() => setPlanView("today")}>Today</button>
-        <button type="button" aria-pressed={planView === "week"} onClick={() => setPlanView("week")}>Week</button>
-        <button type="button" aria-pressed={planView === "projects"} onClick={() => setPlanView("projects")}>Projects</button>
-      </nav>
+      {planView !== "today" ? <div className="plan-header plan-header-controls">{planControls}</div> : null}
       {pendingCapture ? <section aria-label="Pending task save"><p role="status">A task save needs confirmation: {pendingCapture.title}.</p>
         <button type="button" onClick={() => setReviewPendingCapture(value => !value)} aria-expanded={reviewPendingCapture}>Review pending task save</button>
         {reviewPendingCapture ? <div>
@@ -338,7 +355,7 @@ export default function App() {
         </div> : null}
       </section> : null}
       <div hidden={planView !== "today"}>
-      <Today visible={screen === "plan" && planView === "today"} lastSessionId={timer.state?.last_session?.id ?? null} plan={planning.plan} projects={projects ?? []} loading={planning.loading} error={planning.error} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onRun={run} onTrack={openTrack} onRetry={() => void planning.refresh()} />
+      <Today headerActions={planControls} onAddTask={addTaskFromPlan} onShowWeek={() => setPlanView("week")} onShowProjects={() => setPlanView("projects")} visible={screen === "plan" && planView === "today"} lastSessionId={timer.state?.last_session?.id ?? null} plan={planning.plan} projects={projects ?? []} loading={planning.loading} error={planning.error} locked={mutations > 0 || planning.loading || Boolean(loadError) || Boolean(planning.error)} onRun={run} onTrack={openTrack} onRetry={() => void planning.refresh()} />
       </div>
 
       <div className="workspace plan-workspace" hidden={planView === "today"}>

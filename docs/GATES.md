@@ -13,13 +13,13 @@ chose not to require the check; it blocks nothing and has not passed.
 Time estimates are rough and unverified. No gate here has passed. The limit
 on waiting work is in [AGENTS.md](../AGENTS.md#open-gates-and-the-limit-on-waiting-work):
 no new build while more than three user-owned gates block the trial or the alpha
-(four on November 11: G-03 to G-06).
+(four on November 11: G-03 to G-06; three from November 14 after G-03 passed; four again after G-14 opened the same day).
 
 ## Gates that block the trial
 
 | ID | What must be checked | Owner | What to do, roughly how long | Blocks | Evidence | Opened |
 | --- | --- | --- | --- | --- | --- | --- |
-| G-03 | You accept the new task-entry form | User | Follow the [UX handoff](../frontend/BEARPLANS_UX_HANDOFF.md) with disposable data: add a task with and without a planned day, reload, and say "accept" or what is wrong; about 15 minutes | Closing the task-entry slice and the new trial candidate (RF-04) | Asked for in [PROGRESS](PROGRESS.md) "Next concrete step" | Nov 11 |
+| G-14 | You accept the Atelier Today dashboard and new app bar (A0 + A1) | User | Open the app on disposable data, add two or three tasks for today (one with a start time), then look at Today in light and dark mode: use ↑/↓, Enter, X, N, W, P, open Completed, and check bCourses/Google are reachable from Settings. Say "accept" or what is wrong; about 15 minutes | Closing the Atelier A0 + A1 slice and the RF-04 trial candidate; the next Atelier slice (A2) | [Review](reviews/2026-11-14-atelier-today.md) | Nov 14 |
 
 ## Gates that block the alpha
 

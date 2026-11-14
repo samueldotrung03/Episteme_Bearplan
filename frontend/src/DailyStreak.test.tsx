@@ -164,7 +164,7 @@ test("compact Today streak shows saved minutes and accessible day states", async
   render(<DailyStreak visible lastSessionId={null} compact />);
   const region = screen.getByRole("region", { name: "Saved focus streak" });
   expect(await within(region).findByText("2-day streak")).toBeVisible();
-  expect(within(region).getByText("30 / 60 min saved today")).toBeVisible();
+  expect(within(region).getByText("30 of 60 min focused today")).toBeVisible();
   expect(within(region).getByRole("list", { name: "Last seven days" })).toHaveTextContent("W");
   expect(within(region).getByLabelText(/Oct 21: not qualified, today/)).toBeInTheDocument();
 });

@@ -113,7 +113,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         card.get_by_role("button", name="Save time").click()
         expect(page.locator(".planned-card", has_text="Office hours")).to_contain_text("At 11:15 PM")
 
-        page.get_by_role("link", name="Google", exact=True).click()
+        page.evaluate("window.location.hash = '#google'")  # Google moved into Settings (Atelier app bar)
         tab.get_by_role("button", name="Sync now").click()
         expect(tab.get_by_role("status")).to_contain_text("Google sync finished.")
         expect(tab).to_contain_text("1 upcoming event in the “BearPlans” calendar")
@@ -172,7 +172,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         assert [item["id"] for group in tasks.items.values() for item in group.values()
                 if item.get("title") == "Office hours"] == [google_task["id"]]
 
-        page.get_by_role("link", name="Google", exact=True).click()
+        page.evaluate("window.location.hash = '#google'")  # Google moved into Settings (Atelier app bar)
         tab.get_by_role("checkbox", name="Me · main calendar").uncheck()
         tab.get_by_role("button", name="Save calendars").click()
         expect(tab.get_by_role("status")).to_contain_text("Plan now shows events from your selection")
@@ -185,7 +185,7 @@ def test_calendars_events_start_time_and_ticks_from_google(browser, evidence, se
         assert not google_task.get("deleted")
 
         page.set_viewport_size({"width": 375, "height": 850})
-        page.get_by_role("link", name="Google", exact=True).click()
+        page.evaluate("window.location.hash = '#google'")  # Google moved into Settings (Atelier app bar)
         assert no_horizontal_overflow(page)
         page.screenshot(path=str(evidence / "google-04-narrow.png"), full_page=True)
         assert errors == []

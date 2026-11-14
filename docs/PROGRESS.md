@@ -4,7 +4,26 @@ Updated November 12, 2026. Read [AGENTS.md](../AGENTS.md) before resuming.
 Finished work and evidence are in [COMPLETED.md](COMPLETED.md); this file is the
 single current handoff.
 
-## Active work: task entry in the UX redesign
+## Active work: Atelier redesign A0 + A1 (started Nov 14)
+
+**Goal:** apply the Atelier visual system (tokens, Geist, glass app bar with
+Plan · Track · Stats · Assistant) and rebuild the Today dashboard to match Figma
+S1 Today (`Sxhit2hudslGGvwqkxpX8G`, frame `18:5`), frontend only, no API change.
+[Plan](../frontend/plans/atelier-redesign/PLAN.md). Started after G-03 passed
+(user: "accept", Nov 14), leaving three user-owned gates.
+
+**State (Nov 14):** implemented and checked, awaiting user acceptance (G-14).
+See the [review](reviews/2026-11-14-atelier-today.md) for what changed, the
+deliberate differences from Figma and what was not verified. Frontend tests,
+typecheck and build pass; full `tools/check.py` result is in COMPLETED.
+Not built (slice A2, needs backend): Earlier unfinished, bCourses Source/Sync
+marks, delete Undo, project choice inside Add task.
+
+**Next concrete step:** the user does G-14 (about 15 minutes). G-14 brings the
+user-owned gate count back to four, so A2 cannot start until a gate is closed
+or deferred, or the user overrides.
+
+## Closed: task entry in the UX redesign (accepted Nov 14, G-03)
 
 **Goal:** Save a new task and its optional planned day together from the project
 task form. Preserve the entered details and make uncertain saves safely retryable.

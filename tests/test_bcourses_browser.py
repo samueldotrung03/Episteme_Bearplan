@@ -110,7 +110,7 @@ def test_choose_courses_add_assignment_and_review_due_change(browser, evidence, 
         page.get_by_role("navigation", name="Plan views").get_by_role("button", name="Projects", exact=True).click()
         expect(page.get_by_role("button", name="MATH 54 - Linear Algebra", exact=True)).to_be_visible()
 
-        page.get_by_role("link", name="bCourses", exact=True).click()
+        page.evaluate("window.location.hash = '#bcourses'")  # bCourses moved into Settings (Atelier app bar)
         fake.by_course["1"][0]["due_at"] = "2099-11-10T07:59:00Z"
         tab.get_by_role("button", name="Refresh", exact=True).click()
         changed = tab.get_by_role("list", name="Due date changed")

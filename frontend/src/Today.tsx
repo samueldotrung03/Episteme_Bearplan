@@ -1,9 +1,9 @@
-import { useEffect, useId, useState } from "react";
-import { ApiError, setTaskCompletion, type Planning, type Project, type Task } from "./api";
-import { StartTrackingButton } from "./Countdown";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { ApiError, setTaskCompletion, type GoogleEvent, type Planning, type Project, type Task } from "./api";
 import { DailyStreak } from "./DailyStreak";
 
 const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+const eventClock = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 type Props = {
   plan: Planning | null;
@@ -16,30 +16,79 @@ type Props = {
   onRun: (work: () => Promise<unknown>, done: string) => Promise<void>;
   onTrack: (taskId: string) => void;
   onRetry: () => void;
+  /** Plan view controls (Today/Week, Projects, Add task) shown beside the title. */
+  headerActions?: ReactNode;
+  /** Keyboard shortcuts N, W and P. Omitted handlers leave the key unused. */
+  onAddTask?: () => void;
+  onShowWeek?: () => void;
+  onShowProjects?: () => void;
 };
 
-function TodayRow({ task, context, onRun, onTrack, onSaved, locked }: { task: Task; context: string; onRun: Props["onRun"]; onTrack: Props["onTrack"]; onSaved: (id: string, complete: boolean) => void; locked: boolean }) {
+export function formatPlanned(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return hours ? `${hours}h${rest ? ` ${rest}m` : ""}` : `${rest}m`;
+}
+
+function eventTime(event: GoogleEvent): string {
+  if (event.all_day || !event.start_at) return "All day";
+  return `${eventClock.format(new Date(event.start_at))} – ${eventClock.format(new Date(event.end_at ?? event.start_at))}`;
+}
+
+type RowProps = {
+  task: Task;
+  context: string;
+  startTime: string | null;
+  focused: boolean;
+  locked: boolean;
+  onFocusRow: () => void;
+  onRun: Props["onRun"];
+  onTrack: Props["onTrack"];
+  onSaved: (id: string, complete: boolean) => void;
+};
+
+function TodayRow({ task, context, startTime, focused, locked, onFocusRow, onRun, onTrack, onSaved }: RowProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  return <li className={`today-task${task.completed ? " today-task-complete" : ""}`}>
-    <input id={`today-task-${task.id}`} type="checkbox" checked={task.completed} disabled={busy || locked} aria-label={`${task.title} — ${context}`} onChange={async (event) => {
-      const complete = event.currentTarget.checked;
-      setBusy(true); setError("");
-      try { await onRun(() => setTaskCompletion(task.id, complete), complete ? "Task marked complete." : "Task reopened."); onSaved(task.id, complete); }
-      catch (caught) { setError(caught instanceof ApiError ? caught.message : "Could not save this task. Try again."); }
-      finally { setBusy(false); }
-    }} />
-    <div className="today-task-content"><span className="today-task-title">{task.title}</span>{!task.completed ? <span className="today-task-context">{context}</span> : null}
-      {error ? <p role="alert" className="error">{error}</p> : null}</div>
-    {!task.completed ? <StartTrackingButton task={task} onTrack={() => onTrack(task.id)} disabled={busy || locked} label="Start" accessibleLabel={`Start ${task.title}`} /> : null}
+  const complete = async (value: boolean) => {
+    setBusy(true); setError("");
+    try { await onRun(() => setTaskCompletion(task.id, value), value ? "Task marked complete." : "Task reopened."); onSaved(task.id, value); }
+    catch (caught) { setError(caught instanceof ApiError ? caught.message : "Could not save this task. Try again."); }
+    finally { setBusy(false); }
+  };
+  const className = ["today-task", task.completed ? "today-task-complete" : "", focused ? "today-task-focused" : ""].filter(Boolean).join(" ");
+  return <li className={className} data-task-id={task.id} onFocus={onFocusRow}>
+    <span className="today-check">
+      <input id={`today-task-${task.id}`} type="checkbox" checked={task.completed} disabled={busy || locked} aria-label={`${task.title} — ${context}`}
+        onChange={(event) => void complete(event.currentTarget.checked)} />
+    </span>
+    <div className="today-task-content">
+      <span className="today-task-title">{task.title}</span>
+      {!task.completed ? <span className="today-task-context">{context}</span> : null}
+      {error ? <p role="alert" className="error">{error}</p> : null}
+    </div>
+    {!task.completed ? <div className="today-task-trailing">
+      {startTime ? <span className="today-task-start">{startTime}</span> : null}
+      {task.estimate_minutes ? <span className="today-task-estimate">{task.estimate_minutes} min</span> : null}
+      <button type="button" className={`today-start${focused ? " primary" : ""}`} aria-label={`Start ${task.title}`} disabled={busy || locked} onClick={() => onTrack(task.id)}>
+        <span className="icon icon-play" aria-hidden="true" />Start
+      </button>
+    </div> : null}
   </li>;
 }
 
+function isTyping(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(target.tagName);
+}
+
 /** A projection of existing active placements, never a copy of task state. */
-export function Today({ plan, projects, loading, error, onRun, onTrack, locked, visible, lastSessionId, onRetry }: Props) {
+export function Today({ plan, projects, loading, error, onRun, onTrack, locked, visible, lastSessionId, onRetry, headerActions, onAddTask, onShowWeek, onShowProjects }: Props) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [pendingFocus, setPendingFocus] = useState<{ id: string; complete: boolean } | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
   const disclosureId = useId();
+  const listRef = useRef<HTMLUListElement>(null);
   useEffect(() => {
     if (!pendingFocus || !plan) return;
     const task = plan.tasks.find((item) => item.id === pendingFocus.id);
@@ -48,25 +97,86 @@ export function Today({ plan, projects, loading, error, onRun, onTrack, locked, 
     if (target instanceof HTMLInputElement && target.disabled) return;
     if (target) { target.focus(); setPendingFocus(null); }
   }, [plan, pendingFocus, disclosureId, locked]);
+
   const tasks = new Map((plan?.tasks ?? []).map((task) => [task.id, task]));
   const names = new Map(projects.map((project) => [project.id, project.name]));
-  const rows = (plan?.placements ?? []).filter((placement) => placement.planned_date === plan?.today)
-    .map((placement) => tasks.get(placement.task_id)).filter((task): task is Task => Boolean(task && task.subtask_count === 0));
+  const todays = (plan?.placements ?? []).filter((placement) => placement.planned_date === plan?.today);
+  const startTimes = new Map(todays.map((placement) => [placement.task_id, placement.start_time ?? null]));
+  const rows = todays.map((placement) => tasks.get(placement.task_id)).filter((task): task is Task => Boolean(task && task.subtask_count === 0));
   const incomplete = rows.filter((task) => !task.completed);
   const completed = rows.filter((task) => task.completed);
+  const plannedMinutes = incomplete.reduce((sum, task) => sum + (task.estimate_minutes ?? 0), 0);
+  const events = (plan?.calendar_events ?? []).filter((event) => plan && event.first_day <= plan.today && event.last_day >= plan.today);
+  const focused = incomplete.find((task) => task.id === focusedId) ?? incomplete[0] ?? null;
+
+  // Shortcuts act only while Today is shown, nothing is being typed or pressed,
+  // and no dialog is open. Enter/X act on the focused row.
+  const latest = useRef({ focused, incomplete, locked, onTrack, onAddTask, onShowWeek, onShowProjects });
+  latest.current = { focused, incomplete, locked, onTrack, onAddTask, onShowWeek, onShowProjects };
+  useEffect(() => {
+    if (!visible) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || isTyping(event.target)) return;
+      if (document.querySelector("dialog[open]")) return;
+      const current = latest.current;
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      const move = (step: number) => {
+        if (!current.incomplete.length) return;
+        const index = current.focused ? current.incomplete.indexOf(current.focused) : -1;
+        const next = current.incomplete[Math.min(current.incomplete.length - 1, Math.max(0, index + step))];
+        setFocusedId(next.id);
+        listRef.current?.querySelector<HTMLElement>(`[data-task-id="${next.id}"]`)?.scrollIntoView?.({ block: "nearest" });
+      };
+      if (key === "ArrowDown" || key === "j") move(1);
+      else if (key === "ArrowUp" || key === "k") move(-1);
+      else if (key === "Enter" && current.focused && !current.locked) current.onTrack(current.focused.id);
+      else if (key === "x" && current.focused && !current.locked) document.getElementById(`today-task-${current.focused.id}`)?.click();
+      else if (key === "n" && current.onAddTask) current.onAddTask();
+      else if (key === "w" && current.onShowWeek) current.onShowWeek();
+      else if (key === "p" && current.onShowProjects) current.onShowProjects();
+      else return;
+      event.preventDefault();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [visible]);
+
   const row = (task: Task) => {
     const context = [names.get(task.project_id) ?? "Project", task.parent_id ? tasks.get(task.parent_id)?.title : null].filter(Boolean).join(" / ");
-    return <TodayRow key={task.id} task={task} context={context} onRun={onRun} onTrack={onTrack} locked={locked} onSaved={(id, complete) => setPendingFocus({ id, complete })} />;
+    return <TodayRow key={task.id} task={task} context={context} startTime={startTimes.get(task.id) ?? null} focused={!task.completed && focused?.id === task.id}
+      locked={locked} onFocusRow={() => setFocusedId(task.id)} onRun={onRun} onTrack={onTrack} onSaved={(id, complete) => setPendingFocus({ id, complete })} />;
   };
+
   return <section className="today-view" aria-labelledby="today-heading">
-    <div className="today-heading"><h2 id="today-heading">Today</h2>{plan ? <time dateTime={plan.today}>{dateLabel.format(new Date(`${plan.today}T00:00:00Z`))}</time> : null}</div>
-    <DailyStreak visible={visible} lastSessionId={lastSessionId} compact />
+    <div className="plan-header">
+      <h2 className="plan-title"><span id="today-heading">Today</span>{plan ? <> <time dateTime={plan.today}>{dateLabel.format(new Date(`${plan.today}T00:00:00Z`))}</time></> : null}</h2>
+      {headerActions}
+    </div>
+    <div className="today-summary">
+      <DailyStreak visible={visible} lastSessionId={lastSessionId} compact />
+      {plan ? <p className="today-count">{incomplete.length} unfinished · {completed.length} complete{plannedMinutes ? ` · ${formatPlanned(plannedMinutes)} planned` : ""}</p> : null}
+    </div>
+    {events.length ? <ul className="today-events" aria-label="Calendar events today">
+      {events.map((event) => <li key={`${event.calendar_id}/${event.event_id}`} className="today-event">
+        <span className="today-event-time">{eventTime(event)}</span>
+        <span className="today-event-title">{event.summary}</span>
+      </li>)}
+    </ul> : null}
     {loading && !plan ? <p role="status">Loading today's tasks…</p> : null}
     {error ? <p className="error">Today's tasks may be out of date. <button type="button" className="link" onClick={onRetry}>Retry</button></p> : null}
     {plan ? <>
-      <p className="today-count">{incomplete.length} unfinished · {completed.length} complete</p>
-      {incomplete.length ? <ul className="today-tasks">{incomplete.map(row)}</ul> : <p className="today-empty">No unfinished tasks planned for today.</p>}
-      {completed.length ? <div className="today-completed"><button id={disclosureId} type="button" className="link" aria-expanded={showCompleted} onClick={() => setShowCompleted((value) => !value)}>Completed · {completed.length}</button>{showCompleted ? <ul className="today-tasks">{completed.map(row)}</ul> : null}</div> : null}
+      {incomplete.length ? <ul ref={listRef} className="today-tasks">{incomplete.map(row)}</ul> : <p className="today-empty">No unfinished tasks planned for today.</p>}
+      {completed.length ? <div className="today-completed">
+        <button id={disclosureId} type="button" className="disclosure" aria-expanded={showCompleted} onClick={() => setShowCompleted((value) => !value)}>
+          <span className="icon icon-chevron" aria-hidden="true" />Completed · {completed.length}
+        </button>
+        {showCompleted ? <ul className="today-tasks today-tasks-completed">{completed.map(row)}</ul> : null}
+      </div> : null}
+      <p className="today-shortcuts" aria-label="Keyboard shortcuts">
+        <span><kbd>Enter</kbd> start focused task</span><span><kbd>X</kbd> complete</span>
+        {onAddTask ? <span><kbd>N</kbd> new task</span> : null}{onShowWeek ? <span><kbd>W</kbd> week</span> : null}{onShowProjects ? <span><kbd>P</kbd> projects</span> : null}
+        <span><kbd>↑</kbd><kbd>↓</kbd> choose</span>
+      </p>
     </> : null}
   </section>;
 }
